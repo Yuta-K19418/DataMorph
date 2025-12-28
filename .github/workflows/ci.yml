@@ -24,11 +24,31 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
+    - name: Verify code formatting
+      run: dotnet format --verify-no-changes --verbosity diagnostic
+
     - name: Build
       run: dotnet build --no-restore --configuration Release
 
-    - name: Test
-      run: dotnet test --no-build --configuration Release --verbosity normal
+    - name: Test with coverage
+      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      if: matrix.os == 'ubuntu-latest'
+      with:
+        files: ./coverage/**/coverage.cobertura.xml
+        fail_ci_if_error: false
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload coverage artifacts
+      uses: actions/upload-artifact@v4
+      if: matrix.os == 'ubuntu-latest'
+      with:
+        name: coverage-report
+        path: ./coverage/**/coverage.cobertura.xml
+        retention-days: 30
 
   aot-compilation-check:
     runs-on: ubuntu-latest

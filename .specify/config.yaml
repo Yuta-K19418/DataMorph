@@ -1,0 +1,10 @@
+# .specify/config.yaml
+
+# Directory containing documentation (specifications, design, and guidelines)
+spec_dir: "docs"
+
+# Path to the task management file
+task_file: "TASKS.md"
+
+# Project root directory
+root_dir: "."

@@ -8,7 +8,7 @@ namespace DataMorph.Engine;
 /// </summary>
 public readonly struct Result
 {
-    private readonly string? _error;
+    private readonly string _error;
 
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
@@ -32,11 +32,11 @@ public readonly struct Result
             {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
             }
-            return _error ?? throw new UnreachableException();
+            return _error;
         }
     }
 
-    private Result(bool isSuccess, string? error)
+    private Result(bool isSuccess, string error)
     {
         IsSuccess = isSuccess;
         _error = error;
@@ -45,7 +45,7 @@ public readonly struct Result
     /// <summary>
     /// Creates a successful result.
     /// </summary>
-    public static Result Success() => new(true, null);
+    public static Result Success() => new(true, string.Empty);
 
     /// <summary>
     /// Creates a failed result with an error message.
@@ -89,7 +89,7 @@ public readonly struct Result
 public readonly struct Result<T>
 {
     private readonly T? _value;
-    private readonly string? _error;
+    private readonly string _error;
 
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
@@ -129,21 +129,28 @@ public readonly struct Result<T>
             {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
             }
-            return _error ?? throw new UnreachableException();
+            return _error;
         }
     }
 
-    private Result(bool isSuccess, T? value, string? error)
+    private Result(bool isSuccess, T value)
     {
         IsSuccess = isSuccess;
         _value = value;
+        _error = string.Empty;
+    }
+
+    private Result(bool isSuccess, string error)
+    {
+        IsSuccess = isSuccess;
+        _value = default;
         _error = error;
     }
 
     /// <summary>
     /// Creates a successful result with a value.
     /// </summary>
-    public static Result<T> Success(T value) => new(true, value, null);
+    public static Result<T> Success(T value) => new(isSuccess: true, value: value);
 
     /// <summary>
     /// Creates a failed result with an error message.
@@ -151,7 +158,7 @@ public readonly struct Result<T>
     public static Result<T> Failure(string error)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(error);
-        return new(false, default, error);
+        return new(isSuccess: false, error: error);
     }
 
     /// <summary>
@@ -198,8 +205,4 @@ public readonly struct Result<T>
         return this;
     }
 
-    /// <summary>
-    /// Gets the value if successful, otherwise returns the default value.
-    /// </summary>
-    public T GetValueOrDefault(T defaultValue = default!) => IsSuccess ? Value : defaultValue;
 }

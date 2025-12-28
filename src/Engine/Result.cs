@@ -27,7 +27,9 @@ public readonly struct Result
         get
         {
             if (IsSuccess)
+            {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
+            }
             return _error!;
         }
     }
@@ -58,7 +60,9 @@ public readonly struct Result
     public Result OnSuccess(Action action)
     {
         if (IsSuccess)
+        {
             action();
+        }
         return this;
     }
 
@@ -68,7 +72,9 @@ public readonly struct Result
     public Result OnFailure(Action<string> action)
     {
         if (IsFailure)
+        {
             action(Error);
+        }
         return this;
     }
 }
@@ -102,7 +108,9 @@ public readonly struct Result<T>
         get
         {
             if (IsFailure)
+            {
                 throw new InvalidOperationException("Cannot access Value on a failed result.");
+            }
             return _value!;
         }
     }
@@ -116,7 +124,9 @@ public readonly struct Result<T>
         get
         {
             if (IsSuccess)
+            {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
+            }
             return _error!;
         }
     }
@@ -168,7 +178,9 @@ public readonly struct Result<T>
     public Result<T> OnSuccess(Action<T> action)
     {
         if (IsSuccess)
+        {
             action(Value);
+        }
         return this;
     }
 
@@ -178,7 +190,9 @@ public readonly struct Result<T>
     public Result<T> OnFailure(Action<string> action)
     {
         if (IsFailure)
+        {
             action(Error);
+        }
         return this;
     }
 

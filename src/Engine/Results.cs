@@ -9,13 +9,14 @@ public static class Results
     /// Creates a successful result without a value.
     /// </summary>
     /// <returns>A Result representing a successful operation.</returns>
-    public static Result Success() => new(true, string.Empty);
+    public static Result Success() => new(true, default);
 
     /// <summary>
     /// Creates a failed result with an error message.
     /// </summary>
     /// <param name="error">The error message describing why the operation failed.</param>
     /// <returns>A Result representing a failed operation.</returns>
+    /// <exception cref="ArgumentException">Thrown when error is null, empty, or whitespace.</exception>
     public static Result Failure(string error) => new(false, error);
 
     /// <summary>
@@ -32,5 +33,6 @@ public static class Results
     /// <typeparam name="T">The type of the value that would have been returned on success.</typeparam>
     /// <param name="error">The error message describing why the operation failed.</param>
     /// <returns>A Result{T} representing a failed operation.</returns>
+    /// <exception cref="ArgumentException">Thrown when error is null, empty, or whitespace.</exception>
     public static Result<T> Failure<T>(string error) => new(false, error);
 }

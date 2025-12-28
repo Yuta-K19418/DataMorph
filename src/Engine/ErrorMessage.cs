@@ -9,7 +9,8 @@ public readonly record struct ErrorMessage
     private readonly string? _value;
 
     /// <summary>
-    /// Gets the error message text. Returns empty string if null.
+    /// Gets the error message text.
+    /// Returns empty string for default(ErrorMessage), otherwise returns the validated error message.
     /// </summary>
     public string Value => _value ?? string.Empty;
 
@@ -17,8 +18,10 @@ public readonly record struct ErrorMessage
     /// Initializes a new instance of the <see cref="ErrorMessage"/> struct.
     /// </summary>
     /// <param name="value">The error message text.</param>
+    /// <exception cref="ArgumentException">Thrown when value is null, empty, or whitespace.</exception>
     public ErrorMessage(string value)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
         _value = value;
     }
 

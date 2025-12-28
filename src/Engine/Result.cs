@@ -9,7 +9,7 @@ namespace DataMorph.Engine;
 /// </summary>
 public readonly struct Result : IEquatable<Result>
 {
-    private readonly string _error;
+    private readonly ErrorMessage _error;
 
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
@@ -37,7 +37,7 @@ public readonly struct Result : IEquatable<Result>
         }
     }
 
-    internal Result(bool isSuccess, string error)
+    internal Result(bool isSuccess, ErrorMessage error)
     {
         IsSuccess = isSuccess;
         _error = error;
@@ -76,7 +76,7 @@ public readonly struct Result : IEquatable<Result>
     /// </summary>
     /// <param name="other">The result to compare with this result.</param>
     /// <returns>true if the results are equal; otherwise, false.</returns>
-    public bool Equals(Result other) => IsSuccess == other.IsSuccess && string.Equals(_error, other._error, StringComparison.Ordinal);
+    public bool Equals(Result other) => IsSuccess == other.IsSuccess && _error.Equals(other._error);
 
     /// <summary>
     /// Determines whether the specified object is equal to the current result.
@@ -122,7 +122,7 @@ public readonly struct Result : IEquatable<Result>
 public readonly struct Result<T> : IEquatable<Result<T>>
 {
     private readonly T? _value;
-    private readonly string _error;
+    private readonly ErrorMessage _error;
 
     /// <summary>
     /// Gets a value indicating whether the operation succeeded.
@@ -170,10 +170,10 @@ public readonly struct Result<T> : IEquatable<Result<T>>
     {
         IsSuccess = isSuccess;
         _value = value;
-        _error = string.Empty;
+        _error = default;
     }
 
-    internal Result(bool isSuccess, string error)
+    internal Result(bool isSuccess, ErrorMessage error)
     {
         IsSuccess = isSuccess;
         _value = default;
@@ -246,7 +246,7 @@ public readonly struct Result<T> : IEquatable<Result<T>>
 
         return IsSuccess
             ? EqualityComparer<T?>.Default.Equals(_value, other._value)
-            : string.Equals(_error, other._error, StringComparison.Ordinal);
+            : _error.Equals(other._error);
     }
 
     /// <summary>

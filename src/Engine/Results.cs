@@ -17,7 +17,7 @@ public static class Results
     /// <param name="error">The error message describing why the operation failed.</param>
     /// <returns>A Result representing a failed operation.</returns>
     /// <exception cref="ArgumentException">Thrown when error is null, empty, or whitespace.</exception>
-    public static Result Failure(string error) => new(false, error);
+    public static Result Failure(string error) => new(false, new ErrorMessage(error));
 
     /// <summary>
     /// Creates a successful result with a value.
@@ -34,5 +34,5 @@ public static class Results
     /// <param name="error">The error message describing why the operation failed.</param>
     /// <returns>A Result{T} representing a failed operation.</returns>
     /// <exception cref="ArgumentException">Thrown when error is null, empty, or whitespace.</exception>
-    public static Result<T> Failure<T>(string error) => new(false, error);
+    public static Result<T> Failure<T>(string error) => new(false, new ErrorMessage(error));
 }

@@ -26,24 +26,11 @@ public readonly record struct ErrorMessage
     }
 
     /// <summary>
-    /// Implicitly converts a string to an ErrorMessage.
-    /// </summary>
-    /// <param name="value">The error message text.</param>
-    public static implicit operator ErrorMessage(string value) => new(value);
-
-    /// <summary>
-    /// Explicitly creates an ErrorMessage from a string.
-    /// This method provides an alternative to the implicit conversion operator.
+    /// Creates an ErrorMessage from a string.
     /// </summary>
     /// <param name="value">The error message text.</param>
     /// <returns>An ErrorMessage containing the provided text.</returns>
     public static ErrorMessage FromString(string value) => new(value);
-
-    /// <summary>
-    /// Implicitly converts an ErrorMessage to a string.
-    /// </summary>
-    /// <param name="error">The error message.</param>
-    public static implicit operator string(ErrorMessage error) => error.Value;
 
     /// <summary>
     /// Returns the error message text.

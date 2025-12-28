@@ -33,7 +33,7 @@ public readonly struct Result : IEquatable<Result>
             {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
             }
-            return _error;
+            return _error.Value;
         }
     }
 
@@ -162,7 +162,7 @@ public readonly struct Result<T> : IEquatable<Result<T>>
             {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
             }
-            return _error;
+            return _error.Value;
         }
     }
 
@@ -189,7 +189,7 @@ public readonly struct Result<T> : IEquatable<Result<T>>
 
         return IsSuccess
             ? new Result<TNew>(true, mapper(Value))
-            : new Result<TNew>(false, Error);
+            : new Result<TNew>(false, _error);
     }
 
     /// <summary>
@@ -201,7 +201,7 @@ public readonly struct Result<T> : IEquatable<Result<T>>
 
         return IsSuccess
             ? binder(Value)
-            : new Result<TNew>(false, Error);
+            : new Result<TNew>(false, _error);
     }
 
     /// <summary>

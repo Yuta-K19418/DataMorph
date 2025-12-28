@@ -26,6 +26,7 @@
 - **Error Handling**:
     - **Engine-level**: Use the `Result<T>` pattern for expected failures in hot paths to avoid exception overhead.
     - **Non-recoverable errors**: Use explicit, custom Exception types. Avoid generic `Exception`.
+    - **Null handling**: Avoid the null-forgiving operator (`!`). Use `UnreachableException` for design-guaranteed non-null paths.
 - **Performance & Memory**:
     - **Zero-Allocation**: Prioritize `ReadOnlySpan<byte>` and `ref struct` for data parsing.
     - **Async**: Use **ValueTask** or **ValueTask<T>** for high-frequency asynchronous operations (e.g., stream processing, TUI rendering updates) to minimize heap allocations, especially for methods likely to complete synchronously.

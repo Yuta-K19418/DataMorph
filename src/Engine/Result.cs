@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace DataMorph.Engine;
 
 /// <summary>
@@ -30,7 +32,7 @@ public readonly struct Result
             {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
             }
-            return _error!;
+            return _error ?? throw new UnreachableException();
         }
     }
 
@@ -111,7 +113,7 @@ public readonly struct Result<T>
             {
                 throw new InvalidOperationException("Cannot access Value on a failed result.");
             }
-            return _value!;
+            return _value ?? throw new UnreachableException();
         }
     }
 
@@ -127,7 +129,7 @@ public readonly struct Result<T>
             {
                 throw new InvalidOperationException("Cannot access Error on a successful result.");
             }
-            return _error!;
+            return _error ?? throw new UnreachableException();
         }
     }
 

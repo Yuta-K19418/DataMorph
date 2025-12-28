@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace DataMorph.Engine;
 
@@ -6,7 +7,7 @@ namespace DataMorph.Engine;
 /// Represents the result of an operation that can fail with an error.
 /// This type enables zero-allocation error handling for hot paths.
 /// </summary>
-public readonly struct Result
+public readonly struct Result: IEquatable<Result>
 {
     private readonly string _error;
 
@@ -36,24 +37,10 @@ public readonly struct Result
         }
     }
 
-    private Result(bool isSuccess, string error)
+    internal Result(bool isSuccess, string error)
     {
         IsSuccess = isSuccess;
         _error = error;
-    }
-
-    /// <summary>
-    /// Creates a successful result.
-    /// </summary>
-    public static Result Success() => new(true, string.Empty);
-
-    /// <summary>
-    /// Creates a failed result with an error message.
-    /// </summary>
-    public static Result Failure(string error)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(error);
-        return new(false, error);
     }
 
     /// <summary>
@@ -61,6 +48,8 @@ public readonly struct Result
     /// </summary>
     public Result OnSuccess(Action action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         if (IsSuccess)
         {
             action();
@@ -73,12 +62,56 @@ public readonly struct Result
     /// </summary>
     public Result OnFailure(Action<string> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         if (IsFailure)
         {
             action(Error);
         }
         return this;
     }
+
+    /// <summary>
+    /// Determines whether the current result is equal to another result.
+    /// </summary>
+    /// <param name="other">The result to compare with this result.</param>
+    /// <returns>true if the results are equal; otherwise, false.</returns>
+    public bool Equals(Result other) => IsSuccess == other.IsSuccess && string.Equals(_error, other._error, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Determines whether the specified object is equal to the current result.
+    /// </summary>
+    /// <param name="obj">The object to compare with this result.</param>
+    /// <returns>true if the specified object is equal to the current result; otherwise, false.</returns>
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is Result other && Equals(other);
+
+    /// <summary>
+    /// Returns the hash code for this result.
+    /// </summary>
+    /// <returns>A 32-bit signed integer hash code.</returns>
+    public override int GetHashCode() => HashCode.Combine(IsSuccess, _error);
+
+    /// <summary>
+    /// Returns a string representation of this result.
+    /// </summary>
+    /// <returns>"Success" if successful, or "Failure({error})" if failed.</returns>
+    public override string ToString() => IsSuccess ? "Success" : $"Failure({Error})";
+
+    /// <summary>
+    /// Determines whether two results are equal.
+    /// </summary>
+    /// <param name="left">The first result to compare.</param>
+    /// <param name="right">The second result to compare.</param>
+    /// <returns>true if the results are equal; otherwise, false.</returns>
+    public static bool operator ==(Result left, Result right) => left.Equals(right);
+
+    /// <summary>
+    /// Determines whether two results are not equal.
+    /// </summary>
+    /// <param name="left">The first result to compare.</param>
+    /// <param name="right">The second result to compare.</param>
+    /// <returns>true if the results are not equal; otherwise, false.</returns>
+    public static bool operator !=(Result left, Result right) => !left.Equals(right);
 }
 
 /// <summary>
@@ -86,7 +119,7 @@ public readonly struct Result
 /// This type enables zero-allocation error handling for hot paths.
 /// </summary>
 /// <typeparam name="T">The type of the value returned on success.</typeparam>
-public readonly struct Result<T>
+public readonly struct Result<T> : IEquatable<Result<T>>
 {
     private readonly T? _value;
     private readonly string _error;
@@ -133,14 +166,14 @@ public readonly struct Result<T>
         }
     }
 
-    private Result(bool isSuccess, T value)
+    internal Result(bool isSuccess, T value)
     {
         IsSuccess = isSuccess;
         _value = value;
         _error = string.Empty;
     }
 
-    private Result(bool isSuccess, string error)
+    internal Result(bool isSuccess, string error)
     {
         IsSuccess = isSuccess;
         _value = default;
@@ -148,27 +181,15 @@ public readonly struct Result<T>
     }
 
     /// <summary>
-    /// Creates a successful result with a value.
-    /// </summary>
-    public static Result<T> Success(T value) => new(isSuccess: true, value: value);
-
-    /// <summary>
-    /// Creates a failed result with an error message.
-    /// </summary>
-    public static Result<T> Failure(string error)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(error);
-        return new(isSuccess: false, error: error);
-    }
-
-    /// <summary>
     /// Transforms the value if the result is successful.
     /// </summary>
     public Result<TNew> Map<TNew>(Func<T, TNew> mapper)
     {
+        ArgumentNullException.ThrowIfNull(mapper);
+
         return IsSuccess
-            ? Result<TNew>.Success(mapper(Value))
-            : Result<TNew>.Failure(Error);
+            ? new Result<TNew>(true, mapper(Value))
+            : new Result<TNew>(false, Error);
     }
 
     /// <summary>
@@ -176,9 +197,11 @@ public readonly struct Result<T>
     /// </summary>
     public Result<TNew> Bind<TNew>(Func<T, Result<TNew>> binder)
     {
+        ArgumentNullException.ThrowIfNull(binder);
+
         return IsSuccess
             ? binder(Value)
-            : Result<TNew>.Failure(Error);
+            : new Result<TNew>(false, Error);
     }
 
     /// <summary>
@@ -186,6 +209,8 @@ public readonly struct Result<T>
     /// </summary>
     public Result<T> OnSuccess(Action<T> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         if (IsSuccess)
         {
             action(Value);
@@ -198,6 +223,8 @@ public readonly struct Result<T>
     /// </summary>
     public Result<T> OnFailure(Action<string> action)
     {
+        ArgumentNullException.ThrowIfNull(action);
+
         if (IsFailure)
         {
             action(Error);
@@ -205,4 +232,57 @@ public readonly struct Result<T>
         return this;
     }
 
+    /// <summary>
+    /// Determines whether the current result is equal to another result.
+    /// </summary>
+    /// <param name="other">The result to compare with this result.</param>
+    /// <returns>true if the results are equal; otherwise, false.</returns>
+    public bool Equals(Result<T> other)
+    {
+        if (IsSuccess != other.IsSuccess)
+        {
+            return false;
+        }
+
+        return IsSuccess
+            ? EqualityComparer<T?>.Default.Equals(_value, other._value)
+            : string.Equals(_error, other._error, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Determines whether the specified object is equal to the current result.
+    /// </summary>
+    /// <param name="obj">The object to compare with this result.</param>
+    /// <returns>true if the specified object is equal to the current result; otherwise, false.</returns>
+    public override bool Equals([NotNullWhen(true)] object? obj) => obj is Result<T> other && Equals(other);
+
+    /// <summary>
+    /// Returns the hash code for this result.
+    /// </summary>
+    /// <returns>A 32-bit signed integer hash code.</returns>
+    public override int GetHashCode() => HashCode.Combine(IsSuccess, _value, _error);
+
+    /// <summary>
+    /// Returns a string representation of this result.
+    /// </summary>
+    /// <returns>"Success({value})" if successful, or "Failure({error})" if failed.</returns>
+    public override string ToString() => IsSuccess ? $"Success({Value})" : $"Failure({Error})";
+
+    /// <summary>
+    /// Determines whether two results are equal.
+    /// </summary>
+    /// <param name="left">The first result to compare.</param>
+    /// <param name="right">The second result to compare.</param>
+    /// <returns>true if the results are equal; otherwise, false.</returns>
+    public static bool operator ==(Result<T> left, Result<T> right)
+        => left.Equals(right);
+
+    /// <summary>
+    /// Determines whether two results are not equal.
+    /// </summary>
+    /// <param name="left">The first result to compare.</param>
+    /// <param name="right">The second result to compare.</param>
+    /// <returns>true if the results are not equal; otherwise, false.</returns>
+    public static bool operator !=(Result<T> left, Result<T> right)
+        => !left.Equals(right);
 }

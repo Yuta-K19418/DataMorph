@@ -33,6 +33,11 @@ trim_trailing_whitespace = false
 
 # C# files
 [*.cs]
+#### Analyzer Rules ####
+
+# CA1303: Do not pass literals as localized parameters
+# Disabling this as the project uses English-only strings and doesn't require .resx localization.
+dotnet_diagnostic.CA1303.severity = none
 
 #### Core EditorConfig Options ####
 

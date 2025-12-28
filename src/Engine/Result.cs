@@ -7,7 +7,7 @@ namespace DataMorph.Engine;
 /// Represents the result of an operation that can fail with an error.
 /// This type enables zero-allocation error handling for hot paths.
 /// </summary>
-public readonly struct Result: IEquatable<Result>
+public readonly struct Result : IEquatable<Result>
 {
     private readonly string _error;
 

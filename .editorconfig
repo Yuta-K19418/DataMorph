@@ -268,3 +268,23 @@ dotnet_naming_style.begins_with_underscore.capitalization = camel_case
 # CA1515: Consider making public types internal
 # xUnit requires test classes to be public, so we disable this rule for test projects.
 dotnet_diagnostic.CA1515.severity = none
+
+# CA1707: Identifiers should not contain underscores
+# Test method names use underscores for readability (e.g., Method_Scenario_ExpectedResult).
+dotnet_diagnostic.CA1707.severity = none
+
+# CA1063: Implement IDisposable correctly
+# Test fixtures may implement IDisposable without following the full pattern for simplicity.
+dotnet_diagnostic.CA1063.severity = none
+
+# CA5394: Do not use insecure randomness
+# Test data generation doesn't require cryptographic randomness.
+dotnet_diagnostic.CA5394.severity = none
+
+# CA1816: Call GC.SuppressFinalize correctly
+# Test fixtures don't need finalizers; this rule is not applicable.
+dotnet_diagnostic.CA1816.severity = none
+
+# IDE1006: Naming rule violation
+# Test fixtures may use different naming conventions than production code.
+dotnet_diagnostic.IDE1006.severity = none

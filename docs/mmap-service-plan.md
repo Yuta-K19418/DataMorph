@@ -87,16 +87,17 @@ tests/DataMorph.Tests/IO/
 4. `Read()` method (safe implementation):
    - Check not disposed (ObjectDisposedException.ThrowIf)
    - Validate offset >= 0 (ArgumentOutOfRangeException.ThrowIfNegative)
-   - Validate offset + destination.Length <= _length (ArgumentOutOfRangeException.ThrowIfGreaterThan)
    - Return early if destination.Length == 0
+   - **Overflow-safe range validation**: Use `offset > _length - destination.Length` instead of `offset + destination.Length > _length` to prevent arithmetic overflow
    - Rent buffer from ArrayPool<byte>.Shared
    - Use _accessor.ReadArray() to read data into buffer
    - Copy buffer to destination span
    - Return buffer to pool in finally block
 
 5. `TryRead()` safe method:
-   - Check all preconditions (_disposed, offset < 0, range exceeds file)
-   - Return (false, "error message") on violations
+   - Check all preconditions (_disposed, offset < 0)
+   - **Overflow-safe range validation**: Use `destination.Length > 0 && offset > _length - destination.Length` to prevent arithmetic overflow
+   - Return (false, "error message") on validation failures
    - Call Read() in try-catch
    - Return (true, string.Empty) on success
    - Return (false, exception message) on IOException, ObjectDisposedException, ArgumentOutOfRangeException
@@ -137,14 +138,16 @@ Error path - Open (3 tests):
 - `Open_EmptyFilePath_ThrowsArgumentException()` - Empty string validation
 - `Open_WhitespaceFilePath_ThrowsArgumentException()` - Whitespace validation
 
-Error path - Read (3 tests):
+Error path - Read (4 tests):
 - `Read_NegativeOffset_ThrowsArgumentOutOfRangeException()` - Invalid offset
 - `Read_OutOfRange_ThrowsArgumentOutOfRangeException()` - Buffer too large
 - `Read_OffsetPlusLengthOutOfRange_ThrowsArgumentOutOfRangeException()` - Range overflow
+- `Read_LargeOffsetAndLength_ThrowsArgumentOutOfRangeException()` - Arithmetic overflow protection
 
-Error path - TryRead (2 tests):
+Error path - TryRead (3 tests):
 - `TryRead_NegativeOffset_ReturnsFailure()` - Returns (false, error)
 - `TryRead_OutOfRange_ReturnsFailure()` - Range validation
+- `TryRead_LargeOffsetAndLength_ReturnsFailure()` - Arithmetic overflow protection
 
 Disposal (5 tests):
 - `TryRead_AfterDispose_ReturnsFailure()` - TryRead on disposed service
@@ -152,7 +155,7 @@ Disposal (5 tests):
 - `Read_AfterDispose_ThrowsObjectDisposedException()` - Read after dispose
 - `Dispose_CalledMultipleTimes_DoesNotThrow()` - Idempotent dispose
 
-**Total:** 22 tests
+**Total:** 24 tests
 
 **Test fixture pattern:**
 - Implements IDisposable for temp file cleanup
@@ -211,6 +214,7 @@ Disposal (5 tests):
 - ArrayPool reduces allocation pressure
 - Data copied from accessor to caller's span
 - Buffer returned to pool immediately after use
+- **Overflow-safe arithmetic**: Range validation uses `offset > _length - destination.Length` instead of `offset + destination.Length > _length` to prevent integer overflow attacks
 
 ### Thread Safety
 - MemoryMappedFile is thread-safe for concurrent reads
@@ -248,7 +252,8 @@ Disposal (5 tests):
 
 **Quality:**
 - ✓ Complete XML documentation for all public members
-- ✓ 22 comprehensive unit tests with FluentAssertions
+- ✓ 24 comprehensive unit tests with FluentAssertions
+- ✓ Includes overflow protection test cases
 - ✓ Performance benchmarks with BenchmarkDotNet
 - ✓ Native AOT compatible (no unsafe code)
 - ✓ Follows .editorconfig coding standards
@@ -309,10 +314,10 @@ Console.WriteLine($"File size: {fileSize} bytes");
 
 ## Critical Files
 
-1. **src/Engine/IO/MmapService.cs** - Core implementation
+1. **src/Engine/IO/MmapService.cs** - Core implementation (220 lines)
 2. **src/Engine/Results.cs** - Factory methods (existing)
 3. **src/Engine/Result.cs** - Result types (existing)
-4. **tests/DataMorph.Tests/IO/MmapServiceTests.cs** - Unit tests (22 tests)
+4. **tests/DataMorph.Tests/IO/MmapServiceTests.cs** - Unit tests (24 tests including overflow protection)
 5. **tests/DataMorph.Tests/IO/MmapServiceBenchmarks.cs** - Performance benchmarks
 6. **.editorconfig** - Test-specific analyzer suppressions
 

@@ -183,6 +183,22 @@ public sealed class MmapServiceTests : IDisposable
     }
 
     [Fact]
+    public void Read_LargeOffsetAndLength_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        using var service = MmapService.Open(_testFilePath).Value;
+        // Using values that would overflow if added: offset + length would wrap around
+        var largeOffset = long.MaxValue - 100;
+        var buffer = new byte[1000];
+
+        // Act
+        var act = () => service.Read(largeOffset, buffer);
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
     public void TryRead_ValidRange_ReturnsSuccess()
     {
         // Arrange
@@ -222,6 +238,23 @@ public sealed class MmapServiceTests : IDisposable
 
         // Act
         var (success, error) = service.TryRead(0, buffer);
+
+        // Assert
+        success.Should().BeFalse();
+        error.Should().ContainEquivalentOf("exceeds");
+    }
+
+    [Fact]
+    public void TryRead_LargeOffsetAndLength_ReturnsFailure()
+    {
+        // Arrange
+        using var service = MmapService.Open(_testFilePath).Value;
+        // Using values that would overflow if added: offset + length would wrap around
+        var largeOffset = long.MaxValue - 100;
+        var buffer = new byte[1000];
+
+        // Act
+        var (success, error) = service.TryRead(largeOffset, buffer);
 
         // Assert
         success.Should().BeFalse();

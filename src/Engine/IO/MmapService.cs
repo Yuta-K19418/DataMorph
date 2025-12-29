@@ -133,11 +133,17 @@ public sealed class MmapService : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentOutOfRangeException.ThrowIfNegative(offset);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset + destination.Length, _length);
 
         if (destination.Length == 0)
         {
             return;
+        }
+
+        // Check for overflow-safe range validation
+        if (offset > _length - destination.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(destination),
+                $"Range [{offset}, {offset + destination.Length}) exceeds file length {_length}");
         }
 
         var buffer = ArrayPool<byte>.Shared.Rent(destination.Length);
@@ -179,7 +185,8 @@ public sealed class MmapService : IDisposable
             return (false, $"Offset must be non-negative: {offset}");
         }
 
-        if (offset + destination.Length > _length)
+        // Check for overflow-safe range validation
+        if (destination.Length > 0 && offset > _length - destination.Length)
         {
             return (false, $"Range [{offset}, {offset + destination.Length}) exceeds file length {_length}");
         }
@@ -213,8 +220,8 @@ public sealed class MmapService : IDisposable
             return;
         }
 
-        _accessor?.Dispose();
-        _mmf?.Dispose();
+        _accessor.Dispose();
+        _mmf.Dispose();
         _disposed = true;
     }
 }

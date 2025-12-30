@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
+using DataMorph.Engine.Types;
 using FluentAssertions;
 
 namespace DataMorph.Tests.Models;
@@ -24,7 +25,7 @@ public sealed class RecipeSerializationTests
         // Assert
         deserialized.Should().NotBeNull();
         deserialized.Should().BeEquivalentTo(action);
-        deserialized!.Description.Should().Be("Rename column 'old_column' to 'new_column'");
+        deserialized.Description.Should().Be("Rename column 'old_column' to 'new_column'");
     }
 
     [Fact]
@@ -43,7 +44,7 @@ public sealed class RecipeSerializationTests
         // Assert
         deserialized.Should().NotBeNull();
         deserialized.Should().BeEquivalentTo(action);
-        deserialized!.Description.Should().Be("Delete column 'unwanted_column'");
+        deserialized.Description.Should().Be("Delete column 'unwanted_column'");
     }
 
     [Fact]
@@ -53,7 +54,7 @@ public sealed class RecipeSerializationTests
         var action = new CastColumnAction
         {
             ColumnName = "price",
-            TargetType = "double"
+            TargetType = ColumnType.FloatingPoint
         };
 
         // Act
@@ -63,7 +64,7 @@ public sealed class RecipeSerializationTests
         // Assert
         deserialized.Should().NotBeNull();
         deserialized.Should().BeEquivalentTo(action);
-        deserialized!.Description.Should().Be("Cast column 'price' to double");
+        deserialized.Description.Should().Be("Cast column 'price' to FloatingPoint");
     }
 
     [Fact]
@@ -78,7 +79,7 @@ public sealed class RecipeSerializationTests
             {
                 new RenameColumnAction { OldName = "user_name", NewName = "username" },
                 new DeleteColumnAction { ColumnName = "temp_field" },
-                new CastColumnAction { ColumnName = "age", TargetType = "int" }
+                new CastColumnAction { ColumnName = "age", TargetType = ColumnType.WholeNumber }
             },
             LastModified = new DateTime(2025, 12, 30, 12, 0, 0, DateTimeKind.Utc)
         };
@@ -118,7 +119,7 @@ public sealed class RecipeSerializationTests
         {
             new RenameColumnAction { OldName = "a", NewName = "b" },
             new DeleteColumnAction { ColumnName = "c" },
-            new CastColumnAction { ColumnName = "d", TargetType = "string" }
+            new CastColumnAction { ColumnName = "d", TargetType = ColumnType.Text }
         };
 
         // Act
@@ -128,7 +129,7 @@ public sealed class RecipeSerializationTests
         // Assert
         deserialized.Should().NotBeNull();
         deserialized.Should().HaveCount(3);
-        deserialized![0].Should().BeOfType<RenameColumnAction>();
+        deserialized[0].Should().BeOfType<RenameColumnAction>();
         deserialized[1].Should().BeOfType<DeleteColumnAction>();
         deserialized[2].Should().BeOfType<CastColumnAction>();
     }

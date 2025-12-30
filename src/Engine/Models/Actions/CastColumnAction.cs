@@ -1,3 +1,5 @@
+using DataMorph.Engine.Types;
+
 namespace DataMorph.Engine.Models.Actions;
 
 /// <summary>
@@ -11,9 +13,9 @@ public sealed record CastColumnAction : MorphAction
     public required string ColumnName { get; init; }
 
     /// <summary>
-    /// The target type for the cast operation (e.g., "string", "int", "double", "bool").
+    /// The target type for the cast operation.
     /// </summary>
-    public required string TargetType { get; init; }
+    public required ColumnType TargetType { get; init; }
 
     public override string Description => $"Cast column '{ColumnName}' to {TargetType}";
 }

@@ -98,6 +98,8 @@ public sealed class PipelinesEngine : IDisposable
             useSynchronizationContext: false
         );
 
+        // Pipe ownership is transferred to PipelinesEngine.
+        // The caller is responsible for disposing the engine, which will clean up the pipe.
         var pipe = new Pipe(options);
         var engine = new PipelinesEngine(mmapService, rowIndexer, pipe);
 
@@ -154,9 +156,12 @@ public sealed class PipelinesEngine : IDisposable
     /// <remarks>
     /// This method writes all rows in a batch and flushes once at the end for better performance.
     /// The caller must read from Reader to avoid blocking due to backpressure.
+    /// Cancellation is checked before processing each row and during the final flush operation.
+    /// If cancelled during row processing, an OperationCanceledException is thrown.
+    /// If cancelled during flush, a Result.Failure is returned.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">The engine has been disposed.</exception>
-    /// <exception cref="OperationCanceledException">The operation was cancelled.</exception>
+    /// <exception cref="OperationCanceledException">The operation was cancelled during row processing.</exception>
     public async Task<Result> WriteRowsAsync(int startRow, int rowCount, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

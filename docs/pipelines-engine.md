@@ -125,10 +125,13 @@ Writes a range of rows to the pipeline for streaming consumption.
 **Remarks:**
 - This method uses batch writing: all rows are written to the buffer and flushed once at the end for better performance
 - The caller must read from `Reader` to avoid blocking due to backpressure
+- Cancellation behavior:
+  - Checked before processing each row (throws `OperationCanceledException`)
+  - Checked during final flush (returns `Result.Failure`)
 
 **Throws:**
 - `ObjectDisposedException`: If the engine has been disposed
-- `OperationCanceledException`: If the operation was cancelled
+- `OperationCanceledException`: If the operation was cancelled during row processing
 
 #### CompleteWriter
 

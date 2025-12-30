@@ -54,6 +54,24 @@ public sealed class PipelinesEngine : IDisposable
     }
 
     /// <summary>
+    /// Calculates the byte offset and length for a given row index.
+    /// </summary>
+    /// <param name="rowIndex">The zero-based row index.</param>
+    /// <returns>A tuple containing the start offset and number of bytes to read.</returns>
+    private (long startOffset, int bytesToRead) GetRowOffsetAndLength(int rowIndex)
+    {
+        var startOffset = _rowIndexer[rowIndex];
+        // Calculate end offset: use next row's start, or file length for last row
+        var endOffset = rowIndex + 1 < _rowIndexer.RowCount
+            ? _rowIndexer[rowIndex + 1]  // Next row's start
+            : _mmapService.Length;        // EOF for last row
+
+        var bytesToRead = (int)(endOffset - startOffset);
+
+        return (startOffset, bytesToRead);
+    }
+
+    /// <summary>
     /// Creates a PipelinesEngine from existing MmapService and RowIndexer.
     /// </summary>
     /// <param name="mmapService">The memory-mapped file service.</param>
@@ -103,15 +121,7 @@ public sealed class PipelinesEngine : IDisposable
             return Results.Failure($"Row index {rowIndex} out of range [0, {_rowIndexer.RowCount})");
         }
 
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var startOffset = _rowIndexer[rowIndex];
-        // Calculate end offset: use next row's start, or file length for last row
-        var endOffset = rowIndex + 1 < _rowIndexer.RowCount
-            ? _rowIndexer[rowIndex + 1]  // Next row's start
-            : _mmapService.Length;        // EOF for last row
-
-        var bytesToRead = (int)(endOffset - startOffset);
+        var (startOffset, bytesToRead) = GetRowOffsetAndLength(rowIndex);
 
         var memory = _pipe.Writer.GetMemory(bytesToRead);
         var (success, error) = _mmapService.TryRead(startOffset, memory.Span[..bytesToRead]);
@@ -142,8 +152,8 @@ public sealed class PipelinesEngine : IDisposable
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>A Result indicating success or failure.</returns>
     /// <remarks>
-    /// This method writes data to the internal PipeWriter, which can be consumed
-    /// via the Reader property. The caller must read from Reader to avoid blocking.
+    /// This method writes all rows in a batch and flushes once at the end for better performance.
+    /// The caller must read from Reader to avoid blocking due to backpressure.
     /// </remarks>
     /// <exception cref="ObjectDisposedException">The engine has been disposed.</exception>
     /// <exception cref="OperationCanceledException">The operation was cancelled.</exception>
@@ -171,15 +181,31 @@ public sealed class PipelinesEngine : IDisposable
             return Results.Failure($"Row range [{startRow}, {startRow + rowCount}) exceeds total rows ({_rowIndexer.RowCount})");
         }
 
+        // Write all rows to the buffer without flushing (batch writing for performance)
         for (var i = 0; i < rowCount; i++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var result = await WriteRowAsync(startRow + i, cancellationToken);
-            if (result.IsFailure)
+            var currentRow = startRow + i;
+            var (startOffset, bytesToRead) = GetRowOffsetAndLength(currentRow);
+
+            var memory = _pipe.Writer.GetMemory(bytesToRead);
+            var (success, error) = _mmapService.TryRead(startOffset, memory.Span[..bytesToRead]);
+
+            if (!success)
             {
-                return result;
+                return Results.Failure($"Failed to read row {currentRow}: {error}");
             }
+
+            _pipe.Writer.Advance(bytesToRead);
+        }
+
+        // Flush once at the end
+        var flushResult = await _pipe.Writer.FlushAsync(cancellationToken);
+
+        if (flushResult.IsCanceled)
+        {
+            return Results.Failure("Write operation was cancelled");
         }
 
         return Results.Success();

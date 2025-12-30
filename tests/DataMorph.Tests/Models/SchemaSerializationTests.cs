@@ -189,4 +189,47 @@ public sealed class SchemaSerializationTests
         json.Should().NotContain("\"ColumnIndex\":");
         json.Should().NotContain("\"DisplayFormat\":");
     }
+
+    [Fact]
+    public void TableSchema_WithDuplicateColumnNames_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new TableSchema
+        {
+            Columns = new List<ColumnSchema>
+            {
+                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
+                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 },
+                new() { Name = "id", Type = ColumnType.Text, ColumnIndex = 2 }
+            },
+            SourceFormat = DataFormat.Json
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("Duplicate column name found: id*")
+            .WithParameterName("Columns");
+    }
+
+    [Fact]
+    public void TableSchema_WithMultipleDuplicateColumnNames_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new TableSchema
+        {
+            Columns = new List<ColumnSchema>
+            {
+                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
+                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 },
+                new() { Name = "id", Type = ColumnType.Text, ColumnIndex = 2 },
+                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 3 }
+            },
+            SourceFormat = DataFormat.Json
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("Duplicate column name found: *")
+            .WithParameterName("Columns");
+    }
 }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DataMorph.Engine.Types;
 
 namespace DataMorph.Engine.Models;
@@ -8,10 +9,7 @@ namespace DataMorph.Engine.Models;
 /// </summary>
 public sealed record TableSchema
 {
-    private Dictionary<string, ColumnSchema>? _columnCache;
-
-    private Dictionary<string, ColumnSchema> ColumnCache =>
-        _columnCache ??= Columns.ToDictionary(c => c.Name, StringComparer.Ordinal);
+    private readonly Dictionary<string, ColumnSchema>? _columnCache;
 
     /// <summary>
     /// The ordered list of columns in the table.
@@ -21,19 +19,24 @@ public sealed record TableSchema
         get;
         init
         {
-            // Validate for duplicate column names
-            var firstDuplicate = value
-                .GroupBy(c => c.Name, StringComparer.Ordinal)
-                .FirstOrDefault(g => g.Count() > 1);
+            ArgumentNullException.ThrowIfNull(value);
 
-            if (firstDuplicate is not null)
+            // Validate for duplicate column names using HashSet for O(1) lookup
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var column in value)
             {
-                throw new ArgumentException(
-                    $"Duplicate column name found: {firstDuplicate.Key}",
-                    nameof(Columns));
+                if (!seen.Add(column.Name))
+                {
+                    throw new ArgumentException(
+                        $"Duplicate column name found: {column.Name}",
+                        nameof(Columns));
+                }
             }
 
             field = value;
+
+            // Initialize cache in init block for thread-safety and performance
+            _columnCache = value.ToDictionary(c => c.Name, StringComparer.Ordinal);
         }
     }
 
@@ -58,12 +61,12 @@ public sealed record TableSchema
     /// Uses O(1) dictionary lookup for improved performance.
     /// </summary>
     public ColumnSchema? GetColumn(string name) =>
-        ColumnCache.GetValueOrDefault(name);
+        (_columnCache ?? throw new UnreachableException()).GetValueOrDefault(name);
 
     /// <summary>
     /// Checks if a column with the specified name exists in the schema.
     /// Uses O(1) dictionary lookup for improved performance.
     /// </summary>
     public bool ContainsColumn(string name) =>
-        ColumnCache.ContainsKey(name);
+        (_columnCache ?? throw new UnreachableException()).ContainsKey(name);
 }

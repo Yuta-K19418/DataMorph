@@ -11,7 +11,15 @@ public sealed record Recipe
     /// <summary>
     /// User-friendly name for the recipe.
     /// </summary>
-    public required string Name { get; init; }
+    public required string Name
+    {
+        get;
+        init
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
+            field = value;
+        }
+    }
 
     /// <summary>
     /// Optional description of what this recipe does.

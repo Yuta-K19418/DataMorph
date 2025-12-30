@@ -41,10 +41,18 @@ public sealed record TableSchema
     }
 
     /// <summary>
-    /// The total number of rows in the dataset (if known).
-    /// May be null for streaming data where row count is unknown.
+    /// The total number of rows in the dataset.
+    /// Use 0 if the row count is unknown (e.g., for streaming data).
     /// </summary>
-    public long? RowCount { get; init; }
+    public long RowCount
+    {
+        get;
+        init
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            field = value;
+        }
+    }
 
     /// <summary>
     /// The source file format (Json or Csv).

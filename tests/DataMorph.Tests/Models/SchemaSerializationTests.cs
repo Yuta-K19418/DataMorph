@@ -90,6 +90,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
                 new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 }
             },
+            RowCount = 0,
             SourceFormat = DataFormat.Json
         };
 
@@ -112,6 +113,7 @@ public sealed class SchemaSerializationTests
             {
                 new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
             },
+            RowCount = 0,
             SourceFormat = DataFormat.Json
         };
 
@@ -133,6 +135,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
                 new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 }
             },
+            RowCount = 0,
             SourceFormat = DataFormat.Json
         };
 
@@ -154,6 +157,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "col2", Type = ColumnType.WholeNumber, ColumnIndex = 1 },
                 new() { Name = "col3", Type = ColumnType.Boolean, ColumnIndex = 2 }
             },
+            RowCount = 0,
             SourceFormat = DataFormat.Json
         };
 
@@ -202,6 +206,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 },
                 new() { Name = "id", Type = ColumnType.Text, ColumnIndex = 2 }
             },
+            RowCount = 0,
             SourceFormat = DataFormat.Json
         };
 
@@ -224,6 +229,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "id", Type = ColumnType.Text, ColumnIndex = 2 },
                 new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 3 }
             },
+            RowCount = 0,
             SourceFormat = DataFormat.Json
         };
 
@@ -231,5 +237,101 @@ public sealed class SchemaSerializationTests
         act.Should().Throw<ArgumentException>()
             .WithMessage("Duplicate column name found: *")
             .WithParameterName("Columns");
+    }
+
+    [Fact]
+    public void ColumnSchema_WithNullName_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new ColumnSchema
+        {
+            Name = null!,
+            Type = ColumnType.Text,
+            ColumnIndex = 0
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ColumnSchema_WithEmptyName_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new ColumnSchema
+        {
+            Name = string.Empty,
+            Type = ColumnType.Text,
+            ColumnIndex = 0
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ColumnSchema_WithWhiteSpaceName_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new ColumnSchema
+        {
+            Name = "   ",
+            Type = ColumnType.Text,
+            ColumnIndex = 0
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ColumnSchema_WithNegativeColumnIndex_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange & Act
+        var act = () => new ColumnSchema
+        {
+            Name = "test",
+            Type = ColumnType.Text,
+            ColumnIndex = -1
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void TableSchema_WithNegativeRowCount_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange & Act
+        var act = () => new TableSchema
+        {
+            Columns = new List<ColumnSchema>
+            {
+                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
+            },
+            RowCount = -1,
+            SourceFormat = DataFormat.Json
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void TableSchema_WithZeroRowCount_DoesNotThrow()
+    {
+        // Arrange & Act
+        var act = () => new TableSchema
+        {
+            Columns = new List<ColumnSchema>
+            {
+                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
+            },
+            RowCount = 0,
+            SourceFormat = DataFormat.Json
+        };
+
+        // Assert
+        act.Should().NotThrow();
     }
 }

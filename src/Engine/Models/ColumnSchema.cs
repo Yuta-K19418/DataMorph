@@ -11,7 +11,15 @@ public sealed record ColumnSchema
     /// <summary>
     /// The name of the column (e.g., "id", "user.name", "order.details.price" for flattened JSON).
     /// </summary>
-    public required string Name { get; init; }
+    public required string Name
+    {
+        get;
+        init
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(value);
+            field = value;
+        }
+    }
 
     /// <summary>
     /// The inferred or explicit data type of the column.
@@ -26,7 +34,15 @@ public sealed record ColumnSchema
     /// <summary>
     /// The zero-based index position of this column in the table.
     /// </summary>
-    public int ColumnIndex { get; init; }
+    public int ColumnIndex
+    {
+        get;
+        init
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            field = value;
+        }
+    }
 
     /// <summary>
     /// Optional: Format string for display (e.g., date format, number precision).

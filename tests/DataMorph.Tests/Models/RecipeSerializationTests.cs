@@ -320,4 +320,46 @@ public sealed class RecipeSerializationTests
         recipe2.LastModified.Should().HaveValue();
         recipe1.LastModified.Value.UtcDateTime.Should().Be(recipe2.LastModified.Value.UtcDateTime);
     }
+
+    [Fact]
+    public void Recipe_WithNullName_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new Recipe
+        {
+            Name = null!,
+            Actions = Array.Empty<MorphAction>()
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Recipe_WithEmptyName_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new Recipe
+        {
+            Name = string.Empty,
+            Actions = Array.Empty<MorphAction>()
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Recipe_WithWhiteSpaceName_ThrowsArgumentException()
+    {
+        // Arrange & Act
+        var act = () => new Recipe
+        {
+            Name = "   ",
+            Actions = Array.Empty<MorphAction>()
+        };
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
 }

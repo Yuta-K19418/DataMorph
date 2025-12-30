@@ -262,6 +262,13 @@ dotnet_naming_style.begins_with_underscore.required_suffix =
 dotnet_naming_style.begins_with_underscore.word_separator =
 dotnet_naming_style.begins_with_underscore.capitalization = camel_case
 
+# Source code files
+[src/**/*.cs]
+
+# CA2007: Consider calling ConfigureAwait on awaited task
+# Application code doesn't need ConfigureAwait in modern .NET (no synchronization context in CLI apps)
+dotnet_diagnostic.CA2007.severity = none
+
 # Test files
 [tests/**/*.cs]
 
@@ -288,3 +295,12 @@ dotnet_diagnostic.CA1816.severity = none
 # IDE1006: Naming rule violation
 # Test fixtures may use different naming conventions than production code.
 dotnet_diagnostic.IDE1006.severity = none
+
+# CA1849: Call async methods when in an async method
+# Test setup and cleanup code uses synchronous File I/O for simplicity.
+dotnet_diagnostic.CA1849.severity = none
+
+# CA2007: Consider calling ConfigureAwait on awaited task
+# Test code runs on the test context and doesn't need ConfigureAwait.
+# xUnit tests should not use ConfigureAwait(false) (xUnit1030).
+dotnet_diagnostic.CA2007.severity = none

@@ -31,9 +31,23 @@ public sealed class PipelinesEngineTests : IDisposable
             var result = await reader.ReadAsync();
             var buffer = result.Buffer;
 
-            foreach (var segment in buffer)
+            if (buffer.Length > 0)
             {
-                sb.Append(Encoding.UTF8.GetString(segment.Span));
+                if (buffer.IsSingleSegment)
+                {
+                    sb.Append(Encoding.UTF8.GetString(buffer.FirstSpan));
+                }
+                else
+                {
+                    Span<byte> span = new byte[buffer.Length];
+                    var position = 0;
+                    foreach (var segment in buffer)
+                    {
+                        segment.Span.CopyTo(span.Slice(position));
+                        position += segment.Length;
+                    }
+                    sb.Append(Encoding.UTF8.GetString(span));
+                }
             }
 
             reader.AdvanceTo(buffer.End);
@@ -417,10 +431,10 @@ public sealed class PipelinesEngineTests : IDisposable
     }
 
     [Fact]
-    public async Task Integration_LargeFile_StreamsEfficiently()
+    public async Task Integration_MediumFile_StreamsEfficiently()
     {
-        // Arrange: Create a file with 1000 lines
-        var lines = Enumerable.Range(0, 1000).Select(i => $"Line {i:D4}");
+        // Arrange: Create a file with 5000 lines to test batch writing performance
+        var lines = Enumerable.Range(0, 5000).Select(i => $"Line {i:D4}");
         var content = string.Join("\n", lines);
         File.WriteAllText(_testFilePath, content);
         using var mmap = MmapService.Open(_testFilePath).Value;

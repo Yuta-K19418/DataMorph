@@ -122,7 +122,9 @@ Writes a range of rows to the pipeline for streaming consumption.
 
 **Returns:** `Task<Result>` indicating success or failure
 
-**Remarks:** The caller must read from `Reader` to avoid blocking due to backpressure.
+**Remarks:**
+- This method uses batch writing: all rows are written to the buffer and flushed once at the end for better performance
+- The caller must read from `Reader` to avoid blocking due to backpressure
 
 **Throws:**
 - `ObjectDisposedException`: If the engine has been disposed
@@ -206,9 +208,29 @@ static async IAsyncEnumerable<string> ReadLinesAsync(PipeReader reader)
         var result = await reader.ReadAsync();
         var buffer = result.Buffer;
 
-        foreach (var segment in buffer)
+        if (buffer.Length > 0)
         {
-            yield return Encoding.UTF8.GetString(segment.Span);
+            string text;
+            if (buffer.IsSingleSegment)
+            {
+                text = Encoding.UTF8.GetString(buffer.FirstSpan);
+            }
+            else
+            {
+                Span<byte> span = new byte[buffer.Length];
+                var position = 0;
+                foreach (var segment in buffer)
+                {
+                    segment.Span.CopyTo(span.Slice(position));
+                    position += segment.Length;
+                }
+                text = Encoding.UTF8.GetString(span);
+            }
+
+            foreach (var line in text.Split('\n'))
+            {
+                yield return line;
+            }
         }
 
         reader.AdvanceTo(buffer.End);
@@ -292,6 +314,7 @@ The pipeline automatically applies backpressure when the consumer falls behind:
 - **Row-Based Streaming**: Reads exact byte ranges per row (no chunking overhead)
 - **Zero-Copy**: Data flows directly from memory-mapped file to pipeline buffers
 - **SIMD-Accelerated Indexing**: Row offsets computed using RowIndexer's SIMD newline detection
+- **Batch Writing**: `WriteRowsAsync` writes all rows to the buffer and flushes once at the end, reducing syscall overhead compared to per-row flushing
 
 ## Error Handling
 
@@ -315,7 +338,7 @@ result.OnSuccess(() => Console.WriteLine("Write succeeded"));
 
 | Error | Cause | Resolution |
 |-------|-------|------------|
-| "Row index X out of range" | Invalid row index provided | Check `engine.RowCount` before calling `WriteRow` |
+| "Row index X out of range" | Invalid row index provided | Check `engine.RowCount` before calling `WriteRowAsync` |
 | "Row range exceeds total rows" | `startRow + rowCount` exceeds available rows | Validate range against `engine.RowCount` |
 | "Failed to read row X" | MmapService read failure | Check file permissions and integrity |
 | "Write operation was cancelled" | Flush cancelled by token | Handle cancellation gracefully |
@@ -367,7 +390,7 @@ using var engine2 = PipelinesEngine.Create(mmapService, indexer).Value;
 
 ### Data Flow Details
 
-When `WriteRow(rowIndex)` is called:
+When `WriteRowAsync(rowIndex)` is called:
 
 1. `RowIndexer` provides byte offset: `startOffset = indexer[rowIndex]`
 2. End offset calculated: `endOffset = indexer[rowIndex + 1]` (or file length for last row)
@@ -379,12 +402,13 @@ When `WriteRow(rowIndex)` is called:
 
 ## Design Decisions
 
-### Why Synchronous API?
+### Why Async API?
 
-- Consistent with existing codebase (MmapService, RowIndexer are synchronous)
-- Memory-mapped file reads are already high-performance
-- Simplified usage for synchronous consumers
-- Async version can be added later if needed
+- Natural integration with System.IO.Pipelines which is async-first
+- Enables proper backpressure handling without blocking threads
+- Better resource utilization for I/O-bound operations
+- Follows modern .NET best practices for streaming data
+- No need for ConfigureAwait(false) in application code (modern .NET has no synchronization context in CLI apps)
 
 ### Why Expose PipeReader?
 

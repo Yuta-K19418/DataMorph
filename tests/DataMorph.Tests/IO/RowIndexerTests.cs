@@ -122,9 +122,10 @@ public sealed class RowIndexerTests : IDisposable
     public void Build_WithLargeFile_ProcessesInChunks()
     {
         // Arrange: Create a file larger than default chunk size (1MB)
+        // Use explicit LF to avoid platform-dependent CRLF issues with chunk boundaries
         const int lineCount = 100_000;
-        var lines = Enumerable.Range(0, lineCount).Select(i => $"Line {i:D6}");
-        File.WriteAllLines(_testFilePath, lines);
+        var content = string.Join("\n", Enumerable.Range(0, lineCount).Select(i => $"Line {i:D6}")) + "\n";
+        File.WriteAllText(_testFilePath, content);
 
         using var mmapService = MmapService.Open(_testFilePath).Value;
 

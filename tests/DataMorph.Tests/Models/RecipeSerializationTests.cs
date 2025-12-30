@@ -81,7 +81,7 @@ public sealed class RecipeSerializationTests
                 new DeleteColumnAction { ColumnName = "temp_field" },
                 new CastColumnAction { ColumnName = "age", TargetType = ColumnType.WholeNumber }
             },
-            LastModified = new DateTime(2025, 12, 30, 12, 0, 0, DateTimeKind.Utc)
+            LastModified = new DateTimeOffset(2025, 12, 30, 12, 0, 0, TimeSpan.Zero)
         };
 
         // Act
@@ -94,7 +94,7 @@ public sealed class RecipeSerializationTests
         deserialized.Description.Should().Be("Standardize user data format");
         deserialized.Actions.Should().HaveCount(3);
         deserialized.IsEmpty.Should().BeFalse();
-        deserialized.LastModified.Should().Be(new DateTime(2025, 12, 30, 12, 0, 0, DateTimeKind.Utc));
+        deserialized.LastModified.Should().Be(new DateTimeOffset(2025, 12, 30, 12, 0, 0, TimeSpan.Zero));
     }
 
     [Fact]
@@ -194,5 +194,130 @@ public sealed class RecipeSerializationTests
         recipe.Description.Should().BeNull();
         recipe.Name.Should().Be("Test Recipe");
         recipe.Actions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Recipe_DeserializeInvalidJson_ThrowsJsonException()
+    {
+        // Arrange
+        var invalidJson = """{ "name": "Test", "actions": "not-an-array" }""";
+
+        // Act
+        var act = () => JsonSerializer.Deserialize(invalidJson, DataMorphJsonContext.Default.Recipe);
+
+        // Assert
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Recipe_DeserializeMalformedJson_ThrowsJsonException()
+    {
+        // Arrange
+        var malformedJson = """{ "name": "Test", "actions": [ }""";
+
+        // Act
+        var act = () => JsonSerializer.Deserialize(malformedJson, DataMorphJsonContext.Default.Recipe);
+
+        // Assert
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Recipe_DeserializeWithMissingRequiredField_ThrowsJsonException()
+    {
+        // Arrange
+        var jsonWithoutName = """{ "actions": [] }""";
+
+        // Act
+        var act = () => JsonSerializer.Deserialize(jsonWithoutName, DataMorphJsonContext.Default.Recipe);
+
+        // Assert
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void MorphAction_DeserializeUnknownActionType_ThrowsJsonException()
+    {
+        // Arrange
+        var jsonWithUnknownType = """
+        {
+            "name": "Test Recipe",
+            "actions": [
+                {
+                    "type": "unknown_action",
+                    "columnName": "test"
+                }
+            ]
+        }
+        """;
+
+        // Act
+        var act = () => JsonSerializer.Deserialize(jsonWithUnknownType, DataMorphJsonContext.Default.Recipe);
+
+        // Assert
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void CastColumnAction_DeserializeWithMissingRequiredProperty_ThrowsJsonException()
+    {
+        // Arrange
+        var jsonWithMissingProperty = """
+        {
+            "name": "Test Recipe",
+            "actions": [
+                {
+                    "type": "cast",
+                    "columnName": "test"
+                }
+            ]
+        }
+        """;
+
+        // Act
+        var act = () => JsonSerializer.Deserialize(jsonWithMissingProperty, DataMorphJsonContext.Default.Recipe);
+
+        // Assert
+        act.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Recipe_LastModified_PreservesTimezoneInformation()
+    {
+        // Arrange - Use JST (UTC+9)
+        var jstOffset = TimeSpan.FromHours(9);
+        var expectedTimestamp = new DateTimeOffset(2025, 12, 30, 21, 0, 0, jstOffset);
+        var recipe = new Recipe
+        {
+            Name = "Timezone Test",
+            Actions = Array.Empty<MorphAction>(),
+            LastModified = expectedTimestamp
+        };
+
+        // Act
+        var json = JsonSerializer.Serialize(recipe, DataMorphJsonContext.Default.Recipe);
+        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.Recipe);
+
+        // Assert
+        deserialized.Should().NotBeNull();
+        deserialized.LastModified.Should().HaveValue();
+        deserialized.LastModified.Should().Be(expectedTimestamp);
+    }
+
+    [Fact]
+    public void Recipe_LastModified_UtcAndLocalTimeAreEquivalent()
+    {
+        // Arrange - Same moment in time, different timezones
+        var utcTime = new DateTimeOffset(2025, 12, 30, 12, 0, 0, TimeSpan.Zero);
+        var jstTime = new DateTimeOffset(2025, 12, 30, 21, 0, 0, TimeSpan.FromHours(9));
+
+        var recipe1 = new Recipe { Name = "UTC", Actions = Array.Empty<MorphAction>(), LastModified = utcTime };
+        var recipe2 = new Recipe { Name = "JST", Actions = Array.Empty<MorphAction>(), LastModified = jstTime };
+
+        // Assert - Should represent the same moment in time
+        recipe1.LastModified.Should().Be(recipe2.LastModified);
+        recipe1.LastModified.Should().HaveValue();
+        recipe2.LastModified.Should().HaveValue();
+        recipe1.LastModified.Value.UtcDateTime.Should().Be(recipe2.LastModified.Value.UtcDateTime);
     }
 }

@@ -26,8 +26,9 @@ public sealed record Recipe
 
     /// <summary>
     /// Metadata: timestamp when the recipe was created or last modified.
+    /// Uses DateTimeOffset to preserve timezone information.
     /// </summary>
-    public DateTime? LastModified { get; init; }
+    public DateTimeOffset? LastModified { get; init; }
 
     /// <summary>
     /// Returns true if the recipe contains no actions.

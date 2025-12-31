@@ -14,4 +14,8 @@
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="DataMorph.Tests" />
+  </ItemGroup>
+
 </Project>

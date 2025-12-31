@@ -91,3 +91,6 @@ ScaffoldingReadMe.txt
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Local configuration files
+*.local.*

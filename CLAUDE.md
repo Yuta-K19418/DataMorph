@@ -2,7 +2,6 @@
 - Build: dotnet build
 - Test: dotnet test
 - Format: dotnet format
-- Benchmarks: dotnet run -c Release --project [BenchmarkProjectName]
 
 # Project Guidelines
 

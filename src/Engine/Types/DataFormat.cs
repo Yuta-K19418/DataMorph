@@ -6,12 +6,26 @@ namespace DataMorph.Engine.Types;
 public enum DataFormat
 {
     /// <summary>
-    /// JSON Array format.
+    /// Comma-Separated Values (CSV) format.
+    /// Delimited by comma (,).
     /// </summary>
-    Json,
+    Csv,
 
     /// <summary>
-    /// Comma-Separated Values (CSV) format.
+    /// JSON Lines format (one JSON object per line).
+    /// Each line contains a complete JSON object: {"key": "value"}\n
     /// </summary>
-    Csv
+    JsonLines,
+
+    /// <summary>
+    /// JSON Array format.
+    /// Root element is an array: [...]
+    /// </summary>
+    JsonArray,
+
+    /// <summary>
+    /// JSON Object format.
+    /// Root element is an object: {...}
+    /// </summary>
+    JsonObject,
 }

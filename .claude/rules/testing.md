@@ -20,8 +20,8 @@ paths:
 
 ## Assertions
 
-### FluentAssertions
-- Use **FluentAssertions** for general logic and high-level behavioral tests
+### AwesomeAssertions
+- Use **AwesomeAssertions** for general logic and high-level behavioral tests
 - Provides more readable and expressive assertions
 - Example: `result.Should().Be(expected);`
 

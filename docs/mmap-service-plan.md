@@ -118,7 +118,7 @@ tests/DataMorph.Tests/IO/
 
 **File:** `tests/DataMorph.Tests/IO/MmapServiceTests.cs`
 
-**Framework:** xUnit with FluentAssertions
+**Framework:** xUnit with AwesomeAssertions
 
 **Test cases:**
 
@@ -252,7 +252,7 @@ Disposal (5 tests):
 
 **Quality:**
 - ✓ Complete XML documentation for all public members
-- ✓ 24 comprehensive unit tests with FluentAssertions
+- ✓ 24 comprehensive unit tests with AwesomeAssertions
 - ✓ Includes overflow protection test cases
 - ✓ Performance benchmarks with BenchmarkDotNet
 - ✓ Native AOT compatible (no unsafe code)

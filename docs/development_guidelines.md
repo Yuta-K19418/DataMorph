@@ -58,8 +58,8 @@
 
 ## 3. Testing
 - **Framework**: Use **xUnit** as the primary testing framework.
-- **Assertions**: 
-    - Use **FluentAssertions** for general logic and high-level behavioral tests.
+- **Assertions**:
+    - Use **AwesomeAssertions** for general logic and high-level behavioral tests.
     - Use **Standard xUnit Asserts** for tests that are explicitly intended to run under **Native AOT** environments.
 - **Performance Testing**:
     - **BenchmarkDotNet** is mandatory for core engine components (`MmapService`, `RowIndexer`, `Parser`).

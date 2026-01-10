@@ -64,7 +64,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "price", Type = ColumnType.FloatingPoint, ColumnIndex = 2 }
             },
             RowCount = 1000,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Act
@@ -75,7 +75,7 @@ public sealed class SchemaSerializationTests
         deserialized.Should().NotBeNull();
         deserialized.ColumnCount.Should().Be(3);
         deserialized.RowCount.Should().Be(1000);
-        deserialized.SourceFormat.Should().Be(DataFormat.Json);
+        deserialized.SourceFormat.Should().Be(DataFormat.JsonArray);
         deserialized.Columns.Should().HaveCount(3);
     }
 
@@ -91,7 +91,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 }
             },
             RowCount = 0,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Act
@@ -114,7 +114,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
             },
             RowCount = 0,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Act
@@ -136,7 +136,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 }
             },
             RowCount = 0,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Act & Assert
@@ -158,7 +158,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "col3", Type = ColumnType.Boolean, ColumnIndex = 2 }
             },
             RowCount = 0,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Act & Assert
@@ -207,7 +207,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "id", Type = ColumnType.Text, ColumnIndex = 2 }
             },
             RowCount = 0,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Assert
@@ -230,7 +230,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 3 }
             },
             RowCount = 0,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Assert
@@ -310,7 +310,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
             },
             RowCount = -1,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Assert
@@ -328,7 +328,7 @@ public sealed class SchemaSerializationTests
                 new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
             },
             RowCount = 0,
-            SourceFormat = DataFormat.Json
+            SourceFormat = DataFormat.JsonArray
         };
 
         // Assert

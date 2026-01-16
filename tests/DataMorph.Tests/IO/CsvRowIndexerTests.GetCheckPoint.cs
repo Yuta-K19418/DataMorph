@@ -12,7 +12,7 @@ public sealed partial class CsvRowIndexerTests
         // Header "col1,col2\n" = 10 bytes
         var lines = new List<string> { "col1,col2" };
         lines.AddRange(Enumerable.Range(1, 500).Select(i => $"v{i:D3},d{i:D3}"));
-        File.WriteAllLines(_testFilePath, lines);
+        File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
         var indexer = new CsvRowIndexer(_testFilePath);
         indexer.BuildIndex();
@@ -32,7 +32,7 @@ public sealed partial class CsvRowIndexerTests
         // Header "col01,col02\n" = 12 bytes
         var lines = new List<string> { "col01,col02" };
         lines.AddRange(Enumerable.Range(1, 1500).Select(i => $"v{i:D4},d{i:D4}"));
-        File.WriteAllLines(_testFilePath, lines);
+        File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
         var indexer = new CsvRowIndexer(_testFilePath);
         indexer.BuildIndex();
@@ -53,7 +53,7 @@ public sealed partial class CsvRowIndexerTests
         // Header "col01,col02\n" = 12 bytes
         var lines = new List<string> { "col01,col02" };
         lines.AddRange(Enumerable.Range(1, 1200).Select(i => $"v{i:D4},d{i:D4}"));
-        File.WriteAllLines(_testFilePath, lines);
+        File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
         var indexer = new CsvRowIndexer(_testFilePath);
         indexer.BuildIndex();
@@ -76,7 +76,7 @@ public sealed partial class CsvRowIndexerTests
         // Header "col01,col02\n" = 12 bytes
         var lines = new List<string> { "col01,col02" };
         lines.AddRange(Enumerable.Range(1, 2000).Select(i => $"v{i:D4},d{i:D4}"));
-        File.WriteAllLines(_testFilePath, lines);
+        File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
         var indexer = new CsvRowIndexer(_testFilePath);
         indexer.BuildIndex();

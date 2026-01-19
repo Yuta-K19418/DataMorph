@@ -1,7 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\Engine\DataMorph.Engine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.4828" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -20,6 +24,9 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
+
+    <!-- Suppress Terminal.Gui AOT warnings -->
+    <NoWarn>$(NoWarn);IL2026;IL3050;IL3053</NoWarn>
   </PropertyGroup>
 
 </Project>

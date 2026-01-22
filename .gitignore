@@ -94,3 +94,5 @@ Desktop.ini
 
 # Local configuration files
 *.local.*
+
+.aider*

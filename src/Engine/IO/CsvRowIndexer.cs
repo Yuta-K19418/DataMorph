@@ -10,6 +10,8 @@ public sealed class CsvRowIndexer
 {
     private readonly Lock _lock = new();
     private readonly string _filePath;
+
+    public string FilePath => _filePath;
     private readonly List<long> _checkpoints = [0];
 
     private const int BufferSize = 1024 * 1024; // 1MB

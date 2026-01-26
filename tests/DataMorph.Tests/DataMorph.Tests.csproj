@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -10,6 +10,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest-all</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Disable AOT for debugging -->
+    <PublishAot>false</PublishAot>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Engine\DataMorph.Engine.csproj" />
+    <ProjectReference Include="..\..\src\App\DataMorph.App.csproj" />
   </ItemGroup>
 
 </Project>

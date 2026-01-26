@@ -1,4 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using DataMorph.Engine.IO;
+using DataMorph.Engine.Models;
+using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.ViewBase;
@@ -106,9 +109,60 @@ internal sealed class MainWindow : Window
         }
 
         _state.CurrentFilePath = dialog.Path;
+
+        // Determine file type and create appropriate view
+        if (dialog.Path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            var indexer = new CsvRowIndexer(dialog.Path);
+            _ = Task.Run(indexer.BuildIndex);
+
+            // Create schema from CSV header using CsvSchemaCreator
+            var result = CsvSchemaCreator.CreateSchemaFromCsvHeader(
+                dialog.Path,
+                () => indexer.TotalRows
+            );
+            if (result.IsFailure)
+            {
+                // Schema creation failed, use placeholder view
+                _state.CurrentMode = ViewMode.PlaceholderView;
+
+                if (_currentContentView is not null)
+                {
+                    Remove(_currentContentView);
+                    _currentContentView.Dispose();
+                }
+                _currentContentView = Views.PlaceholderView.Create(_state);
+                _currentContentView.Text = result.Error;
+                Add(_currentContentView);
+                return;
+            }
+
+            _state.Schema = result.Value;
+            _state.CurrentMode = ViewMode.CsvTable;
+
+            // Switch to TableView with VirtualTableSource
+            if (_currentContentView is not null)
+            {
+                Remove(_currentContentView);
+                _currentContentView.Dispose();
+            }
+
+            _currentContentView = new TableView
+            {
+                X = 0,
+                Y = 0,
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+                Table = new Views.VirtualTableSource(indexer, result.Value),
+                Style = new TableStyle() { AlwaysShowHeaders = true },
+            };
+            Add(_currentContentView);
+            return;
+        }
+
+        // JSON files: use placeholder view for now
         _state.CurrentMode = ViewMode.PlaceholderView;
 
-        // Switch to placeholder view
         if (_currentContentView is not null)
         {
             Remove(_currentContentView);

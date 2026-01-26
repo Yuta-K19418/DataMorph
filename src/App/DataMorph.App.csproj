@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.4828" />
+    <PackageReference Include="Sep" Version="0.12.1" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -21,6 +22,7 @@
 
     <!-- Native AOT Configuration -->
     <PublishAot>true</PublishAot>
+    <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
     <InvariantGlobalization>false</InvariantGlobalization>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>

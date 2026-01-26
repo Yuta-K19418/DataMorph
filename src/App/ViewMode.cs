@@ -11,8 +11,13 @@ internal enum ViewMode
     FileSelection,
 
     /// <summary>
+    /// CSV table view with virtualized grid rendering.
+    /// </summary>
+    CsvTable,
+
+    /// <summary>
     /// Placeholder view displaying loaded file information.
     /// Will be replaced by CsvTable, JsonTable views in future issues.
     /// </summary>
-    PlaceholderView
+    PlaceholderView,
 }

@@ -1,32 +1,36 @@
 namespace DataMorph.Engine.IO;
 
 /// <summary>
-/// Manages a sliding window cache of CSV rows for efficient virtual scrolling.
+/// Manages a sliding window cache of CSV data rows for efficient virtual scrolling.
 /// Uses ReadOnlyMemory for memory-efficient column storage.
 /// </summary>
-public sealed class CsvRowCache
+public sealed class CsvDataRowCache
 {
     private const int DefaultCacheSize = 200;
-    private readonly CsvRowIndexer _indexer;
-    private readonly CsvRowReader _reader;
+    private readonly CsvDataRowIndexer _indexer;
+    private readonly CsvDataRowReader _reader;
     private readonly int _columnCount;
     private readonly int _cacheSize;
-    private readonly Dictionary<int, CsvRow> _cache = [];
+    private readonly Dictionary<int, CsvDataRow> _cache = [];
     private int _cacheStartRow = -1;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CsvRowCache"/> class.
+    /// Initializes a new instance of the <see cref="CsvDataRowCache"/> class.
     /// </summary>
     /// <param name="indexer">The CSV row indexer for obtaining byte offsets.</param>
     /// <param name="columnCount">The number of columns in the CSV.</param>
     /// <param name="cacheSize">The size of the sliding window cache (default: 200).</param>
-    public CsvRowCache(CsvRowIndexer indexer, int columnCount, int cacheSize = DefaultCacheSize)
+    public CsvDataRowCache(
+        CsvDataRowIndexer indexer,
+        int columnCount,
+        int cacheSize = DefaultCacheSize
+    )
     {
         _indexer = indexer;
         _columnCount = columnCount;
         _cacheSize = cacheSize;
         ArgumentNullException.ThrowIfNull(indexer);
-        _reader = new CsvRowReader(indexer.FilePath, columnCount);
+        _reader = new CsvDataRowReader(indexer.FilePath, columnCount);
     }
 
     /// <summary>
@@ -39,7 +43,7 @@ public sealed class CsvRowCache
     /// </summary>
     /// <param name="rowIndex">The zero-based row index.</param>
     /// <returns>The CSV row, or an empty row if not available.</returns>
-    public CsvRow GetRow(int rowIndex)
+    public CsvDataRow GetRow(int rowIndex)
     {
         // No data, nothing to do
         if (TotalRows == 0)

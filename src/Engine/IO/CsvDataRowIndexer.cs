@@ -3,16 +3,16 @@ using System.Buffers;
 namespace DataMorph.Engine.IO;
 
 /// <summary>
-/// Indexes CSV rows for efficient random access.
+/// Indexes CSV data rows (excluding header) for efficient random access.
 /// Supports comma-delimited CSV with RFC 4180 quoted field handling.
 /// </summary>
-public sealed class CsvRowIndexer
+public sealed class CsvDataRowIndexer
 {
     private readonly Lock _lock = new();
     private readonly string _filePath;
 
     public string FilePath => _filePath;
-    private readonly List<long> _checkpoints = [0];
+    private readonly List<long> _checkpoints = [];
 
     private const int BufferSize = 1024 * 1024; // 1MB
     private const int CheckPointInterval = 1000;
@@ -21,20 +21,20 @@ public sealed class CsvRowIndexer
 
     private long _totalRows;
 
-    public CsvRowIndexer(string filePath)
+    public CsvDataRowIndexer(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         _filePath = filePath;
     }
 
     /// <summary>
-    /// Gets the total number of rows indexed in the CSV file.
+    /// Gets the total number of data rows indexed in the CSV file (excluding header).
     /// Updated periodically during BuildIndex() (every 1000 rows) and finalized upon completion.
     /// </summary>
     public long TotalRows => Interlocked.Read(ref _totalRows);
 
     /// <summary>
-    /// Builds the row index by scanning the entire CSV file.
+    /// Builds the data row index by scanning the entire CSV file (header is skipped).
     /// This method is NOT thread-safe and must be called once before any GetCheckPoint() calls.
     /// TotalRows is updated periodically during execution (every 1000 rows) for progress tracking.
     /// GetCheckPoint() can be safely called from other threads while BuildIndex() is running,
@@ -57,6 +57,7 @@ public sealed class CsvRowIndexer
             var inQuotes = false;
             var lastByteRead = (byte)0;
             var totalBytesRead = 0L;
+            var headerSkipped = false;
 
             while (true)
             {
@@ -71,13 +72,13 @@ public sealed class CsvRowIndexer
                 lastByteRead = buffer[bytesRead - 1];
 
                 var span = buffer.AsSpan(0, bytesRead);
-                ProcessBuffer(span, ref fileOffset, ref rowCount, ref inQuotes);
+                ProcessBuffer(span, ref fileOffset, ref rowCount, ref inQuotes, ref headerSkipped);
 
                 fileOffset += bytesRead;
             }
 
-            // If file doesn't end with newline, count the last line
-            if (totalBytesRead > 0 && lastByteRead != (byte)'\n' && !inQuotes)
+            // If file doesn't end with newline, count the last line (skip header)
+            if (totalBytesRead > 0 && lastByteRead != (byte)'\n' && !inQuotes && headerSkipped)
             {
                 rowCount++;
             }
@@ -101,6 +102,12 @@ public sealed class CsvRowIndexer
     {
         lock (_lock)
         {
+            if (_checkpoints.Count == 0)
+            {
+                // No checkpoints available yet (before BuildIndex or empty file)
+                return (-1, 0);
+            }
+
             var idealCheckPointIndex = (int)(targetRow / CheckPointInterval);
             // Clamp to the last available checkpoint (handles partial indexing or beyond-EOF requests)
             var actualCheckPointIndex = Math.Min(idealCheckPointIndex, _checkpoints.Count - 1);
@@ -118,7 +125,8 @@ public sealed class CsvRowIndexer
         ReadOnlySpan<byte> buffer,
         ref long fileOffset,
         ref long rowCount,
-        ref bool inQuotes
+        ref bool inQuotes,
+        ref bool headerSkipped
     )
     {
         var position = 0;
@@ -142,6 +150,15 @@ public sealed class CsvRowIndexer
             if (currentByte == (byte)'"')
             {
                 inQuotes = !inQuotes;
+                continue;
+            }
+
+            if (currentByte == (byte)'\n' && !headerSkipped)
+            {
+                headerSkipped = true;
+                // Add first checkpoint after header
+                var headerCheckpointOffset = fileOffset + position;
+                _checkpoints.Add(headerCheckpointOffset);
                 continue;
             }
 

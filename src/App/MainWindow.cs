@@ -113,7 +113,7 @@ internal sealed class MainWindow : Window
         // Determine file type and create appropriate view
         if (dialog.Path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {
-            var indexer = new CsvRowIndexer(dialog.Path);
+            var indexer = new CsvDataRowIndexer(dialog.Path);
             _ = Task.Run(indexer.BuildIndex);
 
             // Create schema from CSV header using CsvSchemaCreator

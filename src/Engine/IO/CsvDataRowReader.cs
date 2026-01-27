@@ -6,7 +6,7 @@ namespace DataMorph.Engine.IO;
 /// Low-level CSV row reader that reads raw CSV data from a file stream.
 /// Returns rows as read-only lists of ReadOnlyMemory for memory efficiency.
 /// </summary>
-public sealed class CsvRowReader(string filePath, int columnCount)
+public sealed class CsvDataRowReader(string filePath, int columnCount)
 {
     private readonly string _filePath = filePath;
     private readonly int _columnCount = columnCount;
@@ -18,7 +18,7 @@ public sealed class CsvRowReader(string filePath, int columnCount)
     /// <param name="rowsToSkip">Number of rows to skip after seeking to the byte offset.</param>
     /// <param name="rowsToRead">Maximum number of rows to read.</param>
     /// <returns>A list of CSV rows.</returns>
-    public IReadOnlyList<CsvRow> ReadRows(long byteOffset, int rowsToSkip, int rowsToRead)
+    public IReadOnlyList<CsvDataRow> ReadRows(long byteOffset, int rowsToSkip, int rowsToRead)
     {
         if (byteOffset < 0)
         {
@@ -30,7 +30,7 @@ public sealed class CsvRowReader(string filePath, int columnCount)
             return [];
         }
 
-        var rows = new List<CsvRow>(rowsToRead);
+        var rows = new List<CsvDataRow>(rowsToRead);
 
         try
         {
@@ -43,7 +43,7 @@ public sealed class CsvRowReader(string filePath, int columnCount)
 
             fileStream.Seek(byteOffset, SeekOrigin.Begin);
 
-            using var reader = Sep.New(',').Reader().From(fileStream);
+            using var reader = Sep.New(',').Reader(o => o with { HasHeader = false }).From(fileStream);
 
             // Skip rows until the actual start row
             var skipped = 0;

@@ -28,10 +28,5 @@ public enum ColumnType
     /// <summary>
     /// Date and time value.
     /// </summary>
-    Timestamp,
-
-    /// <summary>
-    /// Null value (used when all values are null).
-    /// </summary>
-    Null
+    Timestamp
 }

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "./.claude/rules/commands.md",
+    "./.claude/rules/csharp-standards.md",
+    "./.claude/rules/language-and-git.md",
+    "./.claude/rules/performance-and-aot.md",
+    "./.claude/rules/safety-and-nullability.md",
+    "./.claude/rules/testing.md",
+    "./docs/development_guidelines.md"
+  ]
+}

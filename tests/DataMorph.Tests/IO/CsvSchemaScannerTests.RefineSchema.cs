@@ -8,31 +8,6 @@ namespace DataMorph.Tests.IO;
 public sealed partial class CsvSchemaScannerTests
 {
     [Fact]
-    public void RefineSchema_CallsUpdateColumnTypeOnly_WhenNonNullableColumnHasValidValue()
-    {
-        // Arrange
-        var schema = CreateTestSchema([
-            new ColumnSchema
-            {
-                Name = "id",
-                Type = ColumnType.WholeNumber,
-                IsNullable = false,
-                ColumnIndex = 0,
-            },
-        ]);
-
-        var row = new[] { "999".AsMemory() };
-
-        // Act
-        var result = CsvSchemaScanner.RefineSchema(schema, row);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        schema.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
-        schema.Columns[0].IsNullable.Should().BeFalse();
-    }
-
-    [Fact]
     public void RefineSchema_CallsMarkNullableOnly_WhenNonNullableColumnHasEmptyValue()
     {
         // Arrange
@@ -53,8 +28,8 @@ public sealed partial class CsvSchemaScannerTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        schema.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
-        schema.Columns[0].IsNullable.Should().BeTrue();
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
+        result.Value.Columns[0].IsNullable.Should().BeTrue();
     }
 
     [Fact]
@@ -115,13 +90,142 @@ public sealed partial class CsvSchemaScannerTests
         action.Should().Throw<ArgumentNullException>();
     }
 
+    [Fact]
+    public void RefineSchema_WithNoChanges_ReturnsSameInstance()
+    {
+        // Arrange
+        var schema = CreateTestSchema([
+            new ColumnSchema
+            {
+                Name = "id",
+                Type = ColumnType.WholeNumber,
+                IsNullable = true,
+                ColumnIndex = 0,
+            },
+        ]);
+
+        var row = new[] { "123".AsMemory() };
+
+        // Act
+        var result = CsvSchemaScanner.RefineSchema(schema, row);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        // Should return same instance when schema not modified (copy-on-write optimization)
+        result.Value.Should().BeSameAs(schema);
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
+        result.Value.Columns[0].IsNullable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void RefineSchema_WithNullableUpdate_ReturnsNewInstance()
+    {
+        // Arrange
+        var schema = CreateTestSchema([
+            new ColumnSchema
+            {
+                Name = "id",
+                Type = ColumnType.WholeNumber,
+                IsNullable = false,
+                ColumnIndex = 0,
+            },
+        ]);
+
+        var row = new[] { "".AsMemory() }; // empty value
+
+        // Act
+        var result = CsvSchemaScanner.RefineSchema(schema, row);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeSameAs(schema); // new instance returned
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber); // type unchanged
+        result.Value.Columns[0].IsNullable.Should().BeTrue(); // only nullable updated
+    }
+
+    [Fact]
+    public void RefineSchema_WithTypeUpdate_ReturnsNewInstance()
+    {
+        // Arrange
+        var schema = CreateTestSchema([
+            new ColumnSchema
+            {
+                Name = "id",
+                Type = ColumnType.WholeNumber, // initial value is WholeNumber
+                IsNullable = false,
+                ColumnIndex = 0,
+            },
+        ]);
+
+        var row = new[] { "123.45".AsMemory() }; // parsable as floating point
+
+        // Act
+        var result = CsvSchemaScanner.RefineSchema(schema, row);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeSameAs(schema); // new instance returned
+        result.Value.Columns[0].Type.Should().Be(ColumnType.FloatingPoint); // WholeNumber → FloatingPoint updated
+        result.Value.Columns[0].IsNullable.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RefineSchema_PartialColumnUpdates_PreservesUnchangedColumns()
+    {
+        // Arrange
+        var schema = CreateTestSchema([
+            new ColumnSchema
+            {
+                Name = "id",
+                Type = ColumnType.WholeNumber,
+                IsNullable = false,
+                ColumnIndex = 0,
+            },
+            new ColumnSchema
+            {
+                Name = "name",
+                Type = ColumnType.Text,
+                IsNullable = false,
+                ColumnIndex = 1,
+            },
+            new ColumnSchema
+            {
+                Name = "age",
+                Type = ColumnType.WholeNumber,
+                IsNullable = false,
+                ColumnIndex = 2,
+            },
+        ]);
+
+        var row = new[]
+        {
+            "123".AsMemory(), // id - unchanged (WholeNumber)
+            "".AsMemory(), // name - updated to nullable
+            "25.5".AsMemory(), // age - updated to FloatingPoint
+        };
+
+        // Act
+        var result = CsvSchemaScanner.RefineSchema(schema, row);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().NotBeSameAs(schema);
+
+        // Column 0: unchanged
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
+        result.Value.Columns[0].IsNullable.Should().BeFalse();
+
+        // Column 1: only nullable updated
+        result.Value.Columns[1].Type.Should().Be(ColumnType.Text);
+        result.Value.Columns[1].IsNullable.Should().BeTrue();
+
+        // Column 2: only type updated
+        result.Value.Columns[2].Type.Should().Be(ColumnType.FloatingPoint);
+        result.Value.Columns[2].IsNullable.Should().BeFalse();
+    }
+
     private static TableSchema CreateTestSchema(ColumnSchema[] columns)
     {
-        return new TableSchema
-        {
-            Columns = columns,
-            RowCount = 0,
-            SourceFormat = DataFormat.Csv,
-        };
+        return new TableSchema { Columns = columns, SourceFormat = DataFormat.Csv };
     }
 }

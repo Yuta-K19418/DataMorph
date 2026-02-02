@@ -14,17 +14,11 @@ public static class CsvSchemaCreator
     /// Creates a temporary TableSchema from CSV header row using nietras.Sep.
     /// </summary>
     /// <param name="filePath">Path to the CSV file.</param>
-    /// <param name="getTotalRows">Function that returns the total number of rows in the CSV.</param>
     /// <returns>A Result containing TableSchema with columns inferred from the header, or an error message.</returns>
-    public static Result<TableSchema> CreateSchemaFromCsvHeader(
-        string filePath,
-        Func<long> getTotalRows
-    )
+    public static Result<TableSchema> CreateSchemaFromCsvHeader(string filePath)
     {
         try
         {
-            ArgumentNullException.ThrowIfNull(getTotalRows);
-
             // Use nietras.Sep to read CSV header
             using var reader = Sep.New(',').Reader().FromFile(filePath);
 
@@ -55,7 +49,6 @@ public static class CsvSchemaCreator
             var tableSchema = new TableSchema
             {
                 Columns = columns,
-                RowCount = getTotalRows(),
                 SourceFormat = DataFormat.Csv,
             };
 

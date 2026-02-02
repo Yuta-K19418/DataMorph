@@ -40,11 +40,14 @@ public sealed class ColumnSchemaExtensionsTests
         };
 
         // Act
-        schema.UpdateColumnType(newType);
+        var updatedSchema = schema.WithUpdatedType(newType);
 
         // Assert
-        schema.Type.Should().Be(expectedType, description);
-        schema.IsNullable.Should().Be(initialIsNullable, "nullable state should not change");
+        updatedSchema.Type.Should().Be(expectedType, description);
+        updatedSchema.IsNullable.Should().Be(initialIsNullable, "nullable state should not change");
+        // Original schema should remain unchanged
+        schema.Type.Should().Be(initialType, "original schema should not be modified");
+        schema.IsNullable.Should().Be(initialIsNullable, "original nullable state should not change");
     }
 
     [Theory]
@@ -53,7 +56,7 @@ public sealed class ColumnSchemaExtensionsTests
     [InlineData(ColumnType.Boolean)]
     [InlineData(ColumnType.Timestamp)]
     [InlineData(ColumnType.Text)]
-    public void MarkNullable_SetsIsNullableToTrue(ColumnType columnType)
+    public void WithMarkedNullable_SetsIsNullableToTrue(ColumnType columnType)
     {
         // Arrange
         var schema = new ColumnSchema
@@ -65,11 +68,13 @@ public sealed class ColumnSchemaExtensionsTests
         };
 
         // Act
-        schema.MarkNullable();
+        var updatedSchema = schema.WithMarkedNullable();
 
         // Assert
-        schema.IsNullable.Should().BeTrue();
-        schema.Type.Should().Be(columnType);
+        updatedSchema.IsNullable.Should().BeTrue();
+        updatedSchema.Type.Should().Be(columnType);
+        // Original schema should remain unchanged
+        schema.IsNullable.Should().BeFalse("original schema should not be modified");
     }
 
     [Theory]
@@ -78,7 +83,7 @@ public sealed class ColumnSchemaExtensionsTests
     [InlineData(ColumnType.Boolean)]
     [InlineData(ColumnType.Timestamp)]
     [InlineData(ColumnType.Text)]
-    public void MarkNullable_Idempotent_CallingTwiceStaysTrue(ColumnType columnType)
+    public void WithMarkedNullable_Idempotent_CallingTwiceReturnsSameInstance(ColumnType columnType)
     {
         // Arrange
         var schema = new ColumnSchema
@@ -90,13 +95,15 @@ public sealed class ColumnSchemaExtensionsTests
         };
 
         // Act
-        schema.MarkNullable();
-        var firstCall = schema.IsNullable;
-        schema.MarkNullable();
-        var secondCall = schema.IsNullable;
+        var firstUpdated = schema.WithMarkedNullable();
+        var firstCall = firstUpdated.IsNullable;
+        var secondUpdated = firstUpdated.WithMarkedNullable();
+        var secondCall = secondUpdated.IsNullable;
 
         // Assert
         firstCall.Should().BeTrue();
         secondCall.Should().BeTrue();
+        // Should return same instance when already nullable
+        secondUpdated.Should().BeSameAs(firstUpdated, "should return same instance when already nullable");
     }
 }

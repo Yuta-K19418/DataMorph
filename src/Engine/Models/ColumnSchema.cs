@@ -24,12 +24,12 @@ public sealed record ColumnSchema
     /// <summary>
     /// The inferred or explicit data type of the column.
     /// </summary>
-    public required ColumnType Type { get; set; }
+    public required ColumnType Type { get; init; }
 
     /// <summary>
     /// Indicates whether this column can contain null values.
     /// </summary>
-    public bool IsNullable { get; set; }
+    public bool IsNullable { get; init; }
 
     /// <summary>
     /// The zero-based index position of this column in the table.

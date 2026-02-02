@@ -17,12 +17,15 @@ public sealed class SchemaSerializationTests
             Type = ColumnType.Text,
             IsNullable = false,
             ColumnIndex = 3,
-            DisplayFormat = null
+            DisplayFormat = null,
         };
 
         // Act
         var json = JsonSerializer.Serialize(schema, DataMorphJsonContext.Default.ColumnSchema);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.ColumnSchema);
+        var deserialized = JsonSerializer.Deserialize(
+            json,
+            DataMorphJsonContext.Default.ColumnSchema
+        );
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -39,12 +42,15 @@ public sealed class SchemaSerializationTests
             Type = ColumnType.Timestamp,
             IsNullable = true,
             ColumnIndex = 0,
-            DisplayFormat = "yyyy-MM-dd HH:mm:ss"
+            DisplayFormat = "yyyy-MM-dd HH:mm:ss",
         };
 
         // Act
         var json = JsonSerializer.Serialize(schema, DataMorphJsonContext.Default.ColumnSchema);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.ColumnSchema);
+        var deserialized = JsonSerializer.Deserialize(
+            json,
+            DataMorphJsonContext.Default.ColumnSchema
+        );
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -59,22 +65,40 @@ public sealed class SchemaSerializationTests
         {
             Columns = new List<ColumnSchema>
             {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
-                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 },
-                new() { Name = "price", Type = ColumnType.FloatingPoint, ColumnIndex = 2 }
+                new()
+                {
+                    Name = "id",
+                    Type = ColumnType.WholeNumber,
+                    ColumnIndex = 0,
+                },
+                new()
+                {
+                    Name = "name",
+                    Type = ColumnType.Text,
+                    ColumnIndex = 1,
+                },
+                new()
+                {
+                    Name = "price",
+                    Type = ColumnType.FloatingPoint,
+                    ColumnIndex = 2,
+                },
             },
-            RowCount = 1000,
-            SourceFormat = DataFormat.JsonArray
+
+            SourceFormat = DataFormat.JsonArray,
         };
 
         // Act
         var json = JsonSerializer.Serialize(schema, DataMorphJsonContext.Default.TableSchema);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.TableSchema);
+        var deserialized = JsonSerializer.Deserialize(
+            json,
+            DataMorphJsonContext.Default.TableSchema
+        );
 
         // Assert
         deserialized.Should().NotBeNull();
         deserialized.ColumnCount.Should().Be(3);
-        deserialized.RowCount.Should().Be(1000);
+
         deserialized.SourceFormat.Should().Be(DataFormat.JsonArray);
         deserialized.Columns.Should().HaveCount(3);
     }
@@ -87,11 +111,21 @@ public sealed class SchemaSerializationTests
         {
             Columns = new List<ColumnSchema>
             {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
-                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 }
+                new()
+                {
+                    Name = "id",
+                    Type = ColumnType.WholeNumber,
+                    ColumnIndex = 0,
+                },
+                new()
+                {
+                    Name = "name",
+                    Type = ColumnType.Text,
+                    ColumnIndex = 1,
+                },
             },
-            RowCount = 0,
-            SourceFormat = DataFormat.JsonArray
+
+            SourceFormat = DataFormat.JsonArray,
         };
 
         // Act
@@ -111,10 +145,15 @@ public sealed class SchemaSerializationTests
         {
             Columns = new List<ColumnSchema>
             {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
+                new()
+                {
+                    Name = "id",
+                    Type = ColumnType.WholeNumber,
+                    ColumnIndex = 0,
+                },
             },
-            RowCount = 0,
-            SourceFormat = DataFormat.JsonArray
+
+            SourceFormat = DataFormat.JsonArray,
         };
 
         // Act
@@ -132,11 +171,21 @@ public sealed class SchemaSerializationTests
         {
             Columns = new List<ColumnSchema>
             {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
-                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 }
+                new()
+                {
+                    Name = "id",
+                    Type = ColumnType.WholeNumber,
+                    ColumnIndex = 0,
+                },
+                new()
+                {
+                    Name = "name",
+                    Type = ColumnType.Text,
+                    ColumnIndex = 1,
+                },
             },
-            RowCount = 0,
-            SourceFormat = DataFormat.JsonArray
+
+            SourceFormat = DataFormat.JsonArray,
         };
 
         // Act & Assert
@@ -153,12 +202,27 @@ public sealed class SchemaSerializationTests
         {
             Columns = new List<ColumnSchema>
             {
-                new() { Name = "col1", Type = ColumnType.Text, ColumnIndex = 0 },
-                new() { Name = "col2", Type = ColumnType.WholeNumber, ColumnIndex = 1 },
-                new() { Name = "col3", Type = ColumnType.Boolean, ColumnIndex = 2 }
+                new()
+                {
+                    Name = "col1",
+                    Type = ColumnType.Text,
+                    ColumnIndex = 0,
+                },
+                new()
+                {
+                    Name = "col2",
+                    Type = ColumnType.WholeNumber,
+                    ColumnIndex = 1,
+                },
+                new()
+                {
+                    Name = "col3",
+                    Type = ColumnType.Boolean,
+                    ColumnIndex = 2,
+                },
             },
-            RowCount = 0,
-            SourceFormat = DataFormat.JsonArray
+
+            SourceFormat = DataFormat.JsonArray,
         };
 
         // Act & Assert
@@ -175,7 +239,7 @@ public sealed class SchemaSerializationTests
             Type = ColumnType.Text,
             IsNullable = true,
             ColumnIndex = 0,
-            DisplayFormat = "test-format"
+            DisplayFormat = "test-format",
         };
 
         // Act
@@ -198,20 +262,37 @@ public sealed class SchemaSerializationTests
     public void TableSchema_WithDuplicateColumnNames_ThrowsArgumentException()
     {
         // Arrange & Act
-        var act = () => new TableSchema
-        {
-            Columns = new List<ColumnSchema>
+        var act = () =>
+            new TableSchema
             {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
-                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 },
-                new() { Name = "id", Type = ColumnType.Text, ColumnIndex = 2 }
-            },
-            RowCount = 0,
-            SourceFormat = DataFormat.JsonArray
-        };
+                Columns = new List<ColumnSchema>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = ColumnType.WholeNumber,
+                        ColumnIndex = 0,
+                    },
+                    new()
+                    {
+                        Name = "name",
+                        Type = ColumnType.Text,
+                        ColumnIndex = 1,
+                    },
+                    new()
+                    {
+                        Name = "id",
+                        Type = ColumnType.Text,
+                        ColumnIndex = 2,
+                    },
+                },
+
+                SourceFormat = DataFormat.JsonArray,
+            };
 
         // Assert
-        act.Should().Throw<ArgumentException>()
+        act.Should()
+            .Throw<ArgumentException>()
             .WithMessage("Duplicate column name found: id*")
             .WithParameterName("Columns");
     }
@@ -220,21 +301,43 @@ public sealed class SchemaSerializationTests
     public void TableSchema_WithMultipleDuplicateColumnNames_ThrowsArgumentException()
     {
         // Arrange & Act
-        var act = () => new TableSchema
-        {
-            Columns = new List<ColumnSchema>
+        var act = () =>
+            new TableSchema
             {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 },
-                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 1 },
-                new() { Name = "id", Type = ColumnType.Text, ColumnIndex = 2 },
-                new() { Name = "name", Type = ColumnType.Text, ColumnIndex = 3 }
-            },
-            RowCount = 0,
-            SourceFormat = DataFormat.JsonArray
-        };
+                Columns = new List<ColumnSchema>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = ColumnType.WholeNumber,
+                        ColumnIndex = 0,
+                    },
+                    new()
+                    {
+                        Name = "name",
+                        Type = ColumnType.Text,
+                        ColumnIndex = 1,
+                    },
+                    new()
+                    {
+                        Name = "id",
+                        Type = ColumnType.Text,
+                        ColumnIndex = 2,
+                    },
+                    new()
+                    {
+                        Name = "name",
+                        Type = ColumnType.Text,
+                        ColumnIndex = 3,
+                    },
+                },
+
+                SourceFormat = DataFormat.JsonArray,
+            };
 
         // Assert
-        act.Should().Throw<ArgumentException>()
+        act.Should()
+            .Throw<ArgumentException>()
             .WithMessage("Duplicate column name found: *")
             .WithParameterName("Columns");
     }
@@ -243,12 +346,13 @@ public sealed class SchemaSerializationTests
     public void ColumnSchema_WithNullName_ThrowsArgumentException()
     {
         // Arrange & Act
-        var act = () => new ColumnSchema
-        {
-            Name = null!,
-            Type = ColumnType.Text,
-            ColumnIndex = 0
-        };
+        var act = () =>
+            new ColumnSchema
+            {
+                Name = null!,
+                Type = ColumnType.Text,
+                ColumnIndex = 0,
+            };
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -258,12 +362,13 @@ public sealed class SchemaSerializationTests
     public void ColumnSchema_WithEmptyName_ThrowsArgumentException()
     {
         // Arrange & Act
-        var act = () => new ColumnSchema
-        {
-            Name = string.Empty,
-            Type = ColumnType.Text,
-            ColumnIndex = 0
-        };
+        var act = () =>
+            new ColumnSchema
+            {
+                Name = string.Empty,
+                Type = ColumnType.Text,
+                ColumnIndex = 0,
+            };
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -273,12 +378,13 @@ public sealed class SchemaSerializationTests
     public void ColumnSchema_WithWhiteSpaceName_ThrowsArgumentException()
     {
         // Arrange & Act
-        var act = () => new ColumnSchema
-        {
-            Name = "   ",
-            Type = ColumnType.Text,
-            ColumnIndex = 0
-        };
+        var act = () =>
+            new ColumnSchema
+            {
+                Name = "   ",
+                Type = ColumnType.Text,
+                ColumnIndex = 0,
+            };
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -288,48 +394,49 @@ public sealed class SchemaSerializationTests
     public void ColumnSchema_WithNegativeColumnIndex_ThrowsArgumentOutOfRangeException()
     {
         // Arrange & Act
-        var act = () => new ColumnSchema
-        {
-            Name = "test",
-            Type = ColumnType.Text,
-            ColumnIndex = -1
-        };
+        var act = () =>
+            new ColumnSchema
+            {
+                Name = "test",
+                Type = ColumnType.Text,
+                ColumnIndex = -1,
+            };
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]
-    public void TableSchema_WithNegativeRowCount_ThrowsArgumentOutOfRangeException()
+    public void TableSchema_WithEmptyColumns_ThrowsArgumentException()
     {
         // Arrange & Act
-        var act = () => new TableSchema
-        {
-            Columns = new List<ColumnSchema>
-            {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
-            },
-            RowCount = -1,
-            SourceFormat = DataFormat.JsonArray
-        };
+        var act = () => new TableSchema { Columns = [], SourceFormat = DataFormat.JsonArray };
 
         // Assert
-        act.Should().Throw<ArgumentOutOfRangeException>();
+        act.Should()
+            .Throw<ArgumentException>()
+            .WithMessage("Columns cannot be empty*")
+            .WithParameterName("Columns");
     }
 
     [Fact]
-    public void TableSchema_WithZeroRowCount_DoesNotThrow()
+    public void TableSchema_WithValidColumns_DoesNotThrow()
     {
         // Arrange & Act
-        var act = () => new TableSchema
-        {
-            Columns = new List<ColumnSchema>
+        var act = () =>
+            new TableSchema
             {
-                new() { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }
-            },
-            RowCount = 0,
-            SourceFormat = DataFormat.JsonArray
-        };
+                Columns =
+                [
+                    new()
+                    {
+                        Name = "id",
+                        Type = ColumnType.WholeNumber,
+                        ColumnIndex = 0,
+                    },
+                ],
+                SourceFormat = DataFormat.JsonArray,
+            };
 
         // Assert
         act.Should().NotThrow();

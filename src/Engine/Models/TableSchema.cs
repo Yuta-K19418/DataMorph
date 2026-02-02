@@ -21,6 +21,11 @@ public sealed record TableSchema
         {
             ArgumentNullException.ThrowIfNull(value);
 
+            if (value.Count == 0)
+            {
+                throw new ArgumentException("Columns cannot be empty", nameof(Columns));
+            }
+
             // Validate for duplicate column names using HashSet for O(1) lookup
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var column in value)
@@ -29,7 +34,8 @@ public sealed record TableSchema
                 {
                     throw new ArgumentException(
                         $"Duplicate column name found: {column.Name}",
-                        nameof(Columns));
+                        nameof(Columns)
+                    );
                 }
             }
 
@@ -37,20 +43,6 @@ public sealed record TableSchema
 
             // Initialize cache in init block for thread-safety and performance
             _columnCache = value.ToDictionary(c => c.Name, StringComparer.Ordinal);
-        }
-    }
-
-    /// <summary>
-    /// The total number of rows in the dataset.
-    /// Use 0 if the row count is unknown (e.g., for streaming data).
-    /// </summary>
-    public long RowCount
-    {
-        get;
-        init
-        {
-            ArgumentOutOfRangeException.ThrowIfNegative(value);
-            field = value;
         }
     }
 

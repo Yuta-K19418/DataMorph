@@ -9,33 +9,49 @@ namespace DataMorph.Engine.IO;
 public static class ColumnSchemaExtensions
 {
     /// <summary>
-    /// Updates the column type if the observed type differs from current.
+    /// Updates the column type if the observed type differs from current using Copy-on-Write pattern.
     /// </summary>
     /// <param name="schema">The column schema to update.</param>
     /// <param name="observedType">The newly observed type.</param>
-    /// <remarks>
-    /// If current type equals observed type, returns immediately (no-op).
-    /// Otherwise, calls ColumnTypeResolver.Resolve() and updates the schema.
-    /// </remarks>
-    public static void UpdateColumnType(this ColumnSchema schema, ColumnType observedType)
+    /// <returns>
+    /// New ColumnSchema instance if type changed, otherwise returns the same instance.
+    /// </returns>
+    public static ColumnSchema WithUpdatedType(this ColumnSchema schema, ColumnType observedType)
     {
         ArgumentNullException.ThrowIfNull(schema);
 
         if (schema.Type == observedType)
         {
-            return; // Early exit - no change needed
+            return schema; // No change - return same instance
         }
 
-        schema.Type = ColumnTypeResolver.Resolve(schema.Type, observedType);
+        var resolvedType = ColumnTypeResolver.Resolve(schema.Type, observedType);
+
+        // Copy-on-Write: return same instance if no change
+        if (schema.Type == resolvedType)
+        {
+            return schema;
+        }
+
+        return schema with { Type = resolvedType };
     }
 
     /// <summary>
-    /// Marks the column as nullable if not already.
+    /// Marks the column as nullable if not already using Copy-on-Write pattern.
     /// </summary>
-    public static void MarkNullable(this ColumnSchema schema)
+    /// <param name="schema">The column schema to update.</param>
+    /// <returns>
+    /// New ColumnSchema instance if nullable changed, otherwise returns the same instance.
+    /// </returns>
+    public static ColumnSchema WithMarkedNullable(this ColumnSchema schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
 
-        schema.IsNullable = true;
+        if (schema.IsNullable)
+        {
+            return schema; // Already nullable - return same instance
+        }
+
+        return schema with { IsNullable = true };
     }
 }

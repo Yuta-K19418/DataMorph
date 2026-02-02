@@ -1,3 +1,4 @@
+using System.Globalization;
 using AwesomeAssertions;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.Types;
@@ -20,16 +21,13 @@ public sealed partial class CsvSchemaScannerTests
             "true".AsMemory(),
             "2024-01-15".AsMemory(),
         };
-        var totalRowCount = 100L;
-
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         var schema = result.Value;
         schema.ColumnCount.Should().Be(6);
-        schema.RowCount.Should().Be(100L);
         schema.SourceFormat.Should().Be(DataFormat.Csv);
 
         // Check each column
@@ -52,10 +50,9 @@ public sealed partial class CsvSchemaScannerTests
             "Alice".AsMemory(),
             "".AsMemory(), // Empty value
         };
-        var totalRowCount = 10L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -85,10 +82,9 @@ public sealed partial class CsvSchemaScannerTests
             "   ".AsMemory(), // Whitespace-only
             "\t\n\r ".AsMemory(), // Various whitespace characters
         };
-        var totalRowCount = 10L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -113,10 +109,9 @@ public sealed partial class CsvSchemaScannerTests
         // Arrange
         var columnNames = new[] { "", "  ", "name" }; // First two are empty/whitespace
         var row = new[] { "1".AsMemory(), "test".AsMemory(), "Alice".AsMemory() };
-        var totalRowCount = 5L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -142,10 +137,9 @@ public sealed partial class CsvSchemaScannerTests
         // Arrange
         var columnNames = Array.Empty<string>();
         var row = Array.Empty<ReadOnlyMemory<char>>();
-        var totalRowCount = 0L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -163,10 +157,9 @@ public sealed partial class CsvSchemaScannerTests
             "Alice".AsMemory(),
             // Missing third column
         };
-        var totalRowCount = 10L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -183,11 +176,10 @@ public sealed partial class CsvSchemaScannerTests
             "".AsMemory(), // Empty values
             "".AsMemory(),
             "".AsMemory(),
-        };
-        var totalRowCount = 0L; // No data rows
+        }; // No data rows
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -220,10 +212,9 @@ public sealed partial class CsvSchemaScannerTests
             "1.234E+10".AsMemory(),
             "0".AsMemory(),
         };
-        var totalRowCount = 100L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -262,10 +253,9 @@ public sealed partial class CsvSchemaScannerTests
             "12/31/2024".AsMemory(),
             "2024-12-31T23:59:59Z".AsMemory(),
         };
-        var totalRowCount = 50L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -300,10 +290,9 @@ public sealed partial class CsvSchemaScannerTests
             "True".AsMemory(),
             "  false  ".AsMemory(),
         };
-        var totalRowCount = 20L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -338,10 +327,9 @@ public sealed partial class CsvSchemaScannerTests
             "2024-13-45".AsMemory(), // Invalid date
             "@#$%^&*()".AsMemory(),
         };
-        var totalRowCount = 30L;
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -371,9 +359,8 @@ public sealed partial class CsvSchemaScannerTests
         // Test ensures Boolean detection only for "true"/"false"
         var columnNames = new[] { "numeric_string" };
         var row = new[] { "1".AsMemory() };
-        var totalRowCount = 10L;
 
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         result.IsSuccess.Should().BeTrue();
         var schema = result.Value;
@@ -390,9 +377,8 @@ public sealed partial class CsvSchemaScannerTests
         // "123" should be WholeNumber, not FloatingPoint
         var columnNames = new[] { "integer" };
         var row = new[] { "123".AsMemory() };
-        var totalRowCount = 10L;
 
-        var result = CsvSchemaScanner.ScanSchema(columnNames, row, totalRowCount);
+        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
 
         result.IsSuccess.Should().BeTrue();
         var schema = result.Value;
@@ -403,15 +389,14 @@ public sealed partial class CsvSchemaScannerTests
     }
 
     [Fact]
-    public void ScanSchema_InvalidTotalRowCount_ThrowsException()
+    public void ScanSchema_WithNegativeInitialScanCount_ThrowsException()
     {
         // Arrange
         var columnNames = new[] { "id" };
         var row = new[] { "1".AsMemory() };
-        var invalidRowCount = -1L;
 
         // Act & Assert
-        Action action = () => CsvSchemaScanner.ScanSchema(columnNames, row, invalidRowCount);
+        Action action = () => CsvSchemaScanner.ScanSchema(columnNames, [row], initialScanCount: -1);
         action.Should().Throw<ArgumentOutOfRangeException>();
     }
 
@@ -421,13 +406,82 @@ public sealed partial class CsvSchemaScannerTests
         // Arrange
         var columnNames = new[] { "id" };
         var row = new[] { "1".AsMemory() };
-        var totalRowCount = 10L;
 
         // Act & Assert
-        Action action1 = () => CsvSchemaScanner.ScanSchema(null!, row, totalRowCount);
+        Action action1 = () => CsvSchemaScanner.ScanSchema(null!, [row]);
         action1.Should().Throw<ArgumentNullException>();
 
-        Action action2 = () => CsvSchemaScanner.ScanSchema(columnNames, null!, totalRowCount);
+        Action action2 = () => CsvSchemaScanner.ScanSchema(columnNames, null!);
         action2.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void ScanSchema_WithInitialScanCountLimitedTo200_ReturnsCorrectSchema()
+    {
+        // Arrange
+        var columnNames = new[] { "id", "value" };
+        var rows = Enumerable
+            .Range(0, 300)
+            .Select(i =>
+                new[]
+                {
+                    i.ToString(CultureInfo.InvariantCulture).AsMemory(),
+                    // Even rows: floating point values, odd rows: whole numbers
+                    (
+                        i % 2 == 0
+                            ? (i * 10 + 0.5).ToString(CultureInfo.InvariantCulture)
+                            : (i * 10).ToString(CultureInfo.InvariantCulture)
+                    ).AsMemory(),
+                }
+            )
+            .ToList();
+
+        // Act
+        var result = CsvSchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 200);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ColumnCount.Should().Be(2);
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
+        // Second column should be FloatingPoint because it contains decimal values
+        result.Value.Columns[1].Type.Should().Be(ColumnType.FloatingPoint);
+    }
+
+    [Fact]
+    public void ScanSchema_WithLessThan200Rows_ScansAllRows()
+    {
+        // Arrange
+        var columnNames = new[] { "id" };
+        var rows = Enumerable
+            .Range(0, 100)
+            .Select(i => new[] { i.ToString(CultureInfo.InvariantCulture).AsMemory() })
+            .ToList();
+
+        // Act
+        var result = CsvSchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 200);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ColumnCount.Should().Be(1);
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
+    }
+
+    [Fact]
+    public void ScanSchema_WithCustomInitialScanCount_RespectsLimit()
+    {
+        // Arrange
+        var columnNames = new[] { "id" };
+        var rows = Enumerable
+            .Range(0, 150)
+            .Select(i => new[] { i.ToString(CultureInfo.InvariantCulture).AsMemory() })
+            .ToList();
+
+        // Act - limit with custom initial scan count of 50
+        var result = CsvSchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 50);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ColumnCount.Should().Be(1);
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
     }
 }

@@ -117,10 +117,7 @@ internal sealed class MainWindow : Window
             _ = Task.Run(indexer.BuildIndex);
 
             // Create schema from CSV header using CsvSchemaCreator
-            var result = CsvSchemaCreator.CreateSchemaFromCsvHeader(
-                dialog.Path,
-                () => indexer.TotalRows
-            );
+            var result = CsvSchemaCreator.CreateSchemaFromCsvHeader(dialog.Path);
             if (result.IsFailure)
             {
                 // Schema creation failed, use placeholder view

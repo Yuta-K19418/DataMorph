@@ -11,48 +11,69 @@ namespace DataMorph.Engine.IO;
 public static class CsvSchemaScanner
 {
     /// <summary>
-    /// Scans a single CSV row and returns the inferred schema.
+    /// Scans initial CSV rows (up to 200) and returns the inferred schema for faster stabilization.
     /// </summary>
     /// <param name="columnNames">Column names from header.</param>
-    /// <param name="row">The single row to analyze for type inference.</param>
-    /// <param name="totalRowCount">Total number of rows in the CSV.</param>
+    /// <param name="rows">The initial rows to analyze for type inference.</param>
+    /// <param name="initialScanCount">Maximum number of rows to scan for initial schema (default: 200).</param>
     /// <returns>Result containing TableSchema or error message.</returns>
     public static Result<TableSchema> ScanSchema(
         IReadOnlyList<string> columnNames,
-        CsvDataRow row,
-        long totalRowCount
+        IReadOnlyList<CsvDataRow> rows,
+        int initialScanCount = 200
     )
     {
         // Validate parameters
         ArgumentNullException.ThrowIfNull(columnNames);
-        ArgumentNullException.ThrowIfNull(row);
-        ArgumentOutOfRangeException.ThrowIfNegative(totalRowCount);
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentOutOfRangeException.ThrowIfNegative(initialScanCount);
 
         if (columnNames.Count == 0)
         {
             return Results.Failure<TableSchema>("CSV has no columns");
         }
 
-        // Ensure row has same number of columns as column names
-        if (row.Count != columnNames.Count)
+        if (rows.Count == 0)
+        {
+            return Results.Failure<TableSchema>("No rows provided for schema inference");
+        }
+
+        var actualScanCount = Math.Min(rows.Count, initialScanCount);
+        var firstRow = rows[0];
+
+        // Ensure first row has same number of columns as column names
+        if (firstRow.Count != columnNames.Count)
         {
             return Results.Failure<TableSchema>(
-                $"Row has {row.Count} columns but header has {columnNames.Count} columns"
+                $"Row has {firstRow.Count} columns but header has {columnNames.Count} columns"
             );
         }
 
-        // Infer column types from the single row
-        var columnSchemas = InferColumnTypes(columnNames, row);
-
-        // Build the table schema
-        var tableSchema = new TableSchema
+        // Start with schema from first row
+        var initialSchemaResult = InferColumnTypes(columnNames, firstRow);
+        var currentSchema = new TableSchema
         {
-            Columns = columnSchemas,
-            RowCount = totalRowCount,
+            Columns = initialSchemaResult,
             SourceFormat = DataFormat.Csv,
         };
 
-        return Results.Success(tableSchema);
+        // Refine schema with remaining rows (up to initialScanCount)
+        for (var i = 1; i < actualScanCount; i++)
+        {
+            var row = rows[i];
+            if (row.Count != columnNames.Count)
+            {
+                continue; // Skip malformed rows during initial scan
+            }
+
+            var refineResult = RefineSchema(currentSchema, row);
+            if (refineResult.IsSuccess)
+            {
+                currentSchema = refineResult.Value;
+            }
+        }
+
+        return Results.Success(currentSchema);
     }
 
     /// <summary>
@@ -100,12 +121,12 @@ public static class CsvSchemaScanner
 
     /// <summary>
     /// Refines an existing schema by analyzing additional rows.
-    /// Updates column types and nullable status based on observed values.
+    /// Updates column types and nullable status based on observed values using Copy-on-Write.
     /// </summary>
     /// <param name="schema">The existing schema to refine.</param>
     /// <param name="row">The row to analyze for type refinement.</param>
-    /// <returns>Result indicating success or failure.</returns>
-    public static Result RefineSchema(TableSchema schema, CsvDataRow row)
+    /// <returns>Result containing updated TableSchema or error message.</returns>
+    public static Result<TableSchema> RefineSchema(TableSchema schema, CsvDataRow row)
     {
         ArgumentNullException.ThrowIfNull(schema);
         ArgumentNullException.ThrowIfNull(row);
@@ -113,13 +134,15 @@ public static class CsvSchemaScanner
         // Validate row has same number of columns as schema
         if (schema.Columns.Count != row.Count)
         {
-            return Results.Failure(
+            return Results.Failure<TableSchema>(
                 $"Row has {row.Count} columns but schema has {schema.Columns.Count} columns"
             );
         }
 
+        var updatedColumns = new Dictionary<int, ColumnSchema>();
+
         // Process each column
-        for (var i = 0; i < schema.Columns.Count; i++)
+        for (var i = 0; i < schema.ColumnCount; i++)
         {
             var columnSchema = schema.Columns[i];
             var columnValue = row[i];
@@ -128,17 +151,46 @@ public static class CsvSchemaScanner
             // Update nullable status for empty or whitespace values
             if (CsvTypeInferrer.IsEmptyOrWhitespace(valueSpan))
             {
-                columnSchema.MarkNullable();
+                // Use Copy-on-Write pattern with WithMarkedNullable
+                updatedColumns[i] = columnSchema.WithMarkedNullable();
                 continue;
             }
 
             // Infer type for this value
             var inferredType = CsvTypeInferrer.InferType(valueSpan);
 
-            // Update column type (will resolve type conflicts if needed)
-            columnSchema.UpdateColumnType(inferredType);
+            // Update column type using Copy-on-Write pattern
+            var updatedSchema = columnSchema.WithUpdatedType(inferredType);
+            if (!ReferenceEquals(updatedSchema, columnSchema))
+            {
+                updatedColumns[i] = updatedSchema;
+            }
         }
 
-        return Results.Success();
+        // If no changes were made, return the original schema
+        if (updatedColumns.Count == 0)
+        {
+            return Results.Success(schema);
+        }
+
+        // Create new column schemas with updated values
+        var newColumns = new ColumnSchema[schema.Columns.Count];
+        for (var i = 0; i < schema.ColumnCount; i++)
+        {
+            if (updatedColumns.TryGetValue(i, out var updatedColumn))
+            {
+                newColumns[i] = updatedColumn;
+                continue;
+            }
+
+            newColumns[i] = schema.Columns[i];
+        }
+
+        // Return new TableSchema with updated columns
+        var updatedTableSchema = schema with
+        {
+            Columns = newColumns,
+        };
+        return Results.Success(updatedTableSchema);
     }
 }

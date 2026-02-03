@@ -1,3 +1,4 @@
+using DataMorph.App.Schema;
 using DataMorph.Engine.Models;
 
 namespace DataMorph.App;
@@ -22,4 +23,15 @@ internal sealed class AppState
     /// Null if no file is loaded or schema has not been detected.
     /// </summary>
     public TableSchema? Schema { get; set; }
+
+    /// <summary>
+    /// Gets or sets the incremental schema scanner for background schema refinement.
+    /// Null if no CSV file is loaded.
+    /// </summary>
+    public IncrementalSchemaScanner? SchemaScanner { get; set; }
+
+    /// <summary>
+    /// Gets or sets the cancellation token source for the background schema scanner.
+    /// </summary>
+    public CancellationTokenSource Cts { get; set; } = new();
 }

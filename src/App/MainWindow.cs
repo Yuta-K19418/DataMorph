@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using DataMorph.App.Schema;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
@@ -41,7 +42,7 @@ internal sealed class MainWindow : Window
     )]
     private void InitializeMenu()
     {
-        var openMenuItem = new MenuItem("_Open", "", ShowFileDialog);
+        var openMenuItem = new MenuItem("_Open", "", async () => await ShowFileDialogAsync());
         var exitMenuItem = new MenuItem("_Exit", "", () => _app.RequestStop());
         var fileMenuBarItem = new MenuBarItem("_File", [openMenuItem, exitMenuItem]);
         var menuBar = new MenuBar { Menus = [fileMenuBarItem] };
@@ -60,7 +61,7 @@ internal sealed class MainWindow : Window
         {
             Key = KeyCode.O | KeyCode.CtrlMask,
             Title = "Open",
-            Action = ShowFileDialog,
+            Action = async () => await ShowFileDialogAsync(),
         };
         var quitShortcut = new Shortcut
         {
@@ -94,10 +95,9 @@ internal sealed class MainWindow : Window
         "CA2000:Dispose objects before losing scope",
         Justification = "The OpenDialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
     )]
-    private void ShowFileDialog()
+    private async Task ShowFileDialogAsync()
     {
         var dialog = new OpenDialog { Title = "Open File" };
-
         dialog.AllowedTypes.Add(new AllowedType("CSV file", ".csv"));
         dialog.AllowedTypes.Add(new AllowedType("JSON file", ".json"));
 
@@ -113,47 +113,7 @@ internal sealed class MainWindow : Window
         // Determine file type and create appropriate view
         if (dialog.Path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {
-            var indexer = new CsvDataRowIndexer(dialog.Path);
-            _ = Task.Run(indexer.BuildIndex);
-
-            // Create schema from CSV header using CsvSchemaCreator
-            var result = CsvSchemaCreator.CreateSchemaFromCsvHeader(dialog.Path);
-            if (result.IsFailure)
-            {
-                // Schema creation failed, use placeholder view
-                _state.CurrentMode = ViewMode.PlaceholderView;
-
-                if (_currentContentView is not null)
-                {
-                    Remove(_currentContentView);
-                    _currentContentView.Dispose();
-                }
-                _currentContentView = Views.PlaceholderView.Create(_state);
-                _currentContentView.Text = result.Error;
-                Add(_currentContentView);
-                return;
-            }
-
-            _state.Schema = result.Value;
-            _state.CurrentMode = ViewMode.CsvTable;
-
-            // Switch to TableView with VirtualTableSource
-            if (_currentContentView is not null)
-            {
-                Remove(_currentContentView);
-                _currentContentView.Dispose();
-            }
-
-            _currentContentView = new TableView
-            {
-                X = 0,
-                Y = 0,
-                Width = Dim.Fill(),
-                Height = Dim.Fill(),
-                Table = new Views.VirtualTableSource(indexer, result.Value),
-                Style = new TableStyle() { AlwaysShowHeaders = true },
-            };
-            Add(_currentContentView);
+            await LoadCsvFileAsync(dialog.Path);
             return;
         }
 
@@ -166,6 +126,79 @@ internal sealed class MainWindow : Window
             _currentContentView.Dispose();
         }
         _currentContentView = Views.PlaceholderView.Create(_state);
+        Add(_currentContentView);
+    }
+
+    private async Task LoadCsvFileAsync(string filePath)
+    {
+        var indexer = new CsvDataRowIndexer(filePath);
+        _ = Task.Run(indexer.BuildIndex);
+
+        var schemaScanner = new IncrementalSchemaScanner(filePath);
+
+        try
+        {
+            var schema = await schemaScanner.InitialScanAsync();
+            _state.Schema = schema;
+            _state.SchemaScanner = schemaScanner;
+
+            _ = Task.Run(async () =>
+            {
+                var refinedSchema = await schemaScanner.StartBackgroundScanAsync(
+                    schema,
+                    _state.Cts.Token
+                );
+                _state.Schema = refinedSchema;
+            });
+            SwitchToTableView(indexer, schema);
+        }
+        catch (ArgumentException ex)
+        {
+            ShowError(ex.Message);
+            return;
+        }
+        catch (IOException ex)
+        {
+            ShowError($"Error reading CSV file: {ex.Message}");
+            return;
+        }
+
+        return;
+    }
+
+    private void ShowError(string error)
+    {
+        _state.CurrentMode = ViewMode.PlaceholderView;
+
+        if (_currentContentView is not null)
+        {
+            Remove(_currentContentView);
+            _currentContentView.Dispose();
+        }
+        _currentContentView = Views.PlaceholderView.Create(_state);
+        _currentContentView.Text = error;
+        Add(_currentContentView);
+    }
+
+    private void SwitchToTableView(CsvDataRowIndexer indexer, TableSchema schema)
+    {
+        _state.CurrentMode = ViewMode.CsvTable;
+
+        if (_currentContentView is not null)
+        {
+            Remove(_currentContentView);
+            _currentContentView.Dispose();
+        }
+
+        _currentContentView = new TableView
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+            Table = new Views.VirtualTableSource(indexer, schema),
+            Style = new TableStyle() { AlwaysShowHeaders = true },
+        };
         Add(_currentContentView);
     }
 }

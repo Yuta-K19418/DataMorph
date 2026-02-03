@@ -2,22 +2,22 @@
 
 ## Overview
 
-Implement a virtualized `TableView` to enable lag-free scrolling through millions of CSV/JSON records. This is achieved by creating a custom `ITableSource` implementation (`VirtualTableSource`) that integrates with the Engine layer's `CsvRowIndexer` and `CsvRowCache`.
+Implement a virtualized `TableView` to enable lag-free scrolling through millions of CSV/JSON records. This is achieved by creating a custom `ITableSource` implementation (`VirtualTableSource`) that integrates with the Engine layer's `CsvDataRowIndexer` and a new `CsvDataRowCache`.
 
 ## Background
 
 - **Current State**: `PlaceholderView` displays only the file path after selection.
 - **Existing Infrastructure**:
-  - Engine layer: `MmapService`, `CsvRowIndexer`, `CsvRowCache`, `TableSchema`.
-  - App layer: `MainWindow`, `AppState`, view switching mechanism.
+  - Engine layer: `MmapService`, `CsvDataRowIndexer`, `TableSchema`.
+  - App layer: `MainWindow`, `AppState`, `IncrementalSchemaScanner`.
 - **Goal**: Use `Terminal.Gui`'s built-in `TableView` to create a virtualized grid that renders only visible rows, ensuring high performance with large datasets.
 
 ## Objectives
 
 1.  Implement `VirtualTableSource` which acts as a bridge between the data engine and the UI.
-2.  Integrate with `CsvRowIndexer` and `CsvRowCache` for efficient, on-demand row access.
-3.  Utilize the built-in features of `Terminal.Gui.TableView` for rendering, scrolling, and keyboard navigation.
-4.  Display column headers derived from `TableSchema`.
+2.  Integrate with `CsvDataRowIndexer` and a new `CsvDataRowCache` for efficient, on-demand row access.
+3.  Utilize the built-in features of `Terminal.Gui.TableView` for rendering and scrolling.
+4.  Display column headers derived from `TableSchema`, ensuring they are always visible.
 5.  Ensure minimal memory usage by not loading the entire file into memory.
 
 ## Implementation Details
@@ -26,17 +26,18 @@ Implement a virtualized `TableView` to enable lag-free scrolling through million
 
 **Component Interaction:**
 
-The `TableView` in the UI layer requests only the visible data from `VirtualTableSource`. `VirtualTableSource` in turn retrieves this data from `CsvRowCache`, which intelligently fetches and caches row data from the underlying `CsvRowIndexer` and memory-mapped file.
+The `TableView` in the UI layer requests only the visible data from `VirtualTableSource`. `VirtualTableSource` in turn retrieves this data from `CsvDataRowCache`, which intelligently fetches and caches row data from the underlying `CsvDataRowIndexer` and memory-mapped file. The schema itself is provided by the `IncrementalSchemaScanner`.
 
 **Data Flow:**
 ```
 CSV File
-   ├─── Used by CsvRowIndexer (creates row offsets)
-   └─── Used by CsvRowReader (reads actual row data)
+   ├─── Used by CsvDataRowIndexer (creates row offsets, runs in background)
+   ├─── Used by IncrementalSchemaScanner (infers schema, runs in background)
+   └─── Used by CsvDataRowReader (reads actual row data for the cache)
            ↓
-      CsvRowCache (manages cached rows using CsvRowIndexer and CsvRowReader)
+      CsvDataRowCache (manages cached rows using CsvDataRowIndexer and CsvDataRowReader)
            ↓
-      VirtualTableSource (implements ITableSource)
+      VirtualTableSource (implements ITableSource, connects cache to UI)
            ↓
       TableView (Terminal.Gui component for display)
 ```
@@ -51,15 +52,15 @@ namespace DataMorph.App.Views;
 
 internal sealed class VirtualTableSource : ITableSource
 {
-    private readonly CsvRowCache _cache;
+    private readonly CsvDataRowCache _cache;
     private readonly TableSchema _schema;
     private readonly string[] _columnNames;
 
-    public VirtualTableSource(CsvRowIndexer indexer, TableSchema schema)
+    public VirtualTableSource(CsvDataRowIndexer indexer, TableSchema schema)
     {
         _schema = schema;
         _columnNames = _schema.Columns.Select(c => c.Name).ToArray();
-        _cache = new CsvRowCache(indexer, _schema.ColumnCount);
+        _cache = new CsvDataRowCache(indexer, _schema.ColumnCount);
     }
 
     public int Rows => _cache.TotalRows;
@@ -70,8 +71,21 @@ internal sealed class VirtualTableSource : ITableSource
     {
         get
         {
+            if (row < 0 || row >= Rows || col < 0 || col >= Columns)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+
             var rowData = _cache.GetRow(row);
-            // ... logic to return cell data ...
+
+            if (col < rowData.Count)
+            {
+                var memory = rowData[col];
+                return memory.IsEmpty ? string.Empty : new string(memory.Span);
+            }
+
+            // Return empty string for columns that might not exist in a ragged CSV row
+            return string.Empty;
         }
     }
 }
@@ -79,59 +93,71 @@ internal sealed class VirtualTableSource : ITableSource
 
 **Key Features:**
 - **On-Demand Data Access**: The `this[row, col]` indexer is called by `TableView` only for the rows and columns it needs to draw.
-- **Data Caching**: Delegates row retrieval to `CsvRowCache`, which minimizes redundant parsing and I/O operations.
-- **Decoupling**: Separates the UI (`TableView`) from the data source logic, adhering to a clean architecture.
-
-#### ViewportState.cs
-While `TableView` manages its own viewport, this class can be used to track application-level state related to the data view, such as the currently selected cell or filtering state in future extensions.
-
-```csharp
-namespace DataMorph.App.Views;
-
-internal sealed class ViewportState
-{
-    public int TopRow { get; set; }
-    public int SelectedRow { get; set; }
-    public int SelectedColumn { get; set; }
-    // ... other state properties
-}
-```
+- **Robust Data Handling**: The implementation correctly handles "ragged" CSV files (where rows have different numbers of columns) by returning an empty string for missing cells, preventing crashes.
+- **Data Caching**: Delegates row retrieval to `CsvDataRowCache`, which minimizes redundant parsing and I/O operations.
+- **Decoupling**: Separates the UI (`TableView`) from the data source logic.
 
 ### 3. Integration with Engine Layer
 
 #### Update MainWindow.cs
-When a file is selected, `MainWindow` is responsible for initializing the engine components and setting up the `TableView` with the `VirtualTableSource`.
+When a file is selected, `MainWindow` orchestrates the initialization of the engine components and sets up the `TableView`. The process is asynchronous to keep the UI responsive.
 
 ```csharp
-private void ShowDataView(string filePath)
+private async Task LoadCsvFileAsync(string filePath)
 {
-    // 1. Initialize CsvRowIndexer and CsvSchemaCreator
-    var indexer = new CsvRowIndexer(filePath);
-    indexer.BuildIndex(); // Build the index synchronously
+    // 1. Start building the row index in the background.
+    var indexer = new CsvDataRowIndexer(filePath);
+    _ = Task.Run(indexer.BuildIndex);
 
-    var schemaResult = CsvSchemaCreator.CreateSchemaFromCsvHeader(filePath, () => indexer.TotalRows);
-    // ... error handling ...
+    // 2. Create the schema scanner.
+    var schemaScanner = new IncrementalSchemaScanner(filePath);
 
-    _state.RowIndexer = indexer;
-    _state.Schema = schemaResult.Value;
+    try
+    {
+        // 3. Perform a quick initial scan to get a schema for immediate display.
+        var schema = await schemaScanner.InitialScanAsync();
+        _state.Schema = schema;
+        _state.SchemaScanner = schemaScanner; // Store for potential future use.
 
-    // 2. Create the TableView and its source
-    var tableSource = new VirtualTableSource(_state.RowIndexer, _state.Schema);
-    var tableView = new TableView
+        // 4. Start the full background scan to refine the schema.
+        _ = Task.Run(async () =>
+        {
+            var refinedSchema = await schemaScanner.StartBackgroundScanAsync(
+                schema,
+                _state.Cts.Token // Assumes a CancellationTokenSource is managed in AppState
+            );
+            // In a full implementation, the UI would be notified of this change.
+            _state.Schema = refinedSchema;
+        });
+
+        // 5. Switch to the TableView using the initial indexer and schema.
+        SwitchToTableView(indexer, schema);
+    }
+    catch (Exception ex)
+    {
+        ShowError($"Error loading CSV: {ex.Message}");
+    }
+}
+
+private void SwitchToTableView(CsvDataRowIndexer indexer, TableSchema schema)
+{
+    // ... dispose existing view ...
+
+    // Create the TableView with the virtual source and style.
+    _currentContentView = new TableView
     {
         X = 0, Y = 0,
         Width = Dim.Fill(),
         Height = Dim.Fill(),
-        Table = tableSource
+        Table = new Views.VirtualTableSource(indexer, schema),
+        Style = new TableStyle() { AlwaysShowHeaders = true }, // Keep headers visible
     };
-
-    // 3. Switch the current view
-    SwitchToView(tableView);
+    Add(_currentContentView);
 }
 ```
 
 #### Update AppState.cs
-The `AppState` class holds the state of the engine components, making them accessible throughout the application.
+The `AppState` class holds the shared state, including the schema and cancellation tokens.
 
 ```csharp
 internal sealed class AppState
@@ -139,9 +165,10 @@ internal sealed class AppState
     public string CurrentFilePath { get; set; } = string.Empty;
     public ViewMode CurrentMode { get; set; } = ViewMode.FileSelection;
 
-    // Engine component references
-    public CsvRowIndexer? RowIndexer { get; set; }
+    // Engine and schema-related state
     public TableSchema? Schema { get; set; }
+    public IncrementalSchemaScanner? SchemaScanner { get; set; }
+    public CancellationTokenSource Cts { get; } = new();
 }
 ```
 
@@ -152,48 +179,42 @@ All standard keyboard navigation is handled automatically by the `Terminal.Gui.T
 - **Page Up/Down**: Jump by viewport height.
 - **Home/End**: Jump to the first/last row or column.
 
-Application-specific shortcuts remain:
-- **Ctrl+X**: Quit.
-- **Ctrl+O**: Open file.
-
 ### 5. Performance Considerations
 
 - **Virtualization**: The `TableView` only requests data for visible cells, so memory usage is independent of file size.
-- **Efficient Caching**: `CsvRowCache` reduces the cost of accessing frequently viewed rows.
-- **Zero-Allocation Parsing**: The underlying `CsvRowReader` uses `ReadOnlySpan<byte>` to avoid string allocations during parsing, minimizing GC pressure.
+- **Asynchronous Operations**: Indexing and full schema scanning run in the background, so the UI is not blocked when opening large files.
+- **Efficient Caching**: `CsvDataRowCache` reduces the cost of accessing frequently viewed rows.
+- **Zero-Allocation Parsing**: The underlying `CsvRowReader` uses `ReadOnlySpan<T>` to avoid string allocations during parsing, minimizing GC pressure.
 
 ### 6. Testing Strategy
 
 #### Unit Tests
 
 1.  **`tests/DataMorph.Tests/App/Views/VirtualTableSourceTests.cs`**:
-    - Test constructor and property initialization.
+    - Test constructor and property initialization (`Rows`, `Columns`, `ColumnNames`).
     - Test `this[row, col]` indexer with valid and out-of-range inputs.
-    - Mock `CsvRowCache` to verify that `VirtualTableSource` correctly retrieves and returns data.
-
-2.  **`tests/DataMorph.Tests/Engine/IO/CsvRowCacheTests.cs`**:
-    - Test caching logic: ensure rows are fetched on the first request and retrieved from cache on subsequent requests.
-    - Test cache eviction policies if any are implemented.
+    - Mock `CsvDataRowCache` to verify that `VirtualTableSource` correctly retrieves data and handles ragged rows.
+    - Ensure it converts `ReadOnlyMemory<char>` to `string` correctly.
 
 #### Manual Testing Checklist
 
 1.  Open a small CSV file (< 100 rows): Verify header and data render correctly.
 2.  Open a large CSV file (> 1 million rows):
-    - Verify the file opens quickly.
+    - Verify the file opens quickly and the table is displayed almost instantly.
     - Verify smooth, lag-free scrolling using arrow keys and Page Up/Down.
+    - Scroll to the end of the file to ensure the indexer has completed successfully.
     - Monitor memory usage to confirm it remains low and constant during scrolling.
 3.  Test edge cases:
     - Empty CSV file.
     - CSV with only a header.
-    - CSV with ragged rows (rows with a different number of columns).
+    - CSV with ragged rows.
+    - CSV with various data types to check schema inference.
 
 ### 7. Deferred Features
 
-The following features are **explicitly out of scope** for this issue:
--   [ ] Column morphing (Delete, Rename, Cast).
--   [ ] Filtering/search.
--   [ ] Horizontal scrolling for wide tables (though `TableView` has some built-in support).
--   [ ] Column resizing by the user.
--   [ ] Cell editing.
--   [ ] Export functionality.
-This implementation focuses solely on high-performance, read-only virtualized rendering.
+This implementation focuses on high-performance, read-only rendering. The following are out of scope:
+- Column morphing (Delete, Rename, Cast).
+- Filtering/search.
+- Horizontal scrolling for wide tables.
+- Column resizing.
+- Cell editing.

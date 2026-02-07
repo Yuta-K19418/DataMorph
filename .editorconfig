@@ -39,6 +39,9 @@ trim_trailing_whitespace = false
 # Disabling this as the project uses English-only strings and doesn't require .resx localization.
 dotnet_diagnostic.CA1303.severity = none
 
+# IDE0005: Using directive is unnecessary.
+dotnet_diagnostic.IDE0005.severity = warning
+
 #### Core EditorConfig Options ####
 
 # Indentation and spacing
@@ -104,9 +107,25 @@ dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
 #### C# Coding Conventions ####
 
 # var preferences
-csharp_style_var_for_built_in_types = false:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = false:suggestion
+# Use 'var' as much as possible
+csharp_style_var_for_built_in_types = true:warning
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = true:warning
+
+# Expression-level preferences
+# Do not use target-typed 'new()'.
+csharp_style_implicit_object_creation_when_type_is_apparent = false:warning
+
+# Prefer collection expressions for collection initialization (e.g., List<string> list = [];)
+csharp_style_prefer_collection_expression = true:warning
+
+# Collection expression preferences (C# 12+)
+# IDE0300: Use collection expressions for list/collection initialization
+dotnet_diagnostic.IDE0300.severity = warning
+# IDE0301: Use collection expressions for array initialization
+dotnet_diagnostic.IDE0301.severity = warning
+# IDE0305: Use collection expressions for empty collection creation (e.g., Array.Empty<T>())
+dotnet_diagnostic.IDE0305.severity = warning
 
 # Expression-bodied members
 csharp_style_expression_bodied_methods = when_on_single_line:suggestion
@@ -152,7 +171,6 @@ csharp_style_pattern_local_over_anonymous_function = true:suggestion
 csharp_style_inlined_variable_declaration = true:warning
 csharp_style_prefer_index_operator = true:suggestion
 csharp_style_prefer_range_operator = true:suggestion
-csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
 csharp_style_prefer_tuple_swap = true:suggestion
 csharp_style_prefer_utf8_string_literals = true:suggestion
 csharp_style_deconstructed_variable_declaration = true:suggestion

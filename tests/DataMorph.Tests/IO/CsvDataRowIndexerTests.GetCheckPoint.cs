@@ -184,11 +184,11 @@ public sealed partial class CsvDataRowIndexerTests
 
         // Concurrently call GetCheckPoint from multiple threads
         var tasks = new List<Task>();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             tasks.Add(Task.Run(() =>
             {
-                for (int j = 0; j < 100; j++)
+                for (var j = 0; j < 100; j++)
                 {
                     var (byteOffset, rowOffset) = indexer.GetCheckPoint(j * 50);
                     // Should not throw

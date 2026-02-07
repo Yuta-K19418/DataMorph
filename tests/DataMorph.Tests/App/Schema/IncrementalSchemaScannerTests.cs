@@ -1,6 +1,5 @@
 using AwesomeAssertions;
 using DataMorph.App.Schema;
-using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
 namespace DataMorph.Tests.App.Schema;

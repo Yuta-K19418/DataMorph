@@ -165,7 +165,7 @@ public sealed class RecipeSerializationTests
         {
             Name = "Test",
             Description = null,
-            Actions = Array.Empty<MorphAction>()
+            Actions = []
         };
 
         // Act
@@ -290,7 +290,7 @@ public sealed class RecipeSerializationTests
         var recipe = new Recipe
         {
             Name = "Timezone Test",
-            Actions = Array.Empty<MorphAction>(),
+            Actions = [],
             LastModified = expectedTimestamp
         };
 
@@ -311,8 +311,8 @@ public sealed class RecipeSerializationTests
         var utcTime = new DateTimeOffset(2025, 12, 30, 12, 0, 0, TimeSpan.Zero);
         var jstTime = new DateTimeOffset(2025, 12, 30, 21, 0, 0, TimeSpan.FromHours(9));
 
-        var recipe1 = new Recipe { Name = "UTC", Actions = Array.Empty<MorphAction>(), LastModified = utcTime };
-        var recipe2 = new Recipe { Name = "JST", Actions = Array.Empty<MorphAction>(), LastModified = jstTime };
+        var recipe1 = new Recipe { Name = "UTC", Actions = [], LastModified = utcTime };
+        var recipe2 = new Recipe { Name = "JST", Actions = [], LastModified = jstTime };
 
         // Assert - Should represent the same moment in time
         recipe1.LastModified.Should().Be(recipe2.LastModified);
@@ -328,7 +328,7 @@ public sealed class RecipeSerializationTests
         var act = () => new Recipe
         {
             Name = null!,
-            Actions = Array.Empty<MorphAction>()
+            Actions = []
         };
 
         // Assert
@@ -342,7 +342,7 @@ public sealed class RecipeSerializationTests
         var act = () => new Recipe
         {
             Name = string.Empty,
-            Actions = Array.Empty<MorphAction>()
+            Actions = []
         };
 
         // Assert
@@ -356,7 +356,7 @@ public sealed class RecipeSerializationTests
         var act = () => new Recipe
         {
             Name = "   ",
-            Actions = Array.Empty<MorphAction>()
+            Actions = []
         };
 
         // Assert

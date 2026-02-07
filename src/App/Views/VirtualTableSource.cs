@@ -17,7 +17,7 @@ internal sealed class VirtualTableSource : ITableSource
     public VirtualTableSource(CsvDataRowIndexer indexer, TableSchema schema)
     {
         _schema = schema;
-        _columnNames = _schema.Columns.Select(c => c.Name).ToArray();
+        _columnNames = [.. _schema.Columns.Select(c => c.Name)];
         _cache = new CsvDataRowCache(indexer, _schema.ColumnCount);
     }
 

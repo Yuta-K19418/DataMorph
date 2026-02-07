@@ -1,19 +1,22 @@
 namespace DataMorph.Engine.Models.Actions;
 
 /// <summary>
-/// Renames a column in the dataset.
+/// Represents an action to rename a column in the dataset.
 /// </summary>
 public sealed record RenameColumnAction : MorphAction
 {
     /// <summary>
-    /// The current name of the column to rename.
+    /// Gets the current name of the column to rename.
     /// </summary>
     public required string OldName { get; init; }
 
     /// <summary>
-    /// The new name for the column.
+    /// Gets the new name for the column.
     /// </summary>
     public required string NewName { get; init; }
 
+    /// <summary>
+    /// Gets a description of the action.
+    /// </summary>
     public override string Description => $"Rename column '{OldName}' to '{NewName}'";
 }

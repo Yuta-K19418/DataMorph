@@ -11,6 +11,9 @@ public sealed class CsvDataRowIndexer
     private readonly Lock _lock = new();
     private readonly string _filePath;
 
+    /// <summary>
+    /// Gets the path to the CSV file being indexed.
+    /// </summary>
     public string FilePath => _filePath;
     private readonly List<long> _checkpoints = [];
 
@@ -21,6 +24,11 @@ public sealed class CsvDataRowIndexer
 
     private long _totalRows;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CsvDataRowIndexer"/> class.
+    /// </summary>
+    /// <param name="filePath">The path to the CSV file to index.</param>
+    /// <exception cref="ArgumentException">Thrown if <paramref name="filePath"/> is null or whitespace.</exception>
     public CsvDataRowIndexer(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);

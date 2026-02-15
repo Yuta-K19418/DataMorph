@@ -17,8 +17,6 @@ public sealed class RowIndexer
     private const int BufferSize = 1024 * 1024; // 1MB
     private const int CheckPointInterval = 1000;
 
-    private static readonly SearchValues<byte> _newline = SearchValues.Create("\n"u8);
-
     /// <summary>
     /// Initializes a new instance of the <see cref="RowIndexer"/> class.
     /// </summary>
@@ -57,6 +55,7 @@ public sealed class RowIndexer
             FileShare.Read
         );
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
+        var scanner = new JsonLinesScanner();
 
         try
         {
@@ -78,8 +77,7 @@ public sealed class RowIndexer
                 lastByteRead = buffer[bytesRead - 1];
 
                 var span = buffer.AsSpan(0, bytesRead);
-                ProcessBuffer(span, ref fileOffset, ref rowCount);
-
+                ProcessBuffer(span, ref fileOffset, ref rowCount, ref scanner);
                 fileOffset += bytesRead;
             }
 
@@ -124,38 +122,50 @@ public sealed class RowIndexer
         }
     }
 
-    private void ProcessBuffer(ReadOnlySpan<byte> buffer, ref long fileOffset, ref long rowCount)
+    private void ProcessBuffer(
+        ReadOnlySpan<byte> buffer,
+        ref long fileOffset,
+        ref long rowCount,
+        ref JsonLinesScanner scanner
+    )
     {
         var position = 0;
 
         while (position < buffer.Length)
         {
-            var searchStart = buffer[position..];
-            var foundIndex = searchStart.IndexOfAny(_newline);
+            var remainingSpan = buffer[position..];
+            var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(remainingSpan);
 
-            if (foundIndex == -1)
+            // bytesConsumed should always be > 0 when remainingSpan is not empty
+            if (bytesConsumed <= 0)
             {
-                break;
+                throw new InvalidDataException(
+                    $"FindNextLineLength returned non-positive bytesConsumed ({bytesConsumed}) "
+                        + $"for a non-empty span (length={remainingSpan.Length}) at position={position}, "
+                        + $"fileOffset={fileOffset}"
+                );
             }
 
-            var absoluteIndex = position + foundIndex;
+            // Always advance position by the number of bytes consumed
+            position += bytesConsumed;
 
-            rowCount++;
-            position = absoluteIndex + 1;
-
-            if (rowCount % CheckPointInterval != 0)
+            if (lineCompleted)
             {
-                continue;
-            }
+                // A complete line was found (ending with an unescaped newline)
+                rowCount++;
 
-            // Update _totalRows for progress tracking (every 1000 rows)
-            Interlocked.Exchange(ref _totalRows, rowCount);
+                if (rowCount % CheckPointInterval == 0)
+                {
+                    // Update _totalRows for progress tracking (every 1000 rows)
+                    Interlocked.Exchange(ref _totalRows, rowCount);
 
-            // Store checkpoint every N rows
-            var checkpointOffset = fileOffset + position;
-            lock (_lock)
-            {
-                _checkpoints.Add(checkpointOffset);
+                    // Store checkpoint every N rows
+                    var checkpointOffset = fileOffset + position;
+                    lock (_lock)
+                    {
+                        _checkpoints.Add(checkpointOffset);
+                    }
+                }
             }
         }
     }

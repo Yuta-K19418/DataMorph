@@ -16,6 +16,11 @@ internal enum ViewMode
     CsvTable,
 
     /// <summary>
+    /// JSON Lines tree view with hierarchical node display.
+    /// </summary>
+    JsonLinesTree,
+
+    /// <summary>
     /// Placeholder view displaying loaded file information.
     /// Will be replaced by CsvTable, JsonTable views in future issues.
     /// </summary>

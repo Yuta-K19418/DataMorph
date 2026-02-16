@@ -99,6 +99,7 @@ internal sealed class MainWindow : Window
         var dialog = new OpenDialog { Title = "Open File" };
         dialog.AllowedTypes.Add(new AllowedType("CSV file", ".csv"));
         dialog.AllowedTypes.Add(new AllowedType("JSON file", ".json"));
+        dialog.AllowedTypes.Add(new AllowedType("JSON Lines file", ".jsonl"));
 
         _app.Run(dialog);
 
@@ -113,6 +114,12 @@ internal sealed class MainWindow : Window
         if (dialog.Path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {
             await LoadCsvFileAsync(dialog.Path);
+            return;
+        }
+
+        if (dialog.Path.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadJsonLinesFileAsync(dialog.Path);
             return;
         }
 
@@ -177,6 +184,16 @@ internal sealed class MainWindow : Window
         _currentContentView = Views.PlaceholderView.Create(_state);
         _currentContentView.Text = error;
         Add(_currentContentView);
+    }
+
+    private Task LoadJsonLinesFileAsync(string filePath)
+    {
+        throw new NotImplementedException();
+    }
+
+    private void SwitchToTreeView(Engine.IO.JsonLines.RowIndexer indexer)
+    {
+        throw new NotImplementedException();
     }
 
     private void SwitchToTableView(CsvDataRowIndexer indexer, TableSchema schema)

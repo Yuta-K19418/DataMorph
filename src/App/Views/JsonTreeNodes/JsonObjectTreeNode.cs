@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views.JsonTreeNodes;
@@ -44,11 +45,107 @@ internal sealed class JsonObjectTreeNode : TreeNode
 
     private void LoadChildren()
     {
-        throw new NotImplementedException();
+        List<ITreeNode> children = [];
+
+        var reader = new Utf8JsonReader(_rawJson.Span);
+
+        bool isValidObjectStart;
+        try
+        {
+            isValidObjectStart = reader.Read() && reader.TokenType == JsonTokenType.StartObject;
+        }
+        catch (JsonException)
+        {
+            isValidObjectStart = false;
+        }
+
+        if (!isValidObjectStart)
+        {
+            children.Add(
+                new JsonValueTreeNode("[Invalid JSON Object]")
+                {
+                    ValueKind = JsonValueKind.Undefined,
+                }
+            );
+            base.Children = children;
+            return;
+        }
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                break;
+            }
+
+            if (reader.TokenType != JsonTokenType.PropertyName)
+            {
+                continue;
+            }
+
+            var propertyName = reader.GetString() ?? string.Empty;
+
+            if (!reader.Read())
+            {
+                break;
+            }
+
+            var childNode = JsonTreeNodeHelper.CreateChildNode(ref reader, propertyName, _rawJson);
+            if (childNode is not null)
+            {
+                children.Add(childNode);
+            }
+        }
+
+        base.Children = children;
     }
 
     private string FormatDisplayText()
     {
-        throw new NotImplementedException();
+        var reader = new Utf8JsonReader(_rawJson.Span);
+
+        bool isValidObjectStart;
+        try
+        {
+            isValidObjectStart = reader.Read() && reader.TokenType == JsonTokenType.StartObject;
+        }
+        catch (JsonException)
+        {
+            isValidObjectStart = false;
+        }
+
+        if (!isValidObjectStart)
+        {
+            return "{Invalid Object}";
+        }
+
+        var propertyCount = 0;
+        var depth = 1;
+
+        while (reader.Read())
+        {
+            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                depth++;
+                continue;
+            }
+
+            if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+            {
+                depth--;
+            }
+
+            if (depth == 0)
+            {
+                break;
+            }
+
+            if (depth == 1 && reader.TokenType == JsonTokenType.PropertyName)
+            {
+                propertyCount++;
+            }
+        }
+
+        return $"{{Object: {propertyCount} properties}}";
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views.JsonTreeNodes;
@@ -39,11 +40,101 @@ internal sealed class JsonArrayTreeNode : TreeNode
 
     private void LoadChildren()
     {
-        throw new NotImplementedException();
+        List<ITreeNode> children = [];
+
+        var reader = new Utf8JsonReader(_rawJson.Span);
+
+        bool isValidArrayStart;
+        try
+        {
+            isValidArrayStart = reader.Read() && reader.TokenType == JsonTokenType.StartArray;
+        }
+        catch (JsonException)
+        {
+            isValidArrayStart = false;
+        }
+
+        if (!isValidArrayStart)
+        {
+            children.Add(
+                new JsonValueTreeNode("[Invalid JSON Array]")
+                {
+                    ValueKind = JsonValueKind.Undefined,
+                }
+            );
+            base.Children = children;
+            return;
+        }
+
+        var elementIndex = 0;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                break;
+            }
+
+            var elementNode = JsonTreeNodeHelper.CreateChildNode(
+                ref reader,
+                $"[{elementIndex}]",
+                _rawJson
+            );
+            if (elementNode is not null)
+            {
+                children.Add(elementNode);
+            }
+            elementIndex++;
+        }
+
+        base.Children = children;
     }
 
     private string FormatDisplayText()
     {
-        throw new NotImplementedException();
+        var reader = new Utf8JsonReader(_rawJson.Span);
+
+        bool isValidArrayStart;
+        try
+        {
+            isValidArrayStart = reader.Read() && reader.TokenType == JsonTokenType.StartArray;
+        }
+        catch (JsonException)
+        {
+            isValidArrayStart = false;
+        }
+
+        if (!isValidArrayStart)
+        {
+            return "[Invalid Array]";
+        }
+
+        var elementCount = 0;
+        var depth = 1;
+
+        while (reader.Read())
+        {
+            if (reader.TokenType is JsonTokenType.StartArray or JsonTokenType.StartObject)
+            {
+                depth++;
+                continue;
+            }
+
+            if (reader.TokenType is JsonTokenType.EndArray or JsonTokenType.EndObject)
+            {
+                depth--;
+            }
+
+            if (depth == 0)
+            {
+                break;
+            }
+
+            if (depth == 1)
+            {
+                elementCount++;
+            }
+        }
+
+        return $"[Array: {elementCount} items]";
     }
 }

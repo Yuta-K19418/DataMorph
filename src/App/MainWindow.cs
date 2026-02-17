@@ -188,12 +188,37 @@ internal sealed class MainWindow : Window
 
     private Task LoadJsonLinesFileAsync(string filePath)
     {
-        throw new NotImplementedException();
+        var indexer = new Engine.IO.JsonLines.RowIndexer(filePath);
+        _ = Task.Run(indexer.BuildIndex);
+
+        SwitchToTreeView(indexer);
+
+        return Task.CompletedTask;
     }
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
     private void SwitchToTreeView(Engine.IO.JsonLines.RowIndexer indexer)
     {
-        throw new NotImplementedException();
+        _state.CurrentMode = ViewMode.JsonLinesTree;
+
+        if (_currentContentView is not null)
+        {
+            Remove(_currentContentView);
+            _currentContentView.Dispose();
+        }
+
+        _currentContentView = new Views.JsonLinesTreeView(indexer)
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+        };
+        Add(_currentContentView);
     }
 
     private void SwitchToTableView(CsvDataRowIndexer indexer, TableSchema schema)

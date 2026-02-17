@@ -24,6 +24,19 @@ internal sealed class JsonLinesTreeView : TreeView
     {
         _cache = new JsonLineByteCache(indexer);
         LoadInitialRootNodes();
+
+        ObjectActivated += OnObjectActivated;
+    }
+
+    private void OnObjectActivated(object? sender, ObjectActivatedEventArgs<ITreeNode> e)
+    {
+        if (IsExpanded(e.ActivatedObject))
+        {
+            Collapse(e.ActivatedObject);
+            return;
+        }
+
+        Expand(e.ActivatedObject);
     }
 
     private void LoadInitialRootNodes()

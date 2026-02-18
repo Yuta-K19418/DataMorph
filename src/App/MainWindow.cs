@@ -99,6 +99,7 @@ internal sealed class MainWindow : Window
         var dialog = new OpenDialog { Title = "Open File" };
         dialog.AllowedTypes.Add(new AllowedType("CSV file", ".csv"));
         dialog.AllowedTypes.Add(new AllowedType("JSON file", ".json"));
+        dialog.AllowedTypes.Add(new AllowedType("JSON Lines file", ".jsonl"));
 
         _app.Run(dialog);
 
@@ -113,6 +114,12 @@ internal sealed class MainWindow : Window
         if (dialog.Path.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {
             await LoadCsvFileAsync(dialog.Path);
+            return;
+        }
+
+        if (dialog.Path.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
+        {
+            await LoadJsonLinesFileAsync(dialog.Path);
             return;
         }
 
@@ -176,6 +183,41 @@ internal sealed class MainWindow : Window
         }
         _currentContentView = Views.PlaceholderView.Create(_state);
         _currentContentView.Text = error;
+        Add(_currentContentView);
+    }
+
+    private Task LoadJsonLinesFileAsync(string filePath)
+    {
+        var indexer = new Engine.IO.JsonLines.RowIndexer(filePath);
+        _ = Task.Run(indexer.BuildIndex);
+
+        SwitchToTreeView(indexer);
+
+        return Task.CompletedTask;
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
+    private void SwitchToTreeView(Engine.IO.JsonLines.RowIndexer indexer)
+    {
+        _state.CurrentMode = ViewMode.JsonLinesTree;
+
+        if (_currentContentView is not null)
+        {
+            Remove(_currentContentView);
+            _currentContentView.Dispose();
+        }
+
+        _currentContentView = new Views.JsonLinesTreeView(indexer)
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+        };
         Add(_currentContentView);
     }
 

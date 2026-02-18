@@ -14,7 +14,7 @@ internal sealed class JsonLinesTreeView : TreeView
 {
     private const int InitialLoadCount = 50;
 
-    private readonly JsonLineByteCache _cache;
+    private readonly RowByteCache _cache;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonLinesTreeView"/> class.
@@ -22,7 +22,7 @@ internal sealed class JsonLinesTreeView : TreeView
     /// <param name="indexer">The row indexer for the JSON Lines file.</param>
     public JsonLinesTreeView(RowIndexer indexer)
     {
-        _cache = new JsonLineByteCache(indexer);
+        _cache = new RowByteCache(indexer);
         LoadInitialRootNodes();
 
         ObjectActivated += OnObjectActivated;

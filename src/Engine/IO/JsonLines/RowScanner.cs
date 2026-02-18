@@ -27,7 +27,7 @@ namespace DataMorph.Engine.IO.JsonLines;
 ///    - We use vectorized SearchValues for initial byte scanning and minimal branching in hot paths.
 ///    - The state machine is optimized for the common case (no escapes) while handling edge cases correctly.
 /// </summary>
-public ref struct JsonLinesScanner
+public ref struct RowScanner
 {
     private static readonly SearchValues<byte> _newlineAndQuote = SearchValues.Create("\n\""u8);
 
@@ -35,10 +35,10 @@ public ref struct JsonLinesScanner
     private bool _escaped;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JsonLinesScanner"/> struct.
+    /// Initializes a new instance of the <see cref="RowScanner"/> struct.
     /// The scanner starts in a non-quoted state with no escape sequences.
     /// </summary>
-    public JsonLinesScanner()
+    public RowScanner()
     {
         _inQuotes = false;
         _escaped = false;

@@ -3,13 +3,13 @@ using DataMorph.Engine.IO.JsonLines;
 
 namespace DataMorph.Tests.IO.JsonLines;
 
-public sealed partial class JsonLineByteCacheTests : IDisposable
+public sealed partial class RowByteCacheTests : IDisposable
 {
     private readonly string _testFilePath;
     private readonly RowIndexer _indexer;
     private bool _disposed;
 
-    public JsonLineByteCacheTests()
+    public RowByteCacheTests()
     {
         // Arrange
         _testFilePath = Path.GetTempFileName();
@@ -40,7 +40,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void GetLineBytes_WithinCachedRange_ReturnsCachedBytes()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, cacheSize: 5);
         var expectedLine2 = "{\"id\":2,\"name\":\"Bob\"}"u8.ToArray();
 
         // Act - Get line 2 (within cache)
@@ -57,7 +57,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void GetLineBytes_OutsideCachedRange_UpdatesCacheWindow()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, cacheSize: 5);
         var expectedLine1 = "{\"id\":1,\"name\":\"Alice\"}"u8.ToArray();
         var expectedLine8 = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
 
@@ -75,7 +75,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void GetLineBytes_FirstLineRequested_CachesFromBeginning()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: 3);
+        using var cache = new RowByteCache(_indexer, cacheSize: 3);
         var expectedLine1 = "{\"id\":1,\"name\":\"Alice\"}"u8.ToArray();
         var expectedLine2 = "{\"id\":2,\"name\":\"Bob\"}"u8.ToArray();
         var expectedLine3 = "{\"id\":3,\"name\":\"Charlie\"}"u8.ToArray();
@@ -95,7 +95,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void GetLineBytes_LastLineRequested_CachesToEnd()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: 3);
+        using var cache = new RowByteCache(_indexer, cacheSize: 3);
         var totalLines = _indexer.TotalRows;
         var lastLineIndex = (int)totalLines - 1;
         var expectedLastLine = "{\"id\":10,\"name\":\"Jack\"}"u8.ToArray();
@@ -122,7 +122,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
             // Act
             var act = () =>
             {
-                using var cache = new JsonLineByteCache(indexer);
+                using var cache = new RowByteCache(indexer);
             };
 
             // Assert
@@ -140,7 +140,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void GetLineBytes_NegativeIndex_ReturnsEmpty(int invalidIndex)
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer);
 
         // Act
         var result = cache.GetLineBytes(invalidIndex);
@@ -155,7 +155,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void GetLineBytes_IndexEqualToOrGreaterThanTotalLines_ReturnsEmpty(int overflowIndex)
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer);
 
         // Act
         var result = cache.GetLineBytes(overflowIndex);
@@ -168,7 +168,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void UpdateCache_RequestedAtCacheCenter_KeepsExistingCache()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, cacheSize: 5);
 
         // First access to line 2 (cache window: 0-4)
         cache.GetLineBytes(1);
@@ -187,7 +187,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void UpdateCache_RequestedNearWindowEdge_ShiftsCacheWindow()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, cacheSize: 5);
         var expectedLine4 = "{\"id\":4,\"name\":\"David\"}"u8.ToArray();
         var expectedLine8 = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
 
@@ -209,7 +209,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     {
         // Arrange
         var largeCacheSize = 20; // Larger than total lines
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: largeCacheSize);
+        using var cache = new RowByteCache(_indexer, cacheSize: largeCacheSize);
 
         // Act - Get first and last lines
         var firstLine = cache.GetLineBytes(0).ToArray();
@@ -227,7 +227,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void Dispose_AfterAccess_PreventsFurtherAccess()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer);
         cache.GetLineBytes(0); // Normal access
 
         // Act
@@ -242,7 +242,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void GetLineBytes_AfterDisposal_ThrowsObjectDisposedException()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer);
         cache.Dispose();
 
         // Act
@@ -257,7 +257,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     {
         // Arrange
         var cacheSize = 5;
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: cacheSize);
+        using var cache = new RowByteCache(_indexer, cacheSize: cacheSize);
 
         // First access initializes cache (lines 0-4)
         cache.GetLineBytes(0);
@@ -274,7 +274,7 @@ public sealed partial class JsonLineByteCacheTests : IDisposable
     public void UpdateCache_MultipleOverlaps_ProperlyInvalidatesOldEntries()
     {
         // Arrange
-        using var cache = new JsonLineByteCache(_indexer, cacheSize: 4);
+        using var cache = new RowByteCache(_indexer, cacheSize: 4);
 
         // First cache (lines 0-3)
         cache.GetLineBytes(0);

@@ -4,12 +4,12 @@ using DataMorph.Engine.IO.JsonLines;
 
 namespace DataMorph.Tests.IO.JsonLines;
 
-public sealed class JsonLineReaderTests : IDisposable
+public sealed class RowReaderTests : IDisposable
 {
     private readonly string _testFilePath;
     private bool _disposed;
 
-    public JsonLineReaderTests()
+    public RowReaderTests()
     {
         _testFilePath = Path.GetTempFileName();
     }
@@ -35,7 +35,7 @@ public sealed class JsonLineReaderTests : IDisposable
         string? filePath = null;
 
         // Act
-        var act = () => new JsonLineReader(filePath!);
+        var act = () => new RowReader(filePath!);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -46,7 +46,7 @@ public sealed class JsonLineReaderTests : IDisposable
     {
         // Arrange
         WriteTestContent("{\"id\":1}\n");
-        using var reader = new JsonLineReader(_testFilePath);
+        using var reader = new RowReader(_testFilePath);
 
         // Act
         var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
@@ -62,7 +62,7 @@ public sealed class JsonLineReaderTests : IDisposable
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n");
-        using var reader = new JsonLineReader(_testFilePath);
+        using var reader = new RowReader(_testFilePath);
 
         // Act
         var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 3);
@@ -79,7 +79,7 @@ public sealed class JsonLineReaderTests : IDisposable
     {
         // Arrange
         WriteTestContent("{\"skip\":0}\n{\"read\":1}\n{\"read\":2}\n");
-        using var reader = new JsonLineReader(_testFilePath);
+        using var reader = new RowReader(_testFilePath);
 
         // Act
         var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
@@ -95,7 +95,7 @@ public sealed class JsonLineReaderTests : IDisposable
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n");
-        using var reader = new JsonLineReader(_testFilePath);
+        using var reader = new RowReader(_testFilePath);
 
         // Act
         var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
@@ -113,7 +113,7 @@ public sealed class JsonLineReaderTests : IDisposable
         WriteTestContent("");
 
         // Act
-        var act = () => new JsonLineReader(_testFilePath);
+        var act = () => new RowReader(_testFilePath);
 
         // Assert
         act.Should().Throw<InvalidOperationException>();
@@ -124,7 +124,7 @@ public sealed class JsonLineReaderTests : IDisposable
     {
         // Arrange
         WriteTestContent("invalid json\n");
-        using var reader = new JsonLineReader(_testFilePath);
+        using var reader = new RowReader(_testFilePath);
 
         // Act
         var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
@@ -138,7 +138,7 @@ public sealed class JsonLineReaderTests : IDisposable
     {
         // Arrange
         WriteTestContent("{\"test\":1}\n");
-        var reader = new JsonLineReader(_testFilePath);
+        var reader = new RowReader(_testFilePath);
         reader.Dispose();
 
         // Act
@@ -153,7 +153,7 @@ public sealed class JsonLineReaderTests : IDisposable
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n");
-        using var reader = new JsonLineReader(_testFilePath);
+        using var reader = new RowReader(_testFilePath);
         long largeOffset = 1000; // beyond file size
 
         // Act
@@ -169,7 +169,7 @@ public sealed class JsonLineReaderTests : IDisposable
         // Arrange
         // Incomplete JSON line without newline at EOF
         WriteTestContent("{\"incomplete\":");
-        using var reader = new JsonLineReader(_testFilePath);
+        using var reader = new RowReader(_testFilePath);
 
         // Act
         var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);

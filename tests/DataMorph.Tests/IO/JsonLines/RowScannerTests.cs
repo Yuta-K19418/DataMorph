@@ -3,7 +3,7 @@ using AwesomeAssertions;
 
 namespace DataMorph.Engine.IO.JsonLines.Tests;
 
-public sealed class JsonLinesScannerTests
+public sealed class RowScannerTests
 {
     [Fact]
     public void FindNextLineLength_EmptySpan_ReturnsFalseAndZero()
@@ -12,7 +12,7 @@ public sealed class JsonLinesScannerTests
         var span = ReadOnlySpan<byte>.Empty;
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -28,7 +28,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(line);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -44,7 +44,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -61,7 +61,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -79,7 +79,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -97,7 +97,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -114,7 +114,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -130,7 +130,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -147,7 +147,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -163,7 +163,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -187,7 +187,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -200,7 +200,7 @@ public sealed class JsonLinesScannerTests
     {
         // Arrange: First buffer with opening quote only
         var buffer1 = Encoding.UTF8.GetBytes("\"long value");
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act (First buffer)
         var (lineCompleted1, bytesConsumed1) = scanner.FindNextLineLength(buffer1);
@@ -225,7 +225,7 @@ public sealed class JsonLinesScannerTests
     {
         // Arrange: First buffer with partial escape sequence
         var buffer1 = Encoding.UTF8.GetBytes("{\"path\":\"C:\\\\");
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act (First buffer)
         var (lineCompleted1, bytesConsumed1) = scanner.FindNextLineLength(buffer1);
@@ -260,7 +260,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -276,7 +276,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -292,7 +292,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -308,7 +308,7 @@ public sealed class JsonLinesScannerTests
         var span = new ReadOnlySpan<byte>(input);
 
         // Act
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
 
         // Assert
@@ -323,7 +323,7 @@ public sealed class JsonLinesScannerTests
         var buffer1 = Encoding.UTF8.GetBytes("{\"text\":\"partial");
         var buffer2 = Encoding.UTF8.GetBytes(" value\"}\n");
 
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act (first buffer)
         var (lineCompleted1, bytesConsumed1) = scanner.FindNextLineLength(buffer1);
@@ -348,7 +348,7 @@ public sealed class JsonLinesScannerTests
         var longValue = new string('a', bufferSize * 3); // 3x buffer size
         var buffer1 = Encoding.UTF8.GetBytes($"{{\"id\":1,\"data\":\"{longValue}");
         var buffer2 = Encoding.UTF8.GetBytes($"\"}}\n");
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act: Process first buffer (partial data)
         var (lineCompleted1, consumed1) = scanner.FindNextLineLength(buffer1);
@@ -374,7 +374,7 @@ public sealed class JsonLinesScannerTests
         // Arrange: Create JSON with escape sequence spanning buffers
         var buffer1 = Encoding.UTF8.GetBytes("{\"data\":\"value\\");
         var buffer2 = Encoding.UTF8.GetBytes("n\"}\n");
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act: Process first buffer (ends with escape character)
         var (lineCompleted1, consumed1) = scanner.FindNextLineLength(buffer1);
@@ -397,7 +397,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var input = Encoding.UTF8.GetBytes("{}\n");
         var span = new ReadOnlySpan<byte>(input);
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
@@ -413,7 +413,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var input = Encoding.UTF8.GetBytes("{\"name\":\"John\"}\r\n");
         var span = new ReadOnlySpan<byte>(input);
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
@@ -429,7 +429,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var buffer1 = Encoding.UTF8.GetBytes("{\"text\":\"value\\");
         var buffer2 = Encoding.UTF8.GetBytes("\"more text\"}\n");
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act (First buffer)
         var (lineCompleted1, consumed1) = scanner.FindNextLineLength(buffer1);
@@ -458,7 +458,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var input = Encoding.UTF8.GetBytes(inputString);
         var span = new ReadOnlySpan<byte>(input);
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
@@ -474,7 +474,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var input = Encoding.UTF8.GetBytes("{\"path\":\"C:\\\\\\\\\\\\\"}\n");
         var span = new ReadOnlySpan<byte>(input);
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
@@ -490,7 +490,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var buffer1 = Encoding.UTF8.GetBytes("{\"text\":\"partial");
         var buffer2 = Encoding.UTF8.GetBytes("\"}\n");
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act (First buffer)
         var (lineCompleted1, consumed1) = scanner.FindNextLineLength(buffer1);
@@ -513,7 +513,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var input = Encoding.UTF8.GetBytes("{\"text\":\"\\\"\\\\\\/\\b\\f\\n\\r\\t\\u0020\"}\n");
         var span = new ReadOnlySpan<byte>(input);
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);
@@ -537,7 +537,7 @@ public sealed class JsonLinesScannerTests
         // Arrange
         var input = Encoding.UTF8.GetBytes(inputString);
         var span = new ReadOnlySpan<byte>(input);
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Act
         var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(span);

@@ -6,7 +6,7 @@ namespace DataMorph.Tests.IO.JsonLines;
 
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.NativeAot80)]
-public sealed class JsonLineByteCacheBenchmarks : IDisposable
+public sealed class RowByteCacheBenchmarks : IDisposable
 {
     private readonly string _testFilePath;
     private readonly RowIndexer _indexer;
@@ -16,7 +16,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     [Params(100, 200, 500)]
     public int CacheSize { get; set; }
 
-    public JsonLineByteCacheBenchmarks()
+    public RowByteCacheBenchmarks()
     {
         // Arrange - Create test data
         _testFilePath = Path.GetTempFileName();
@@ -37,7 +37,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_RandomPattern_CacheHit50()
     {
-        var cache = new JsonLineByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, CacheSize);
         var totalLines = _indexer.TotalRows;
 
         // Random access pattern (approximately 50% cache hit rate)
@@ -65,7 +65,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_SequentialPattern_CacheHit90()
     {
-        var cache = new JsonLineByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, CacheSize);
         var totalLines = _indexer.TotalRows;
 
         // Sequential access pattern (approximately 90% cache hit rate)
@@ -84,7 +84,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_RepeatedSameLine_CacheHit100()
     {
-        var cache = new JsonLineByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, CacheSize);
 
         // Repeated access to the same line (100% cache hit rate)
         for (var i = 0; i < 1000; i++)
@@ -100,7 +100,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     public void Access_VaryingCacheSizes()
     {
         // Performance measurement with various cache sizes
-        var cache = new JsonLineByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, CacheSize);
         var totalLines = _indexer.TotalRows;
 
         // Mixed access pattern
@@ -118,7 +118,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_LargeFile_10kLines()
     {
-        var cache = new JsonLineByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, CacheSize);
 
         // Random access with large file
         for (var i = 0; i < 200; i++)
@@ -149,7 +149,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
             var indexer = new RowIndexer(largeFilePath);
             indexer.BuildIndex();
 
-            using var cache = new JsonLineByteCache(indexer, CacheSize);
+            using var cache = new RowByteCache(indexer, CacheSize);
 
             // Random access with large file
             for (var i = 0; i < 100; i++)
@@ -169,7 +169,7 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     public void InitializeCache_FirstTime()
     {
         // Measure cache initialization cost
-        var cache = new JsonLineByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, CacheSize);
 
         // Initial access
         var bytes = cache.GetLineBytes(0);
@@ -182,10 +182,10 @@ public sealed class JsonLineByteCacheBenchmarks : IDisposable
     public void InitializeCache_AfterDisposal()
     {
         // Measure reinitialization cost after disposal
-        var cache1 = new JsonLineByteCache(_indexer, CacheSize);
+        var cache1 = new RowByteCache(_indexer, CacheSize);
         cache1.Dispose();
 
-        var cache2 = new JsonLineByteCache(_indexer, CacheSize);
+        var cache2 = new RowByteCache(_indexer, CacheSize);
         var bytes = cache2.GetLineBytes(0);
         _ = bytes.Length;
 

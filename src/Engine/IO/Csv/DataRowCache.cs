@@ -1,27 +1,27 @@
-namespace DataMorph.Engine.IO;
+namespace DataMorph.Engine.IO.Csv;
 
 /// <summary>
 /// Manages a sliding window cache of CSV data rows for efficient virtual scrolling.
 /// Uses ReadOnlyMemory for memory-efficient column storage.
 /// </summary>
-public sealed class CsvDataRowCache
+public sealed class DataRowCache
 {
     private const int DefaultCacheSize = 200;
-    private readonly CsvDataRowIndexer _indexer;
-    private readonly CsvDataRowReader _reader;
+    private readonly DataRowIndexer _indexer;
+    private readonly DataRowReader _reader;
     private readonly int _columnCount;
     private readonly int _cacheSize;
     private readonly Dictionary<int, CsvDataRow> _cache = [];
     private int _cacheStartRow = -1;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CsvDataRowCache"/> class.
+    /// Initializes a new instance of the <see cref="DataRowCache"/> class.
     /// </summary>
     /// <param name="indexer">The CSV row indexer for obtaining byte offsets.</param>
     /// <param name="columnCount">The number of columns in the CSV.</param>
     /// <param name="cacheSize">The size of the sliding window cache (default: 200).</param>
-    public CsvDataRowCache(
-        CsvDataRowIndexer indexer,
+    public DataRowCache(
+        DataRowIndexer indexer,
         int columnCount,
         int cacheSize = DefaultCacheSize
     )
@@ -30,7 +30,7 @@ public sealed class CsvDataRowCache
         _columnCount = columnCount;
         _cacheSize = cacheSize;
         ArgumentNullException.ThrowIfNull(indexer);
-        _reader = new CsvDataRowReader(indexer.FilePath, columnCount);
+        _reader = new DataRowReader(indexer.FilePath, columnCount);
     }
 
     /// <summary>

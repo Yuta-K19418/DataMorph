@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Types;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
-public sealed class CsvTypeInferrerTests
+public sealed class TypeInferrerTests
 {
     [Theory]
     [InlineData("true", true)]
@@ -17,7 +17,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("  false  ", false)]
     public void TryParseBoolean_ValidValues_ReturnsTrue(string input, bool expected)
     {
-        CsvTypeInferrer.TryParseBoolean(input.AsSpan(), out var result).Should().BeTrue();
+        TypeInferrer.TryParseBoolean(input.AsSpan(), out var result).Should().BeTrue();
         result.Should().Be(expected);
     }
 
@@ -33,7 +33,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("   ")]
     public void TryParseBoolean_InvalidValues_ReturnsFalse(string input)
     {
-        CsvTypeInferrer.TryParseBoolean(input.AsSpan(), out _).Should().BeFalse();
+        TypeInferrer.TryParseBoolean(input.AsSpan(), out _).Should().BeFalse();
     }
 
     [Theory]
@@ -48,7 +48,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("-9223372036854775808", long.MinValue)]
     public void TryParseWholeNumber_ValidValues_ReturnsTrue(string input, long expected)
     {
-        CsvTypeInferrer.TryParseWholeNumber(input.AsSpan(), out var result).Should().BeTrue();
+        TypeInferrer.TryParseWholeNumber(input.AsSpan(), out var result).Should().BeTrue();
         result.Should().Be(expected);
     }
 
@@ -62,7 +62,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("   ")]
     public void TryParseWholeNumber_InvalidValues_ReturnsFalse(string input)
     {
-        CsvTypeInferrer.TryParseWholeNumber(input.AsSpan(), out _).Should().BeFalse();
+        TypeInferrer.TryParseWholeNumber(input.AsSpan(), out _).Should().BeFalse();
     }
 
     [Theory]
@@ -76,7 +76,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("  3.14  ", 3.14)]
     public void TryParseFloatingPoint_ValidValues_ReturnsTrue(string input, double expected)
     {
-        CsvTypeInferrer.TryParseFloatingPoint(input.AsSpan(), out var result).Should().BeTrue();
+        TypeInferrer.TryParseFloatingPoint(input.AsSpan(), out var result).Should().BeTrue();
         result.Should().Be(expected);
     }
 
@@ -87,7 +87,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("   ")]
     public void TryParseFloatingPoint_InvalidValues_ReturnsFalse(string input)
     {
-        CsvTypeInferrer.TryParseFloatingPoint(input.AsSpan(), out _).Should().BeFalse();
+        TypeInferrer.TryParseFloatingPoint(input.AsSpan(), out _).Should().BeFalse();
     }
 
     [Theory]
@@ -96,7 +96,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("-Infinity")]
     public void TryParseFloatingPoint_SpecialValues_ReturnsTrue(string input)
     {
-        CsvTypeInferrer.TryParseFloatingPoint(input.AsSpan(), out _).Should().BeTrue();
+        TypeInferrer.TryParseFloatingPoint(input.AsSpan(), out _).Should().BeTrue();
     }
 
     [Theory]
@@ -115,7 +115,7 @@ public sealed class CsvTypeInferrerTests
         DateTimeKind kind
     )
     {
-        CsvTypeInferrer.TryParseTimestamp(input.AsSpan(), out var result).Should().BeTrue();
+        TypeInferrer.TryParseTimestamp(input.AsSpan(), out var result).Should().BeTrue();
         var expected = new DateTime(year, month, day, hour, minute, second, kind);
         result.Date.Should().Be(expected.Date);
     }
@@ -128,7 +128,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("   ")]
     public void TryParseTimestamp_InvalidValues_ReturnsFalse(string input)
     {
-        CsvTypeInferrer.TryParseTimestamp(input.AsSpan(), out _).Should().BeFalse();
+        TypeInferrer.TryParseTimestamp(input.AsSpan(), out _).Should().BeFalse();
     }
 
     [Theory]
@@ -140,7 +140,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("123", false)]
     public void IsEmptyOrWhitespace_DetectsCorrectly(string input, bool expected)
     {
-        CsvTypeInferrer.IsEmptyOrWhitespace(input.AsSpan()).Should().Be(expected);
+        TypeInferrer.IsEmptyOrWhitespace(input.AsSpan()).Should().Be(expected);
     }
 
     [Theory]
@@ -149,7 +149,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("TRUE", ColumnType.Boolean)]
     public void InferType_PrioritizesBoolean(string input, ColumnType expected)
     {
-        CsvTypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
+        TypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
     }
 
     [Theory]
@@ -158,7 +158,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("0", ColumnType.WholeNumber)]
     public void InferType_PrioritizesWholeNumberOverFloatingPoint(string input, ColumnType expected)
     {
-        CsvTypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
+        TypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
     }
 
     [Theory]
@@ -169,7 +169,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("NaN", ColumnType.FloatingPoint)]
     public void InferType_DetectsFloatingPoint(string input, ColumnType expected)
     {
-        CsvTypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
+        TypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
     }
 
     [Theory]
@@ -178,7 +178,7 @@ public sealed class CsvTypeInferrerTests
     [InlineData("1/15/2024", ColumnType.Timestamp)]
     public void InferType_DetectsTimestamp(string input, ColumnType expected)
     {
-        CsvTypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
+        TypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
     }
 
     [Theory]
@@ -190,6 +190,6 @@ public sealed class CsvTypeInferrerTests
     [InlineData("   ", ColumnType.Text)]
     public void InferType_FallbackToText(string input, ColumnType expected)
     {
-        CsvTypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
+        TypeInferrer.InferType(input.AsSpan()).Should().Be(expected);
     }
 }

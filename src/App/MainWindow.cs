@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Schema;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -137,7 +137,7 @@ internal sealed class MainWindow : Window
 
     private async Task LoadCsvFileAsync(string filePath)
     {
-        var indexer = new CsvDataRowIndexer(filePath);
+        var indexer = new DataRowIndexer(filePath);
         _ = Task.Run(indexer.BuildIndex);
 
         var schemaScanner = new IncrementalSchemaScanner(filePath);
@@ -221,7 +221,7 @@ internal sealed class MainWindow : Window
         Add(_currentContentView);
     }
 
-    private void SwitchToTableView(CsvDataRowIndexer indexer, TableSchema schema)
+    private void SwitchToTableView(DataRowIndexer indexer, TableSchema schema)
     {
         _state.CurrentMode = ViewMode.CsvTable;
 

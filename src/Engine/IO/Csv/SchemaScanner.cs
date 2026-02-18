@@ -1,13 +1,13 @@
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
-namespace DataMorph.Engine.IO;
+namespace DataMorph.Engine.IO.Csv;
 
 /// <summary>
 /// Scans CSV data to infer schema (header + column types).
 /// Analyzes a single row to determine column types.
 /// </summary>
-public static class CsvSchemaScanner
+public static class SchemaScanner
 {
     /// <summary>
     /// Scans initial CSV rows (up to 200) and returns the inferred schema for faster stabilization.
@@ -96,10 +96,10 @@ public static class CsvSchemaScanner
             var valueSpan = columnValue.Span;
 
             // Determine nullable status (if value is empty or whitespace-only)
-            var isNullable = CsvTypeInferrer.IsEmptyOrWhitespace(valueSpan);
+            var isNullable = TypeInferrer.IsEmptyOrWhitespace(valueSpan);
 
             // Infer type from the value
-            var columnType = CsvTypeInferrer.InferType(valueSpan);
+            var columnType = TypeInferrer.InferType(valueSpan);
 
             // Generate column name if empty
             var finalColumnName = string.IsNullOrWhiteSpace(columnName)
@@ -148,7 +148,7 @@ public static class CsvSchemaScanner
             var valueSpan = columnValue.Span;
 
             // Update nullable status for empty or whitespace values
-            if (CsvTypeInferrer.IsEmptyOrWhitespace(valueSpan))
+            if (TypeInferrer.IsEmptyOrWhitespace(valueSpan))
             {
                 // Use Copy-on-Write pattern with WithMarkedNullable
                 updatedColumns[i] = columnSchema.WithMarkedNullable();
@@ -156,7 +156,7 @@ public static class CsvSchemaScanner
             }
 
             // Infer type for this value
-            var inferredType = CsvTypeInferrer.InferType(valueSpan);
+            var inferredType = TypeInferrer.InferType(valueSpan);
 
             // Update column type using Copy-on-Write pattern
             var updatedSchema = columnSchema.WithUpdatedType(inferredType);

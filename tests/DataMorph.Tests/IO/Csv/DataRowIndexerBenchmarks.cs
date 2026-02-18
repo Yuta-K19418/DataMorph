@@ -1,21 +1,21 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
 [SimpleJob(RuntimeMoniker.Net80)]
 [SimpleJob(RuntimeMoniker.NativeAot80)]
 [MemoryDiagnoser]
 [HideColumns("Error", "StdDev", "Median", "RatioSD")]
-public class CsvDataRowIndexerBenchmarks : IDisposable
+public class DataRowIndexerBenchmarks : IDisposable
 {
     private readonly string _smallFilePath;
     private readonly string _mediumFilePath;
     private readonly string _largeFilePath;
     private readonly string _complexFilePath;
 
-    public CsvDataRowIndexerBenchmarks()
+    public DataRowIndexerBenchmarks()
     {
         // Small file: 1,000 rows (~50 KB)
         _smallFilePath = Path.Combine(Path.GetTempPath(), $"bench_csv_small_{Guid.NewGuid()}.csv");
@@ -71,35 +71,35 @@ public class CsvDataRowIndexerBenchmarks : IDisposable
     [Benchmark(Description = "Small CSV (1K rows, ~50KB)")]
     public void IndexSmallCsv()
     {
-        var indexer = new CsvDataRowIndexer(_smallFilePath);
+        var indexer = new DataRowIndexer(_smallFilePath);
         indexer.BuildIndex();
     }
 
     [Benchmark(Description = "Medium CSV (100K rows, ~5MB)")]
     public void IndexMediumCsv()
     {
-        var indexer = new CsvDataRowIndexer(_mediumFilePath);
+        var indexer = new DataRowIndexer(_mediumFilePath);
         indexer.BuildIndex();
     }
 
     [Benchmark(Description = "Large CSV (1M rows, ~50MB)")]
     public void IndexLargeCsv()
     {
-        var indexer = new CsvDataRowIndexer(_largeFilePath);
+        var indexer = new DataRowIndexer(_largeFilePath);
         indexer.BuildIndex();
     }
 
     [Benchmark(Description = "Complex CSV with quoted fields (10K rows)")]
     public void IndexComplexCsvWithQuotedFields()
     {
-        var indexer = new CsvDataRowIndexer(_complexFilePath);
+        var indexer = new DataRowIndexer(_complexFilePath);
         indexer.BuildIndex();
     }
 
     [Benchmark(Description = "GetCheckPoint for row 50,000")]
     public void GetCheckpointMediumFile()
     {
-        var indexer = new CsvDataRowIndexer(_mediumFilePath);
+        var indexer = new DataRowIndexer(_mediumFilePath);
         indexer.BuildIndex();
         _ = indexer.GetCheckPoint(50_000);
     }
@@ -107,7 +107,7 @@ public class CsvDataRowIndexerBenchmarks : IDisposable
     [Benchmark(Description = "GetCheckPoint for row 500,000")]
     public void GetCheckpointLargeFile()
     {
-        var indexer = new CsvDataRowIndexer(_largeFilePath);
+        var indexer = new DataRowIndexer(_largeFilePath);
         indexer.BuildIndex();
         _ = indexer.GetCheckPoint(500_000);
     }

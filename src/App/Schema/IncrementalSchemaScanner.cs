@@ -1,4 +1,4 @@
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using nietras.SeparatedValues;
 
@@ -36,7 +36,7 @@ internal sealed class IncrementalSchemaScanner
         {
             var rows = ReadRows(0, InitialScanCount);
             var columnNames = ReadColumnNames();
-            var scanResult = CsvSchemaScanner.ScanSchema(columnNames, rows, InitialScanCount);
+            var scanResult = SchemaScanner.ScanSchema(columnNames, rows, InitialScanCount);
 
             if (scanResult.IsFailure)
             {
@@ -93,7 +93,7 @@ internal sealed class IncrementalSchemaScanner
                     break;
                 }
 
-                var refineResult = CsvSchemaScanner.RefineSchema(refinedSchema, row);
+                var refineResult = SchemaScanner.RefineSchema(refinedSchema, row);
                 if (refineResult.IsSuccess)
                 {
                     refinedSchema = refineResult.Value;

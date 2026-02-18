@@ -1,11 +1,11 @@
 using System.Globalization;
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Types;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
-public sealed partial class CsvSchemaScannerTests
+public sealed partial class SchemaScannerTests
 {
     [Fact]
     public void ScanSchema_SimpleCsvWithMixedTypes_ReturnsCorrectSchema()
@@ -22,7 +22,7 @@ public sealed partial class CsvSchemaScannerTests
             "2024-01-15".AsMemory(),
         };
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -52,7 +52,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -84,7 +84,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -111,7 +111,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "1".AsMemory(), "test".AsMemory(), "Alice".AsMemory() };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -139,7 +139,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = Array.Empty<ReadOnlyMemory<char>>();
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -159,7 +159,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -179,7 +179,7 @@ public sealed partial class CsvSchemaScannerTests
         }; // No data rows
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -214,7 +214,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -255,7 +255,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -292,7 +292,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -329,7 +329,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -360,7 +360,7 @@ public sealed partial class CsvSchemaScannerTests
         var columnNames = new[] { "numeric_string" };
         var row = new[] { "1".AsMemory() };
 
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         result.IsSuccess.Should().BeTrue();
         var schema = result.Value;
@@ -378,7 +378,7 @@ public sealed partial class CsvSchemaScannerTests
         var columnNames = new[] { "integer" };
         var row = new[] { "123".AsMemory() };
 
-        var result = CsvSchemaScanner.ScanSchema(columnNames, [row]);
+        var result = SchemaScanner.ScanSchema(columnNames, [row]);
 
         result.IsSuccess.Should().BeTrue();
         var schema = result.Value;
@@ -396,7 +396,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "1".AsMemory() };
 
         // Act & Assert
-        Action action = () => CsvSchemaScanner.ScanSchema(columnNames, [row], initialScanCount: -1);
+        Action action = () => SchemaScanner.ScanSchema(columnNames, [row], initialScanCount: -1);
         action.Should().Throw<ArgumentOutOfRangeException>();
     }
 
@@ -408,10 +408,10 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "1".AsMemory() };
 
         // Act & Assert
-        Action action1 = () => CsvSchemaScanner.ScanSchema(null!, [row]);
+        Action action1 = () => SchemaScanner.ScanSchema(null!, [row]);
         action1.Should().Throw<ArgumentNullException>();
 
-        Action action2 = () => CsvSchemaScanner.ScanSchema(columnNames, null!);
+        Action action2 = () => SchemaScanner.ScanSchema(columnNames, null!);
         action2.Should().Throw<ArgumentNullException>();
     }
 
@@ -437,7 +437,7 @@ public sealed partial class CsvSchemaScannerTests
             .ToList();
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 200);
+        var result = SchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 200);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -458,7 +458,7 @@ public sealed partial class CsvSchemaScannerTests
             .ToList();
 
         // Act
-        var result = CsvSchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 200);
+        var result = SchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 200);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -477,7 +477,7 @@ public sealed partial class CsvSchemaScannerTests
             .ToList();
 
         // Act - limit with custom initial scan count of 50
-        var result = CsvSchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 50);
+        var result = SchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 50);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

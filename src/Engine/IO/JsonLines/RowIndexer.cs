@@ -55,7 +55,7 @@ public sealed class RowIndexer
             FileShare.Read
         );
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         try
         {
@@ -126,7 +126,7 @@ public sealed class RowIndexer
         ReadOnlySpan<byte> buffer,
         ref long fileOffset,
         ref long rowCount,
-        ref JsonLinesScanner scanner
+        ref RowScanner scanner
     )
     {
         var position = 0;

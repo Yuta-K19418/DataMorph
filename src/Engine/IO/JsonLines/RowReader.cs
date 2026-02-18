@@ -7,17 +7,17 @@ namespace DataMorph.Engine.IO.JsonLines;
 /// Reads JSON line bytes from a file using indexed byte offsets.
 /// Returns raw JSON bytes per line (not TreeNode) to maintain Engine/App layer separation.
 /// </summary>
-public sealed class JsonLineReader : IDisposable
+public sealed class RowReader : IDisposable
 {
     private readonly MmapService _mmap;
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JsonLineReader"/> class.
+    /// Initializes a new instance of the <see cref="RowReader"/> class.
     /// </summary>
     /// <param name="filePath">Path to the JSON Lines file.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="filePath"/> is null.</exception>
-    public JsonLineReader(string filePath)
+    public RowReader(string filePath)
     {
         ArgumentNullException.ThrowIfNull(filePath);
 
@@ -53,7 +53,7 @@ public sealed class JsonLineReader : IDisposable
         var currentOffset = byteOffset;
         var skipped = 0;
 
-        var scanner = new JsonLinesScanner();
+        var scanner = new RowScanner();
 
         // Skip lines if needed
         while (skipped < linesToSkip)
@@ -181,7 +181,7 @@ public sealed class JsonLineReader : IDisposable
 
     private (bool lineCompleted, int bytesConsumed) FindNextLineLength(
         long startOffset,
-        ref JsonLinesScanner scanner
+        ref RowScanner scanner
     )
     {
         const int maxSearch = 1024 * 1024; // Search up to 1 MB

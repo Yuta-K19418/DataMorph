@@ -4,27 +4,27 @@ namespace DataMorph.Engine.IO.JsonLines;
 /// Manages a sliding window cache of JSON line bytes for efficient virtual scrolling.
 /// Uses ReadOnlyMemory&lt;byte&gt; for memory-efficient line storage.
 /// </summary>
-public sealed class JsonLineByteCache : IDisposable
+public sealed class RowByteCache : IDisposable
 {
     private const int DefaultCacheSize = 200;
     private readonly RowIndexer _indexer;
-    private readonly JsonLineReader _reader;
+    private readonly RowReader _reader;
     private readonly int _cacheSize;
     private readonly Dictionary<int, ReadOnlyMemory<byte>> _cache = [];
     private int _cacheStartRow = -1;
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JsonLineByteCache"/> class.
+    /// Initializes a new instance of the <see cref="RowByteCache"/> class.
     /// </summary>
     /// <param name="indexer">The row indexer for obtaining byte offsets.</param>
     /// <param name="cacheSize">The size of the sliding window cache (default: 200).</param>
-    public JsonLineByteCache(RowIndexer indexer, int cacheSize = DefaultCacheSize)
+    public RowByteCache(RowIndexer indexer, int cacheSize = DefaultCacheSize)
     {
         ArgumentNullException.ThrowIfNull(indexer);
         _indexer = indexer;
         _cacheSize = cacheSize;
-        _reader = new JsonLineReader(indexer.FilePath);
+        _reader = new RowReader(indexer.FilePath);
     }
 
     /// <summary>

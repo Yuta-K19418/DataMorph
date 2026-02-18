@@ -1,11 +1,11 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
-public sealed partial class CsvSchemaScannerTests
+public sealed partial class SchemaScannerTests
 {
     [Fact]
     public void RefineSchema_CallsMarkNullableOnly_WhenNonNullableColumnHasEmptyValue()
@@ -24,7 +24,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "".AsMemory() };
 
         // Act
-        var result = CsvSchemaScanner.RefineSchema(schema, row);
+        var result = SchemaScanner.RefineSchema(schema, row);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -54,7 +54,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "123".AsMemory() };
 
         // Act
-        var result = CsvSchemaScanner.RefineSchema(schema, row);
+        var result = SchemaScanner.RefineSchema(schema, row);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -68,7 +68,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "123".AsMemory() };
 
         // Act & Assert
-        Action action = () => CsvSchemaScanner.RefineSchema(null!, row);
+        Action action = () => SchemaScanner.RefineSchema(null!, row);
         action.Should().Throw<ArgumentNullException>();
     }
 
@@ -86,7 +86,7 @@ public sealed partial class CsvSchemaScannerTests
         ]);
 
         // Act & Assert
-        Action action = () => CsvSchemaScanner.RefineSchema(schema, null!);
+        Action action = () => SchemaScanner.RefineSchema(schema, null!);
         action.Should().Throw<ArgumentNullException>();
     }
 
@@ -107,7 +107,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "123".AsMemory() };
 
         // Act
-        var result = CsvSchemaScanner.RefineSchema(schema, row);
+        var result = SchemaScanner.RefineSchema(schema, row);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -134,7 +134,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "".AsMemory() }; // empty value
 
         // Act
-        var result = CsvSchemaScanner.RefineSchema(schema, row);
+        var result = SchemaScanner.RefineSchema(schema, row);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -160,7 +160,7 @@ public sealed partial class CsvSchemaScannerTests
         var row = new[] { "123.45".AsMemory() }; // parsable as floating point
 
         // Act
-        var result = CsvSchemaScanner.RefineSchema(schema, row);
+        var result = SchemaScanner.RefineSchema(schema, row);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -205,7 +205,7 @@ public sealed partial class CsvSchemaScannerTests
         };
 
         // Act
-        var result = CsvSchemaScanner.RefineSchema(schema, row);
+        var result = SchemaScanner.RefineSchema(schema, row);
 
         // Assert
         result.IsSuccess.Should().BeTrue();

@@ -1,4 +1,4 @@
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using Terminal.Gui.Views;
 
@@ -6,19 +6,19 @@ namespace DataMorph.App.Views;
 
 /// <summary>
 /// Provides virtual table data source for Terminal.Gui's TableView.
-/// Delegates to CsvDataRowCache for efficient row retrieval.
+/// Delegates to DataRowCache for efficient row retrieval.
 /// </summary>
 internal sealed class VirtualTableSource : ITableSource
 {
-    private readonly CsvDataRowCache _cache;
+    private readonly DataRowCache _cache;
     private readonly TableSchema _schema;
     private readonly string[] _columnNames;
 
-    public VirtualTableSource(CsvDataRowIndexer indexer, TableSchema schema)
+    public VirtualTableSource(DataRowIndexer indexer, TableSchema schema)
     {
         _schema = schema;
         _columnNames = [.. _schema.Columns.Select(c => c.Name)];
-        _cache = new CsvDataRowCache(indexer, _schema.ColumnCount);
+        _cache = new DataRowCache(indexer, _schema.ColumnCount);
     }
 
     public int Rows => _cache.TotalRows;

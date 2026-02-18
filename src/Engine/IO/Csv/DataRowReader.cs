@@ -1,12 +1,12 @@
 using nietras.SeparatedValues;
 
-namespace DataMorph.Engine.IO;
+namespace DataMorph.Engine.IO.Csv;
 
 /// <summary>
 /// Low-level CSV row reader that reads raw CSV data from a file stream.
 /// Returns rows as read-only lists of ReadOnlyMemory for memory efficiency.
 /// </summary>
-public sealed class CsvDataRowReader(string filePath, int columnCount)
+public sealed class DataRowReader(string filePath, int columnCount)
 {
     private readonly string _filePath = filePath;
     private readonly int _columnCount = columnCount;

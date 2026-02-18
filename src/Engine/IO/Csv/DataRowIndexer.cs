@@ -1,12 +1,12 @@
 using System.Buffers;
 
-namespace DataMorph.Engine.IO;
+namespace DataMorph.Engine.IO.Csv;
 
 /// <summary>
 /// Indexes CSV data rows (excluding header) for efficient random access.
 /// Supports comma-delimited CSV with RFC 4180 quoted field handling.
 /// </summary>
-public sealed class CsvDataRowIndexer
+public sealed class DataRowIndexer
 {
     private readonly Lock _lock = new();
     private readonly string _filePath;
@@ -25,11 +25,11 @@ public sealed class CsvDataRowIndexer
     private long _totalRows;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="CsvDataRowIndexer"/> class.
+    /// Initializes a new instance of the <see cref="DataRowIndexer"/> class.
     /// </summary>
     /// <param name="filePath">The path to the CSV file to index.</param>
     /// <exception cref="ArgumentException">Thrown if <paramref name="filePath"/> is null or whitespace.</exception>
-    public CsvDataRowIndexer(string filePath)
+    public DataRowIndexer(string filePath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
         _filePath = filePath;

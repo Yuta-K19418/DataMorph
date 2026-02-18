@@ -1,13 +1,13 @@
 using System.Globalization;
 using DataMorph.Engine.Types;
 
-namespace DataMorph.Engine.IO;
+namespace DataMorph.Engine.IO.Csv;
 
 /// <summary>
 /// Infers column type from char data.
 /// Designed to work with CsvDataRow (IReadOnlyList&lt;ReadOnlyMemory&lt;char&gt;&gt;).
 /// </summary>
-public static class CsvTypeInferrer
+public static class TypeInferrer
 {
     /// <summary>
     /// Infers the most specific type for a char span.

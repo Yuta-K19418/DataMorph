@@ -1,13 +1,13 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
-public sealed partial class CsvDataRowIndexerTests : IDisposable
+public sealed partial class DataRowIndexerTests : IDisposable
 {
     private readonly string _testFilePath;
 
-    public CsvDataRowIndexerTests()
+    public DataRowIndexerTests()
     {
         _testFilePath = Path.Combine(Path.GetTempPath(), $"csvRowIndexer_{Guid.NewGuid()}.csv");
     }
@@ -24,7 +24,7 @@ public sealed partial class CsvDataRowIndexerTests : IDisposable
     public void Constructor_WithNullFilePath_ThrowsArgumentException()
     {
         // Act & Assert
-        var act = () => new CsvDataRowIndexer(null!);
+        var act = () => new DataRowIndexer(null!);
         act.Should()
             .Throw<ArgumentException>()
             .WithMessage("Value cannot be null.*")
@@ -35,7 +35,7 @@ public sealed partial class CsvDataRowIndexerTests : IDisposable
     public void Constructor_WithEmptyFilePath_ThrowsArgumentException()
     {
         // Act & Assert
-        var act = () => new CsvDataRowIndexer(string.Empty);
+        var act = () => new DataRowIndexer(string.Empty);
         act.Should().Throw<ArgumentException>();
     }
 
@@ -43,7 +43,7 @@ public sealed partial class CsvDataRowIndexerTests : IDisposable
     public void Constructor_WithWhitespaceFilePath_ThrowsArgumentException()
     {
         // Act & Assert
-        var act = () => new CsvDataRowIndexer("   ");
+        var act = () => new DataRowIndexer("   ");
         act.Should().Throw<ArgumentException>();
     }
 
@@ -52,7 +52,7 @@ public sealed partial class CsvDataRowIndexerTests : IDisposable
     {
         // Arrange
         File.WriteAllText(_testFilePath, "col1,col2\nval1,val2");
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act & Assert
         indexer.TotalRows.Should().Be(0);
@@ -65,7 +65,7 @@ public sealed partial class CsvDataRowIndexerTests : IDisposable
         var nonExistentPath = Path.Combine(Path.GetTempPath(), $"nonexistent_{Guid.NewGuid()}.csv");
 
         // Act & Assert (constructor should not throw for non-existent file)
-        var indexer = new CsvDataRowIndexer(nonExistentPath);
+        var indexer = new DataRowIndexer(nonExistentPath);
         indexer.FilePath.Should().Be(nonExistentPath);
         indexer.TotalRows.Should().Be(0);
     }

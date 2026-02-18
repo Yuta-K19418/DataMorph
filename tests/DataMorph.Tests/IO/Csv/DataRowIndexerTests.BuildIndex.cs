@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
-public sealed partial class CsvDataRowIndexerTests
+public sealed partial class DataRowIndexerTests
 {
     [Fact]
     public void BuildIndex_WithSimpleCsv_IndexesAllRows()
@@ -11,7 +11,7 @@ public sealed partial class CsvDataRowIndexerTests
         // Arrange
         var content = "header1,header2,header3\nvalue1,value2,value3\nvalue4,value5,value6";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -27,7 +27,7 @@ public sealed partial class CsvDataRowIndexerTests
         var content =
             "name,description,price\n\"Smith, John\",\"A product, with comma\",100\n\"Doe, Jane\",Normal,200";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -43,7 +43,7 @@ public sealed partial class CsvDataRowIndexerTests
         var content =
             "name,description\n\"John\",\"Line1\nLine2\nLine3\"\n\"Jane\",\"Single line\"";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -59,7 +59,7 @@ public sealed partial class CsvDataRowIndexerTests
         var content =
             "name,quote\n\"John\",\"He said \"\"Hello\"\"\"\n\"Jane\",\"She said \"\"Hi\"\"\"";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -74,7 +74,7 @@ public sealed partial class CsvDataRowIndexerTests
         // Arrange
         var content = "header1,header2\r\nvalue1,value2\r\nvalue3,value4";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -89,7 +89,7 @@ public sealed partial class CsvDataRowIndexerTests
         // Arrange
         var content = "header1,header2\nvalue1,value2\r\nvalue3,value4\nvalue5,value6";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -103,7 +103,7 @@ public sealed partial class CsvDataRowIndexerTests
     {
         // Arrange
         File.WriteAllText(_testFilePath, string.Empty);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -117,7 +117,7 @@ public sealed partial class CsvDataRowIndexerTests
     {
         // Arrange
         File.WriteAllText(_testFilePath, "header1,header2,header3");
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -132,7 +132,7 @@ public sealed partial class CsvDataRowIndexerTests
         // Arrange
         var content = "header1,header2\nvalue1,value2\nvalue3,value4\n";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -149,7 +149,7 @@ public sealed partial class CsvDataRowIndexerTests
             "name,address,notes\n\"Smith, John\",\"123 Main St\nApt 4\",\"Has a cat\"\n\"Doe, Jane\",\"456 \"\"Oak\"\" Avenue\",\"Likes \"\"pizza\"\"\"\nNormal,Simple,Data";
 
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -164,7 +164,7 @@ public sealed partial class CsvDataRowIndexerTests
         // Arrange
         var content = "名前,説明\n太郎,\"日本語, テスト\"\n花子,シンプル";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -179,7 +179,7 @@ public sealed partial class CsvDataRowIndexerTests
         // Arrange
         var content = "\n\n\n";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -194,7 +194,7 @@ public sealed partial class CsvDataRowIndexerTests
         // Arrange
         var content = "col1,col2,col3\nval1,\"\",val3\nval4,\"\",val6";
         File.WriteAllText(_testFilePath, content);
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -211,7 +211,7 @@ public sealed partial class CsvDataRowIndexerTests
         lines.AddRange(Enumerable.Range(1, 1001).Select(i => $"value{i:D4},data{i:D4}"));
         File.WriteAllText(_testFilePath, string.Join("\n", lines));
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();
@@ -228,7 +228,7 @@ public sealed partial class CsvDataRowIndexerTests
         var content = $"col1,col2\n\"{longValue}\",normal";
         File.WriteAllText(_testFilePath, content);
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act
         indexer.BuildIndex();

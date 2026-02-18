@@ -2,9 +2,9 @@ using AwesomeAssertions;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
-public sealed partial class CsvSchemaScannerTests
+public sealed partial class SchemaScannerTests
 {
     private static void AssertColumn(
         TableSchema schema,

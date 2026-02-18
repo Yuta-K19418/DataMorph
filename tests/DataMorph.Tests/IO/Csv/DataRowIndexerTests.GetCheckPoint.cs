@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.Csv;
 
-namespace DataMorph.Tests.IO;
+namespace DataMorph.Tests.IO.Csv;
 
-public sealed partial class CsvDataRowIndexerTests
+public sealed partial class DataRowIndexerTests
 {
     [Fact]
     public void GetCheckPoint_WithRowLessThanCheckpoint_ReturnsFirstCheckpoint()
@@ -14,7 +14,7 @@ public sealed partial class CsvDataRowIndexerTests
         lines.AddRange(Enumerable.Range(1, 500).Select(i => $"v{i:D3},d{i:D3}"));
         File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
         indexer.BuildIndex();
 
         // Act
@@ -34,7 +34,7 @@ public sealed partial class CsvDataRowIndexerTests
         lines.AddRange(Enumerable.Range(1, 1500).Select(i => $"v{i:D4},d{i:D4}"));
         File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
         indexer.BuildIndex();
 
         // Act
@@ -56,7 +56,7 @@ public sealed partial class CsvDataRowIndexerTests
         lines.AddRange(Enumerable.Range(1, 1200).Select(i => $"v{i:D4},d{i:D4}"));
         File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
         indexer.BuildIndex();
 
         // Act
@@ -80,7 +80,7 @@ public sealed partial class CsvDataRowIndexerTests
         lines.AddRange(Enumerable.Range(1, 2000).Select(i => $"v{i:D4},d{i:D4}"));
         File.WriteAllText(_testFilePath, string.Join("\n", lines) + "\n");
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
         indexer.BuildIndex();
 
         // Verify TotalRows is 2000 (header excluded, only data rows)
@@ -104,7 +104,7 @@ public sealed partial class CsvDataRowIndexerTests
     {
         // Arrange
         File.WriteAllText(_testFilePath, "col1,col2\nval1,val2\nval3,val4");
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
         indexer.BuildIndex();
 
         // Act
@@ -121,7 +121,7 @@ public sealed partial class CsvDataRowIndexerTests
     {
         // Arrange
         File.WriteAllText(_testFilePath, "col1,col2\nval1,val2\nval3,val4");
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
         indexer.BuildIndex();
 
         // Act
@@ -141,7 +141,7 @@ public sealed partial class CsvDataRowIndexerTests
         lines.AddRange(Enumerable.Range(1, 2000).Select(i => $"v{i:D4},d{i:D4}"));
         File.WriteAllText(_testFilePath, string.Join("\n", lines));
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
         indexer.BuildIndex();
 
         // Act: Request row 1000 (exactly checkpoint interval)
@@ -159,7 +159,7 @@ public sealed partial class CsvDataRowIndexerTests
     {
         // Arrange
         File.WriteAllText(_testFilePath, "col1,col2\nval1,val2\nval3,val4");
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act (before BuildIndex)
         var (byteOffset, rowOffset) = indexer.GetCheckPoint(100);
@@ -177,7 +177,7 @@ public sealed partial class CsvDataRowIndexerTests
         lines.AddRange(Enumerable.Range(1, 5000).Select(i => $"v{i:D4},d{i:D4}"));
         File.WriteAllText(_testFilePath, string.Join("\n", lines));
 
-        var indexer = new CsvDataRowIndexer(_testFilePath);
+        var indexer = new DataRowIndexer(_testFilePath);
 
         // Act: Start indexing in background
         var indexingTask = Task.Run(() => indexer.BuildIndex());

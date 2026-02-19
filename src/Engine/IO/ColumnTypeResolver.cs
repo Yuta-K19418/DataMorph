@@ -30,6 +30,17 @@ public static class ColumnTypeResolver
             return ColumnType.Text;
         }
 
+        // Structured JSON types: same-type is stable; any other combination → Text
+        if (
+            current == ColumnType.JsonObject
+            || current == ColumnType.JsonArray
+            || observed == ColumnType.JsonObject
+            || observed == ColumnType.JsonArray
+        )
+        {
+            return ColumnType.Text;
+        }
+
         // Handle numeric promotions
         if (current == ColumnType.WholeNumber && observed == ColumnType.FloatingPoint)
         {

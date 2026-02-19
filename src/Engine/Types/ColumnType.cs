@@ -28,5 +28,15 @@ public enum ColumnType
     /// <summary>
     /// Date and time value.
     /// </summary>
-    Timestamp
+    Timestamp,
+
+    /// <summary>
+    /// JSON object value ({ ... }).
+    /// </summary>
+    JsonObject,
+
+    /// <summary>
+    /// JSON array value ([ ... ]).
+    /// </summary>
+    JsonArray,
 }

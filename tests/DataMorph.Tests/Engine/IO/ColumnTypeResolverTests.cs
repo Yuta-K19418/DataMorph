@@ -37,6 +37,23 @@ public sealed class ColumnTypeResolverTests
     [InlineData(ColumnType.Text, ColumnType.FloatingPoint, ColumnType.Text)]
     [InlineData(ColumnType.Text, ColumnType.Boolean, ColumnType.Text)]
     [InlineData(ColumnType.Text, ColumnType.Timestamp, ColumnType.Text)]
+    // current = JsonObject cases
+    [InlineData(ColumnType.JsonObject, ColumnType.JsonObject, ColumnType.JsonObject)]
+    [InlineData(ColumnType.JsonObject, ColumnType.JsonArray, ColumnType.Text)]
+    [InlineData(ColumnType.JsonObject, ColumnType.Text, ColumnType.Text)]
+    [InlineData(ColumnType.JsonObject, ColumnType.WholeNumber, ColumnType.Text)]
+    [InlineData(ColumnType.JsonObject, ColumnType.FloatingPoint, ColumnType.Text)]
+    // current = JsonArray cases
+    [InlineData(ColumnType.JsonArray, ColumnType.JsonArray, ColumnType.JsonArray)]
+    [InlineData(ColumnType.JsonArray, ColumnType.JsonObject, ColumnType.Text)]
+    [InlineData(ColumnType.JsonArray, ColumnType.Text, ColumnType.Text)]
+    [InlineData(ColumnType.JsonArray, ColumnType.WholeNumber, ColumnType.Text)]
+    [InlineData(ColumnType.JsonArray, ColumnType.FloatingPoint, ColumnType.Text)]
+    // Symmetric cases (observed = JsonObject/JsonArray with existing non-JSON type)
+    [InlineData(ColumnType.WholeNumber, ColumnType.JsonObject, ColumnType.Text)]
+    [InlineData(ColumnType.FloatingPoint, ColumnType.JsonArray, ColumnType.Text)]
+    [InlineData(ColumnType.Boolean, ColumnType.JsonObject, ColumnType.Text)]
+    [InlineData(ColumnType.Timestamp, ColumnType.JsonArray, ColumnType.Text)]
     public void Resolve_AllTypeCombinations_ReturnsExpectedResult(
         ColumnType current,
         ColumnType observed,

@@ -1,5 +1,7 @@
-using DataMorph.App.Schema;
+using DataMorph.App.Schema.Csv;
 using DataMorph.Engine.Models;
+using JsonLinesIO = DataMorph.Engine.IO.JsonLines;
+using JsonLinesSchema = DataMorph.App.Schema.JsonLines;
 
 namespace DataMorph.App;
 
@@ -34,4 +36,16 @@ internal sealed class AppState
     /// Gets or sets the cancellation token source for the background schema scanner.
     /// </summary>
     public CancellationTokenSource Cts { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the JSON Lines row indexer for the current file.
+    /// Stored on load so it can be reused when switching between Tree and Table modes.
+    /// </summary>
+    public JsonLinesIO.RowIndexer? JsonLinesIndexer { get; set; }
+
+    /// <summary>
+    /// Gets or sets the JSON Lines schema scanner for the current file.
+    /// Null until the user switches to Table mode for the first time (lazy initialization).
+    /// </summary>
+    public JsonLinesSchema.IncrementalSchemaScanner? JsonLinesSchemaScanner { get; set; }
 }

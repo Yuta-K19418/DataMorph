@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.App.Schema;
+using DataMorph.App.Schema.Csv;
 using DataMorph.Engine.IO.Csv;
+using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -75,10 +76,13 @@ internal sealed class MainWindow : Window
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing && _currentContentView is not null)
+        if (disposing)
         {
-            Remove(_currentContentView);
-            _currentContentView.Dispose();
+            if (_currentContentView is not null)
+            {
+                Remove(_currentContentView);
+                _currentContentView.Dispose();
+            }
         }
         base.Dispose(disposing);
     }
@@ -119,7 +123,7 @@ internal sealed class MainWindow : Window
 
         if (dialog.Path.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
         {
-            await LoadJsonLinesFileAsync(dialog.Path);
+            LoadJsonLinesFile(dialog.Path);
             return;
         }
 
@@ -186,14 +190,15 @@ internal sealed class MainWindow : Window
         Add(_currentContentView);
     }
 
-    private Task LoadJsonLinesFileAsync(string filePath)
+    private void LoadJsonLinesFile(string filePath)
     {
-        var indexer = new Engine.IO.JsonLines.RowIndexer(filePath);
+        var indexer = new RowIndexer(filePath);
         _ = Task.Run(indexer.BuildIndex);
 
-        SwitchToTreeView(indexer);
-
-        return Task.CompletedTask;
+        _state.JsonLinesIndexer = indexer;
+        _state.JsonLinesSchemaScanner = null;
+        _state.Schema = null;
+        SwitchToJsonLinesTreeView(indexer);
     }
 
     [SuppressMessage(
@@ -201,7 +206,7 @@ internal sealed class MainWindow : Window
         "CA2000:Dispose objects before losing scope",
         Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
     )]
-    private void SwitchToTreeView(Engine.IO.JsonLines.RowIndexer indexer)
+    private void SwitchToJsonLinesTreeView(RowIndexer indexer)
     {
         _state.CurrentMode = ViewMode.JsonLinesTree;
 
@@ -211,7 +216,10 @@ internal sealed class MainWindow : Window
             _currentContentView.Dispose();
         }
 
-        _currentContentView = new Views.JsonLinesTreeView(indexer)
+        _currentContentView = new Views.JsonLinesTreeView(
+            indexer,
+            () => _ = HandleTableModeToggleAsync()
+        )
         {
             X = 0,
             Y = 0,
@@ -219,6 +227,104 @@ internal sealed class MainWindow : Window
             Height = Dim.Fill(),
         };
         Add(_currentContentView);
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
+    private Views.JsonLinesTableSource SwitchToJsonLinesTableView(
+        RowIndexer indexer,
+        TableSchema schema
+    )
+    {
+        _state.CurrentMode = ViewMode.JsonLinesTable;
+
+        if (_currentContentView is not null)
+        {
+            Remove(_currentContentView);
+            _currentContentView.Dispose();
+        }
+
+        var cache = new RowByteCache(indexer);
+        var source = new Views.JsonLinesTableSource(cache, schema);
+
+        _currentContentView = new Views.JsonLinesTableView(() => _ = HandleTableModeToggleAsync())
+        {
+            X = 0,
+            Y = 0,
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+            Table = source,
+            Style = new TableStyle() { AlwaysShowHeaders = true },
+        };
+        Add(_currentContentView);
+
+        return source;
+    }
+
+    private async Task HandleTableModeToggleAsync()
+    {
+        if (_state.CurrentMode == ViewMode.JsonLinesTable)
+        {
+            if (_state.JsonLinesIndexer is null)
+            {
+                return;
+            }
+
+            SwitchToJsonLinesTreeView(_state.JsonLinesIndexer);
+            return;
+        }
+
+        if (_state.CurrentMode != ViewMode.JsonLinesTree)
+        {
+            return;
+        }
+
+        if (_state.JsonLinesIndexer is null)
+        {
+            return;
+        }
+
+        // Subsequent switch: reuse cached schema
+        if (_state.JsonLinesSchemaScanner is not null && _state.Schema is not null)
+        {
+            SwitchToJsonLinesTableView(_state.JsonLinesIndexer, _state.Schema);
+            return;
+        }
+
+        // First switch: scan schema lazily
+        var scanner = new Schema.JsonLines.IncrementalSchemaScanner(_state.CurrentFilePath);
+
+        try
+        {
+            var schema = await scanner.InitialScanAsync();
+            _state.Schema = schema;
+            _state.JsonLinesSchemaScanner = scanner;
+
+            var source = SwitchToJsonLinesTableView(_state.JsonLinesIndexer, schema);
+
+            _ = scanner
+                .StartBackgroundScanAsync(schema, _state.Cts.Token)
+                .ContinueWith(
+                    t =>
+                    {
+                        if (!t.IsCompletedSuccessfully)
+                        {
+                            return;
+                        }
+
+                        _state.Schema = t.Result;
+                        source.UpdateSchema(t.Result);
+                    },
+                    TaskScheduler.Default
+                );
+        }
+        catch (InvalidOperationException ex)
+        {
+            ShowError(ex.Message);
+        }
     }
 
     private void SwitchToTableView(DataRowIndexer indexer, TableSchema schema)

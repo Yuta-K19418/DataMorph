@@ -1,5 +1,5 @@
 using AwesomeAssertions;
-using DataMorph.App.Schema;
+using DataMorph.App.Schema.Csv;
 using DataMorph.Engine.Types;
 
 namespace DataMorph.Tests.App.Schema;

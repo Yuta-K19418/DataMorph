@@ -2,7 +2,7 @@ using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using nietras.SeparatedValues;
 
-namespace DataMorph.App.Schema;
+namespace DataMorph.App.Schema.Csv;
 
 /// <summary>
 /// Performs incremental schema inference for CSV files.
@@ -172,4 +172,3 @@ internal sealed class IncrementalSchemaScanner
         return processedNames;
     }
 }
-

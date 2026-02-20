@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.App.Schema;
+using DataMorph.App.Schema.Csv;
 using DataMorph.Engine.IO.Csv;
+using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -188,10 +189,11 @@ internal sealed class MainWindow : Window
 
     private Task LoadJsonLinesFileAsync(string filePath)
     {
-        var indexer = new Engine.IO.JsonLines.RowIndexer(filePath);
+        var indexer = new RowIndexer(filePath);
         _ = Task.Run(indexer.BuildIndex);
 
-        SwitchToTreeView(indexer);
+        _state.JsonLinesIndexer = indexer;
+        SwitchToJsonLinesTreeView(indexer);
 
         return Task.CompletedTask;
     }
@@ -201,7 +203,7 @@ internal sealed class MainWindow : Window
         "CA2000:Dispose objects before losing scope",
         Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
     )]
-    private void SwitchToTreeView(Engine.IO.JsonLines.RowIndexer indexer)
+    private void SwitchToJsonLinesTreeView(RowIndexer indexer)
     {
         _state.CurrentMode = ViewMode.JsonLinesTree;
 
@@ -220,6 +222,16 @@ internal sealed class MainWindow : Window
         };
         Add(_currentContentView);
     }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
+    private void SwitchToJsonLinesTableView(RowIndexer indexer, TableSchema schema)
+        => throw new NotImplementedException();
+
+    private Task SetupTableModeToggleAsync() => throw new NotImplementedException();
 
     private void SwitchToTableView(DataRowIndexer indexer, TableSchema schema)
     {

@@ -337,7 +337,7 @@ internal sealed class MainWindow : Window
             _currentContentView.Dispose();
         }
 
-        _currentContentView = new TableView
+        _currentContentView = new Views.CsvTableView
         {
             X = 0,
             Y = 0,

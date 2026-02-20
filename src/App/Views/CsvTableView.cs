@@ -1,36 +1,19 @@
-using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
 
 /// <summary>
-/// A TableView for JSON Lines data that intercepts the 't' key to allow switching back to
-/// tree mode, and adds vim-like key navigation (h/j/k/l, gg, Shift+G).
+/// A TableView for CSV data that adds vim-like key navigation
+/// (h/j/k/l, gg, Shift+G) as alternatives to arrow keys.
 /// </summary>
-internal sealed class JsonLinesTableView : TableView
+internal sealed class CsvTableView : TableView
 {
-    private readonly Action _onTableModeToggle;
     private readonly VimKeyTranslator _vimKeys = new();
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="JsonLinesTableView"/> class.
-    /// </summary>
-    /// <param name="onTableModeToggle">Callback invoked when the user presses 't'.</param>
-    internal JsonLinesTableView(Action onTableModeToggle)
-    {
-        _onTableModeToggle = onTableModeToggle;
-    }
 
     /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)
     {
-        if (key.KeyCode == KeyCode.T)
-        {
-            _onTableModeToggle();
-            return true;
-        }
-
         var action = _vimKeys.Translate(key.KeyCode);
 
         return action switch

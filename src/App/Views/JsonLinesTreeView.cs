@@ -18,6 +18,7 @@ internal sealed class JsonLinesTreeView : TreeView
 
     private readonly RowByteCache _cache;
     private readonly Action _onTableModeToggle;
+    private readonly VimKeyTranslator _vimKeys = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonLinesTreeView"/> class.
@@ -133,7 +134,29 @@ internal sealed class JsonLinesTreeView : TreeView
             return true;
         }
 
-        return base.OnKeyDown(key);
+        var action = _vimKeys.Translate(key.KeyCode);
+
+        return action switch
+        {
+            VimAction.PendingGSequence => true,
+            VimAction.MoveDown => ConsumeAction(() =>
+                AdjustSelection(offset: 1, expandSelection: false)
+            ),
+            VimAction.MoveUp => ConsumeAction(() =>
+                AdjustSelection(offset: -1, expandSelection: false)
+            ),
+            VimAction.MoveLeft => base.OnKeyDown(new Key(KeyCode.CursorLeft)),
+            VimAction.MoveRight => base.OnKeyDown(new Key(KeyCode.CursorRight)),
+            VimAction.GoToFirst => ConsumeAction(GoToFirst),
+            VimAction.GoToEnd => ConsumeAction(GoToEnd),
+            _ => base.OnKeyDown(key),
+        };
+    }
+
+    private static bool ConsumeAction(Action action)
+    {
+        action();
+        return true;
     }
 
     /// <inheritdoc/>

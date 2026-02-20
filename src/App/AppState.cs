@@ -1,5 +1,6 @@
 using DataMorph.App.Schema.Csv;
 using DataMorph.Engine.Models;
+using DataMorph.Engine.Models.Actions;
 using JsonLinesIO = DataMorph.Engine.IO.JsonLines;
 using JsonLinesSchema = DataMorph.App.Schema.JsonLines;
 
@@ -48,4 +49,10 @@ internal sealed class AppState
     /// Null until the user switches to Table mode for the first time (lazy initialization).
     /// </summary>
     public JsonLinesSchema.IncrementalSchemaScanner? JsonLinesSchemaScanner { get; set; }
+
+    /// <summary>
+    /// Gets or sets the current Action Stack of transformation operations applied to the loaded file.
+    /// An empty list means no transformations are active (passthrough).
+    /// </summary>
+    public IReadOnlyList<MorphAction> ActionStack { get; set; } = [];
 }

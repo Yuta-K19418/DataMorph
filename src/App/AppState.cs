@@ -75,4 +75,14 @@ internal sealed class AppState
     /// An empty list means no transformations are active (passthrough).
     /// </summary>
     public IReadOnlyList<MorphAction> ActionStack { get; set; } = [];
+
+    /// <summary>
+    /// Appends a morph action to the Action Stack.
+    /// Creates a new <see cref="IReadOnlyList{T}"/> to preserve immutability.
+    /// </summary>
+    /// <param name="action">The action to append.</param>
+    internal void AddMorphAction(MorphAction action)
+    {
+        ActionStack = [.. ActionStack, action];
+    }
 }

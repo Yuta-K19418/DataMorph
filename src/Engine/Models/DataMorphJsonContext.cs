@@ -19,6 +19,8 @@ namespace DataMorph.Engine.Models;
 [JsonSerializable(typeof(RenameColumnAction))]
 [JsonSerializable(typeof(DeleteColumnAction))]
 [JsonSerializable(typeof(CastColumnAction))]
+[JsonSerializable(typeof(FilterAction))]
+[JsonSerializable(typeof(FilterOperator))]
 [JsonSerializable(typeof(ColumnSchema))]
 [JsonSerializable(typeof(TableSchema))]
 [JsonSerializable(typeof(ColumnType))]

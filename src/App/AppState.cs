@@ -1,4 +1,5 @@
 using DataMorph.App.Schema.Csv;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using JsonLinesIO = DataMorph.Engine.IO.JsonLines;
@@ -28,10 +29,16 @@ internal sealed class AppState
     public TableSchema? Schema { get; set; }
 
     /// <summary>
+    /// Gets or sets the CSV row indexer for the current file.
+    /// Null if no CSV file is loaded.
+    /// </summary>
+    public DataRowIndexer? CsvIndexer { get; set; }
+
+    /// <summary>
     /// Gets or sets the incremental schema scanner for background schema refinement.
     /// Null if no CSV file is loaded.
     /// </summary>
-    public IncrementalSchemaScanner? SchemaScanner { get; set; }
+    public IncrementalSchemaScanner? CsvSchemaScanner { get; set; }
 
     /// <summary>
     /// Gets or sets the cancellation token source for the background schema scanner.
@@ -49,6 +56,19 @@ internal sealed class AppState
     /// Null until the user switches to Table mode for the first time (lazy initialization).
     /// </summary>
     public JsonLinesSchema.IncrementalSchemaScanner? JsonLinesSchemaScanner { get; set; }
+
+    /// <summary>
+    /// Gets or sets the last error message from a load operation.
+    /// Null if the last operation succeeded.
+    /// </summary>
+    public string? LastError { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback invoked when the background schema scan completes.
+    /// Set by <c>ViewManager</c> when creating a table source that supports schema updates;
+    /// invoked by <c>FileLoader</c> after background refinement finishes.
+    /// </summary>
+    public Action<TableSchema>? OnSchemaRefined { get; set; }
 
     /// <summary>
     /// Gets or sets the current Action Stack of transformation operations applied to the loaded file.

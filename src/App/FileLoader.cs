@@ -31,6 +31,7 @@ internal sealed class FileLoader : IDisposable
         ArgumentException.ThrowIfNullOrEmpty(filePath);
 
         _state.CurrentFilePath = filePath;
+        _state.ActionStack = [];
 
         if (filePath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
         {

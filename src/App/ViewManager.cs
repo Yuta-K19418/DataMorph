@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
+using DataMorph.Engine.Models.Actions;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -70,6 +71,7 @@ internal sealed class ViewManager : IDisposable
             Height = Dim.Fill(),
             Table = source,
             Style = new TableStyle { AlwaysShowHeaders = true },
+            OnMorphAction = HandleMorphAction,
         };
         SwapView(view);
     }
@@ -125,7 +127,7 @@ internal sealed class ViewManager : IDisposable
                 ? source
                 : new Views.LazyTransformer(source, schema, _state.ActionStack);
 
-        var view = new Views.JsonLinesTableView(() => _ = _onToggle())
+        var view = new Views.JsonLinesTableView(() => _ = _onToggle(), HandleMorphAction)
         {
             X = 0,
             Y = 0,
@@ -135,6 +137,37 @@ internal sealed class ViewManager : IDisposable
             Style = new TableStyle { AlwaysShowHeaders = true },
         };
         SwapView(view);
+    }
+
+    /// <summary>
+    /// Refreshes the current table view by re-invoking the appropriate <c>SwitchTo*</c> method.
+    /// Called after a morph action is added to <see cref="AppState.ActionStack"/> so that
+    /// <see cref="Views.LazyTransformer"/> is reconstructed with the updated stack.
+    /// </summary>
+    internal void RefreshCurrentTableView()
+    {
+        switch (_state.CurrentMode)
+        {
+            case ViewMode.CsvTable when _state.CsvIndexer is not null && _state.Schema is not null:
+                SwitchToCsvTable(_state.CsvIndexer, _state.Schema);
+                break;
+
+            case ViewMode.JsonLinesTable
+                when _state.JsonLinesIndexer is not null && _state.Schema is not null:
+                SwitchToJsonLinesTableView(_state.JsonLinesIndexer, _state.Schema);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Handles a column morphing action from a table view.
+    /// Appends the action to the stack and refreshes the current view.
+    /// </summary>
+    /// <param name="action">The morph action to apply.</param>
+    private void HandleMorphAction(MorphAction action)
+    {
+        _state.AddMorphAction(action);
+        RefreshCurrentTableView();
     }
 
     /// <summary>

@@ -555,4 +555,100 @@ public sealed class LazyTransformerTests
         // Assert
         names.Should().BeEquivalentTo(["X", "B"], o => o.WithStrictOrdering());
     }
+
+    // -------------------------------------------------------------------------
+    // Filter — Equals
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_EqualsOperator_OnlyMatchingRowsReturned()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Filter_ContainsOperator_SubstringMatchingRowsReturned()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    // -------------------------------------------------------------------------
+    // Filter — AND semantics
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_MultipleFilterActions_AppliesAndSemantics()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Filter_NoMatchingRows_RowsIsZero()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    // -------------------------------------------------------------------------
+    // Filter — column resolution
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_TargetingRenamedColumn_CorrectlyResolved()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Filter_TargetingDeletedColumn_SilentlySkipped()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    // -------------------------------------------------------------------------
+    // Filter — numeric operators
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_GreaterThanOnWholeNumberColumn_ReturnsMatchingRows()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Filter_NumericOperatorOnTextColumn_FallsBackToStringComparison()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

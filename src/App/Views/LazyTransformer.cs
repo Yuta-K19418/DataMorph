@@ -11,6 +11,9 @@ namespace DataMorph.App.Views;
 /// <see cref="MorphAction"/>s lazily — only to the cells currently requested by the TableView.
 /// Constructs the output column mapping on initialization,
 /// then delegates cell access to the underlying source on demand.
+/// When one or more <see cref="FilterAction"/>s are present, uses an
+/// <see cref="IFilterRowIndexer"/> (provided via a factory in the constructor)
+/// to map filtered row indices to source rows.
 /// </summary>
 internal sealed class LazyTransformer : ITableSource
 {
@@ -18,6 +21,7 @@ internal sealed class LazyTransformer : ITableSource
     private readonly IReadOnlyList<int> _sourceColumnIndices;
     private readonly string[] _columnNames;
     private readonly IReadOnlyList<ColumnType> _columnTypes;
+    private readonly IFilterRowIndexer? _filterRowIndexer;
 
     /// <summary>
     /// Initializes a new instance of <see cref="LazyTransformer"/>.
@@ -26,10 +30,17 @@ internal sealed class LazyTransformer : ITableSource
     /// <param name="source">The underlying data source providing raw cell values.</param>
     /// <param name="originalSchema">The schema of the source before any actions are applied.</param>
     /// <param name="actions">The ordered list of transformation actions to apply.</param>
+    /// <param name="filterRowIndexerFactory">
+    /// Optional factory that receives resolved <see cref="FilterSpec"/>s and returns an
+    /// <see cref="IFilterRowIndexer"/>. Pass <see langword="null"/> to disable row filtering.
+    /// The caller is responsible for invoking <see cref="IFilterRowIndexer.BuildIndexAsync"/>
+    /// on a background task after construction.
+    /// </param>
     public LazyTransformer(
         ITableSource source,
         TableSchema originalSchema,
-        IReadOnlyList<MorphAction> actions
+        IReadOnlyList<MorphAction> actions,
+        Func<IReadOnlyList<FilterSpec>, IFilterRowIndexer?>? filterRowIndexerFactory = null
     )
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -37,14 +48,22 @@ internal sealed class LazyTransformer : ITableSource
         ArgumentNullException.ThrowIfNull(actions);
 
         _source = source;
-        (_columnNames, _columnTypes, _sourceColumnIndices) = BuildTransformedSchema(
-            originalSchema,
-            actions
-        );
+        (_columnNames, _columnTypes, _sourceColumnIndices, var filterSpecs) =
+            BuildTransformedSchema(originalSchema, actions);
+
+        _filterRowIndexer =
+            filterSpecs.Count > 0 ? filterRowIndexerFactory?.Invoke(filterSpecs) : null;
     }
 
+    /// <summary>
+    /// Gets the filter row indexer created by the factory, if any.
+    /// The caller must invoke <see cref="IFilterRowIndexer.BuildIndexAsync"/> on a background task.
+    /// </summary>
+    internal IFilterRowIndexer? FilterRowIndexer => _filterRowIndexer;
+
     /// <inheritdoc/>
-    public int Rows => _source.Rows;
+    public int Rows =>
+        _filterRowIndexer is not null ? _filterRowIndexer.TotalMatchedRows : _source.Rows;
 
     /// <inheritdoc/>
     public int Columns => _columnNames.Length;
@@ -67,22 +86,33 @@ internal sealed class LazyTransformer : ITableSource
                 throw new ArgumentOutOfRangeException(nameof(col));
             }
 
+            var sourceRow = _filterRowIndexer is not null
+                ? _filterRowIndexer.GetSourceRow(row)
+                : row;
+
+            if (sourceRow < 0)
+            {
+                return string.Empty;
+            }
+
             var sourceCol = _sourceColumnIndices[col];
-            var rawValue = _source[row, sourceCol]?.ToString() ?? string.Empty;
+            var rawValue = _source[sourceRow, sourceCol]?.ToString() ?? string.Empty;
             return FormatCellValue(rawValue, _columnTypes[col]);
         }
     }
 
     /// <summary>
-    /// Applies the action stack sequentially to build the output column names, types, and
-    /// a mapping array from output column index to source column index.
+    /// Applies the action stack sequentially to build the output column names, types,
+    /// a mapping array from output column index to source column index, and a list of
+    /// resolved <see cref="FilterSpec"/>s for any <see cref="FilterAction"/>s encountered.
     /// A <see cref="Dictionary{TKey,TValue}"/> keyed by column name provides O(1) lookups per action.
     /// Actions targeting a non-existent column name are silently skipped.
     /// </summary>
     private static (
         string[] columnNames,
         IReadOnlyList<ColumnType> columnTypes,
-        IReadOnlyList<int> sourceColumnIndices
+        IReadOnlyList<int> sourceColumnIndices,
+        IReadOnlyList<FilterSpec> filterSpecs
     ) BuildTransformedSchema(TableSchema originalSchema, IReadOnlyList<MorphAction> actions)
     {
         var working = originalSchema
@@ -95,6 +125,7 @@ internal sealed class LazyTransformer : ITableSource
             .ToList();
 
         var nameToIndex = working.Select((w, i) => (w.Name, i)).ToDictionary(t => t.Name, t => t.i);
+        var filterSpecs = new List<FilterSpec>();
 
         foreach (var action in actions)
         {
@@ -125,6 +156,14 @@ internal sealed class LazyTransformer : ITableSource
                 }
 
                 working[castIdx] = working[castIdx] with { Type = cast.TargetType };
+                continue;
+            }
+
+            if (action is FilterAction filter)
+            {
+                // Row-level filter: does not modify column schema.
+                // Resolve column name to source index and record FilterSpec.
+                throw new NotImplementedException();
             }
         }
 
@@ -137,8 +176,21 @@ internal sealed class LazyTransformer : ITableSource
         return (
             remaining.ConvertAll(workingColumn => workingColumn.Name).ToArray(),
             remaining.ConvertAll(workingColumn => workingColumn.Type),
-            remaining.ConvertAll(workingColumn => workingColumn.SourceIndex)
+            remaining.ConvertAll(workingColumn => workingColumn.SourceIndex),
+            filterSpecs
         );
+    }
+
+    /// <summary>
+    /// Evaluates a single filter condition against a raw cell string value.
+    /// Numeric and timestamp operators parse <paramref name="rawValue"/> and
+    /// <see cref="FilterSpec.Value"/>; on parse failure the row is excluded.
+    /// Applying a numeric operator to a <see cref="ColumnType.Text"/> column
+    /// falls back to case-insensitive string equality / inequality.
+    /// </summary>
+    internal static bool EvaluateFilter(string rawValue, FilterSpec spec)
+    {
+        throw new NotImplementedException();
     }
 
     /// <summary>

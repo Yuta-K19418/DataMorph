@@ -39,6 +39,11 @@ internal sealed class CsvTableView : TableView
             return HandleCastColumn();
         }
 
+        if (key.KeyCode == (KeyCode.F | KeyCode.ShiftMask))
+        {
+            return HandleFilterColumn();
+        }
+
         var action = _vimKeys.Translate(key.KeyCode);
 
         return action switch
@@ -140,5 +145,10 @@ internal sealed class CsvTableView : TableView
             new CastColumnAction { ColumnName = columnName, TargetType = dialog.SelectedType.Value }
         );
         return true;
+    }
+
+    private bool HandleFilterColumn()
+    {
+        throw new NotImplementedException();
     }
 }

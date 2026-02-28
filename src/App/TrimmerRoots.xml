@@ -1,0 +1,8 @@
+<linker>
+  <!--
+    Terminal.Gui uses System.Reflection in module initializers to discover
+    [ConfigProperty]-annotated members. Preserve the entire assembly to prevent
+    NativeAOT trimming from removing required metadata.
+  -->
+  <assembly fullname="Terminal.Gui" preserve="all" />
+</linker>

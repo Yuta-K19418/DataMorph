@@ -40,7 +40,7 @@ internal sealed class LazyTransformer : ITableSource
         ITableSource source,
         TableSchema originalSchema,
         IReadOnlyList<MorphAction> actions,
-        Func<IReadOnlyList<FilterSpec>, IFilterRowIndexer?>? filterRowIndexerFactory = null
+        Func<IReadOnlyList<FilterSpec>, IFilterRowIndexer>? filterRowIndexerFactory = null
     )
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -51,8 +51,10 @@ internal sealed class LazyTransformer : ITableSource
         (_columnNames, _columnTypes, _sourceColumnIndices, var filterSpecs) =
             BuildTransformedSchema(originalSchema, actions);
 
-        _filterRowIndexer =
-            filterSpecs.Count > 0 ? filterRowIndexerFactory?.Invoke(filterSpecs) : null;
+        if (filterSpecs.Count > 0 && filterRowIndexerFactory is not null)
+        {
+            _filterRowIndexer = filterRowIndexerFactory(filterSpecs);
+        }
     }
 
     /// <summary>

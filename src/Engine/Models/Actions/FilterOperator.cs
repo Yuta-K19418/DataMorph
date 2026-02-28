@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace DataMorph.Engine.Models.Actions;
 
 /// <summary>
 /// Defines the comparison operator for a <see cref="FilterAction"/> condition.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<FilterOperator>))]
 public enum FilterOperator
 {
     /// <summary>Case-insensitive equality: <c>==</c></summary>

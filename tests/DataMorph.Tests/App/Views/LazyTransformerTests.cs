@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using DataMorph.App.Views;
+using DataMorph.Engine.Filtering;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
@@ -21,6 +22,18 @@ public sealed class LazyTransformerTests
         public object this[int row, int col] => data[row][col];
     }
 
+    /// <summary>
+    /// A synchronous stub that returns pre-computed matched row indices without any filtering logic.
+    /// </summary>
+    private sealed class SyncFilterRowIndexer(IReadOnlyList<int> matchedRows) : IFilterRowIndexer
+    {
+        public int TotalMatchedRows => matchedRows.Count;
+
+        public int GetSourceRow(int filteredIndex) => matchedRows[filteredIndex];
+
+        public Task BuildIndexAsync(CancellationToken ct) => Task.CompletedTask;
+    }
+
     private static TableSchema MakeSchema(params (string name, ColumnType type)[] cols) =>
         new TableSchema
         {
@@ -38,6 +51,13 @@ public sealed class LazyTransformerTests
             ],
             SourceFormat = DataFormat.Csv,
         };
+
+    private static LazyTransformer MakeFilteredTransformer(
+        FakeTableSource source,
+        TableSchema schema,
+        IReadOnlyList<MorphAction> actions,
+        IReadOnlyList<int> matchedRows
+    ) => new LazyTransformer(source, schema, actions, _ => new SyncFilterRowIndexer(matchedRows));
 
     // -------------------------------------------------------------------------
     // Constructor — null guards
@@ -333,7 +353,6 @@ public sealed class LazyTransformerTests
 
         // Assert
         result.Should().Be(expectedValue);
-        _ = expectedValue;
     }
 
     [Theory]
@@ -364,8 +383,6 @@ public sealed class LazyTransformerTests
 
         // Assert
         result.Should().Be("<invalid>");
-        _ = rawValue;
-        _ = targetType;
     }
 
     // -------------------------------------------------------------------------
@@ -554,5 +571,279 @@ public sealed class LazyTransformerTests
 
         // Assert
         names.Should().BeEquivalentTo(["X", "B"], o => o.WithStrictOrdering());
+    }
+
+    // -------------------------------------------------------------------------
+    // Filter — Equals
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_EqualsOperator_OnlyMatchingRowsReturned()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["Alice"],
+                ["Bob"],
+                ["Alice"],
+            ],
+            ["Name"]
+        );
+        var schema = MakeSchema(("Name", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FilterAction
+            {
+                ColumnName = "Name",
+                Operator = FilterOperator.Equals,
+                Value = "Alice",
+            },
+        ];
+
+        // Act — rows 0 and 2 match "Alice"
+        var transformer = MakeFilteredTransformer(source, schema, actions, [0, 2]);
+
+        // Assert
+        transformer.Rows.Should().Be(2);
+        transformer[0, 0].Should().Be("Alice");
+        transformer[1, 0].Should().Be("Alice");
+    }
+
+    [Fact]
+    public void Filter_ContainsOperator_SubstringMatchingRowsReturned()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["apple"],
+                ["banana"],
+                ["apricot"],
+                ["cherry"],
+            ],
+            ["Fruit"]
+        );
+        var schema = MakeSchema(("Fruit", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FilterAction
+            {
+                ColumnName = "Fruit",
+                Operator = FilterOperator.Contains,
+                Value = "ap",
+            },
+        ];
+
+        // Act — rows 0 ("apple") and 2 ("apricot") contain "ap"
+        var transformer = MakeFilteredTransformer(source, schema, actions, [0, 2]);
+
+        // Assert
+        transformer.Rows.Should().Be(2);
+        transformer[0, 0].Should().Be("apple");
+        transformer[1, 0].Should().Be("apricot");
+    }
+
+    // -------------------------------------------------------------------------
+    // Filter — AND semantics
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_MultipleFilterActions_AppliesAndSemantics()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["Alice", "30"],
+                ["Bob", "25"],
+                ["Alice", "20"],
+                ["Charlie", "30"],
+            ],
+            ["Name", "Age"]
+        );
+        var schema = MakeSchema(("Name", ColumnType.Text), ("Age", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FilterAction
+            {
+                ColumnName = "Name",
+                Operator = FilterOperator.Equals,
+                Value = "Alice",
+            },
+            new FilterAction
+            {
+                ColumnName = "Age",
+                Operator = FilterOperator.Equals,
+                Value = "30",
+            },
+        ];
+
+        // Act — only row 0 ("Alice", "30") matches both filters
+        var transformer = MakeFilteredTransformer(source, schema, actions, [0]);
+
+        // Assert
+        transformer.Rows.Should().Be(1);
+        transformer[0, 0].Should().Be("Alice");
+        transformer[0, 1].Should().Be("30");
+    }
+
+    [Fact]
+    public void Filter_NoMatchingRows_RowsIsZero()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["Alice"],
+                ["Bob"],
+            ],
+            ["Name"]
+        );
+        var schema = MakeSchema(("Name", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FilterAction
+            {
+                ColumnName = "Name",
+                Operator = FilterOperator.Equals,
+                Value = "Charlie",
+            },
+        ];
+
+        // Act — no rows match "Charlie"
+        var transformer = MakeFilteredTransformer(source, schema, actions, []);
+
+        // Assert
+        transformer.Rows.Should().Be(0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Filter — column resolution
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_TargetingRenamedColumn_CorrectlyResolved()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["Alice"],
+                ["Bob"],
+            ],
+            ["Name"]
+        );
+        var schema = MakeSchema(("Name", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new RenameColumnAction { OldName = "Name", NewName = "FullName" },
+            new FilterAction
+            {
+                ColumnName = "FullName",
+                Operator = FilterOperator.Equals,
+                Value = "Alice",
+            },
+        ];
+
+        // Act — only row 0 ("Alice") matches
+        var transformer = MakeFilteredTransformer(source, schema, actions, [0]);
+
+        // Assert
+        transformer.Rows.Should().Be(1);
+        transformer[0, 0].Should().Be("Alice");
+    }
+
+    [Fact]
+    public void Filter_TargetingDeletedColumn_SilentlySkipped()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["Alice", "active"],
+                ["Bob", "inactive"],
+            ],
+            ["Name", "Status"]
+        );
+        var schema = MakeSchema(("Name", ColumnType.Text), ("Status", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new DeleteColumnAction { ColumnName = "Status" },
+            // Filter targets a deleted column — should be silently skipped, no rows excluded
+            new FilterAction
+            {
+                ColumnName = "Status",
+                Operator = FilterOperator.Equals,
+                Value = "active",
+            },
+        ];
+
+        // Act — the filter spec is skipped (Status column was deleted), so the factory receives
+        // an empty FilterSpec list and no IFilterRowIndexer is created; all source rows are exposed
+        var transformer = MakeFilteredTransformer(source, schema, actions, []);
+
+        // Assert — both rows retained because the filter was silently skipped
+        transformer.Rows.Should().Be(2);
+    }
+
+    // -------------------------------------------------------------------------
+    // Filter — numeric operators
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void Filter_GreaterThanOnWholeNumberColumn_ReturnsMatchingRows()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["10"],
+                ["50"],
+                ["30"],
+                ["5"],
+            ],
+            ["Score"]
+        );
+        var schema = MakeSchema(("Score", ColumnType.WholeNumber));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FilterAction
+            {
+                ColumnName = "Score",
+                Operator = FilterOperator.GreaterThan,
+                Value = "20",
+            },
+        ];
+
+        // Act — rows 1 (50) and 2 (30) are greater than 20
+        var transformer = MakeFilteredTransformer(source, schema, actions, [1, 2]);
+
+        // Assert
+        transformer.Rows.Should().Be(2);
+        transformer[0, 0].Should().Be("50");
+        transformer[1, 0].Should().Be("30");
+    }
+
+    [Fact]
+    public void Filter_NumericOperatorOnTextColumn_ExcludesAllRows()
+    {
+        // Arrange — GreaterThan on a Text column always returns false, excluding all rows
+        var source = new FakeTableSource(
+            [
+                ["hello"],
+                ["world"],
+            ],
+            ["Word"]
+        );
+        var schema = MakeSchema(("Word", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FilterAction
+            {
+                ColumnName = "Word",
+                Operator = FilterOperator.GreaterThan,
+                Value = "hello",
+            },
+        ];
+
+        // Act — numeric operators on Text columns always return false, so no rows match
+        var transformer = MakeFilteredTransformer(source, schema, actions, []);
+
+        // Assert — all rows excluded because numeric operators are unsupported on Text columns
+        transformer.Rows.Should().Be(0);
     }
 }

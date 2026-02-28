@@ -1,4 +1,4 @@
-namespace DataMorph.App.Views;
+namespace DataMorph.Engine.Filtering;
 
 /// <summary>
 /// Builds and exposes a pre-computed index of source row positions that satisfy
@@ -6,7 +6,7 @@ namespace DataMorph.App.Views;
 /// Implementations scan the source file once in the background; the index grows
 /// atomically so the TUI can render already-confirmed rows immediately.
 /// </summary>
-internal interface IFilterRowIndexer
+public interface IFilterRowIndexer
 {
     /// <summary>
     /// Number of source rows confirmed to match all filters so far.

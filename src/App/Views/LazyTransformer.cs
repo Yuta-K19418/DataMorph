@@ -1,4 +1,5 @@
 using System.Globalization;
+using DataMorph.Engine.Filtering;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
@@ -165,7 +166,21 @@ internal sealed class LazyTransformer : ITableSource
             {
                 // Row-level filter: does not modify column schema.
                 // Resolve column name to source index and record FilterSpec.
-                throw new NotImplementedException();
+                if (!nameToIndex.TryGetValue(filter.ColumnName, out var filterIdx))
+                {
+                    continue;
+                }
+
+                var col = working[filterIdx];
+                filterSpecs.Add(
+                    new FilterSpec(
+                        SourceColumnIndex: col.SourceIndex,
+                        ColumnType: col.Type,
+                        Operator: filter.Operator,
+                        Value: filter.Value
+                    )
+                );
+                continue;
             }
         }
 
@@ -181,18 +196,6 @@ internal sealed class LazyTransformer : ITableSource
             remaining.ConvertAll(workingColumn => workingColumn.SourceIndex),
             filterSpecs
         );
-    }
-
-    /// <summary>
-    /// Evaluates a single filter condition against a raw cell string value.
-    /// Numeric and timestamp operators parse <paramref name="rawValue"/> and
-    /// <see cref="FilterSpec.Value"/>; on parse failure the row is excluded.
-    /// Applying a numeric operator to a <see cref="ColumnType.Text"/> column
-    /// falls back to case-insensitive string equality / inequality.
-    /// </summary>
-    internal static bool EvaluateFilter(string rawValue, FilterSpec spec)
-    {
-        throw new NotImplementedException();
     }
 
     /// <summary>

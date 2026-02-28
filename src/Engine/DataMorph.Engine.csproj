@@ -19,4 +19,8 @@
     <PackageReference Include="Sep" Version="0.12.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="DataMorph.Tests" />
+  </ItemGroup>
+
 </Project>

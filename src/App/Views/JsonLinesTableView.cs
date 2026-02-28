@@ -15,6 +15,7 @@ internal sealed class JsonLinesTableView : TableView
 {
     private readonly Action _onTableModeToggle;
     private readonly Action<MorphAction>? _onMorphAction;
+    private readonly Func<bool>? _isRowIndexComplete;
     private readonly VimKeyTranslator _vimKeys = new();
 
     /// <summary>
@@ -25,10 +26,20 @@ internal sealed class JsonLinesTableView : TableView
     /// Callback invoked when the user confirms a column morphing action.
     /// <see langword="null"/> disables morphing for this view instance.
     /// </param>
-    internal JsonLinesTableView(Action onTableModeToggle, Action<MorphAction>? onMorphAction = null)
+    /// <param name="isRowIndexComplete">
+    /// Optional predicate that returns <see langword="true"/> when the row indexer's
+    /// <c>BuildIndex</c> has completed. When <see langword="null"/>, the guard is skipped.
+    /// The <c>Shift+F</c> filter action is blocked until this returns <see langword="true"/>.
+    /// </param>
+    internal JsonLinesTableView(
+        Action onTableModeToggle,
+        Action<MorphAction>? onMorphAction = null,
+        Func<bool>? isRowIndexComplete = null
+    )
     {
         _onTableModeToggle = onTableModeToggle;
         _onMorphAction = onMorphAction;
+        _isRowIndexComplete = isRowIndexComplete;
     }
 
     /// <inheritdoc/>
@@ -165,6 +176,34 @@ internal sealed class JsonLinesTableView : TableView
 
     private bool HandleFilterColumn()
     {
-        throw new NotImplementedException();
+        if (App is null || _onMorphAction is null || Table is null || SelectedColumn < 0)
+        {
+            return true;
+        }
+
+        if (_isRowIndexComplete is not null && !_isRowIndexComplete())
+        {
+            MessageBox.ErrorQuery(App, "Filter", "Row index is still being built. Please wait.", "OK");
+            return true;
+        }
+
+        var columnName = Table.ColumnNames[SelectedColumn];
+        using var dialog = new FilterColumnDialog(columnName);
+        App.Run(dialog);
+
+        if (!dialog.Confirmed || dialog.SelectedOperator is null || dialog.Value is null)
+        {
+            return true;
+        }
+
+        _onMorphAction(
+            new FilterAction
+            {
+                ColumnName = columnName,
+                Operator = dialog.SelectedOperator.Value,
+                Value = dialog.Value,
+            }
+        );
+        return true;
     }
 }

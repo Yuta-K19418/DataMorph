@@ -3,7 +3,7 @@ paths:
   - "src/**/*.cs"
 ---
 
-# C# Coding Standards (.NET 8.0+ / C# 12 Strict)
+# C# Coding Standards (.NET 10+ / C# 14 Strict)
 
 ## Modern Syntax (MANDATORY)
 
@@ -30,11 +30,15 @@ paths:
 ### Disposal
 - Use `using var` declarations
 
+## Immutability
+- Prefer **immutable by default**: data should flow through transformations rather than being mutated in place
+- Mutable fields and mutable properties require justification; flag any that can be made immutable without meaningful cost
+
 ## Structure & Complexity (STRICT)
 
 ### Class Size
 - Target **under 300 lines**
-- If a class exceeds this, strictly review for **Single Responsibility Principle (SRP)** violations
+- When a class is **approaching 200–300 lines**, proactively check whether multiple responsibilities have accumulated — it is easier to split early than after the class grows further
 - If multiple responsibilities are detected, refactor by splitting the class
 
 ### No `else` Clause
@@ -62,3 +66,8 @@ paths:
 
 ## Naming
 - Follow standard .NET Naming Guidelines
+- **Consistency with existing code**: if existing types follow a naming convention (e.g., a specific suffix or prefix), new types must follow the same pattern — flag any new class, interface, or member whose name breaks the established convention in its namespace or layer
+
+## Project and Directory Placement
+- Every class must reside in the project that matches its abstraction layer (`Engine` for core logic, `App` for TUI/presentation, `Tests` for test code)
+- Even within the correct project, verify the directory is appropriate for the abstraction or domain the class belongs to — a misplaced file is a discoverability and maintainability problem

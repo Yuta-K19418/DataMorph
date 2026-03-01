@@ -19,3 +19,8 @@ paths:
 - Must be `enabled` in all projects
 - Strictly follow nullable annotations
 - Do not suppress warnings with `!` operator in production code
+
+## Justify Every Nullable Annotation
+- Every `?` annotation must have a clear reason for the value to be genuinely absent
+- Unnecessary nullable annotations multiply code paths and bug surface — callers and the compiler must handle every `?`, so adding one without cause creates complexity with no benefit
+- If there is no genuine reason a value can be absent, make it non-nullable and enforce the invariant at the boundary (constructor, factory, or validation)

@@ -8,6 +8,11 @@ paths:
 ## Framework
 - Use **xUnit** as the primary testing framework
 
+## Directory Placement
+- Test classes must **mirror the directory hierarchy** of the production code they test
+- Example: a test for `src/Engine/IO/Csv/DataRowIndexer.cs` belongs in `tests/DataMorph.Tests/Engine/IO/Csv/`
+- A test file placed at the wrong level makes it hard to locate and signals that the test may be covering the wrong abstraction
+
 ## Naming Conventions
 
 ### Test Class Names

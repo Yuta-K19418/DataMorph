@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
@@ -58,10 +59,18 @@ internal sealed class ViewManager : IDisposable
         ArgumentNullException.ThrowIfNull(schema);
 
         ITableSource rawSource = new Views.VirtualTableSource(indexer, schema);
-        var source =
-            _state.ActionStack.Count == 0
-                ? rawSource
-                : new Views.LazyTransformer(rawSource, schema, _state.ActionStack);
+        var source = _state.ActionStack.Count > 0
+            ? (ITableSource)new Views.LazyTransformer(
+                rawSource,
+                schema,
+                _state.ActionStack,
+                filterSpecs => new DataMorph.Engine.IO.Csv.FilterRowIndexer(
+                    indexer,
+                    schema.Columns.Count,
+                    filterSpecs
+                )
+            )
+            : rawSource;
 
         var view = new Views.CsvTableView
         {
@@ -74,6 +83,11 @@ internal sealed class ViewManager : IDisposable
             OnMorphAction = HandleMorphAction,
         };
         SwapView(view);
+
+        if (source is Views.LazyTransformer { FilterRowIndexer: { } filterIndexer })
+        {
+            _ = Task.Run(() => filterIndexer.BuildIndexAsync(CancellationToken.None));
+        }
     }
 
     /// <summary>
@@ -122,10 +136,19 @@ internal sealed class ViewManager : IDisposable
         var source = new Views.JsonLinesTableSource(cache, schema);
         _state.OnSchemaRefined = source.UpdateSchema;
 
-        ITableSource tableSource =
-            _state.ActionStack.Count == 0
-                ? source
-                : new Views.LazyTransformer(source, schema, _state.ActionStack);
+        var tableSource = _state.ActionStack.Count > 0
+            ? (ITableSource)new Views.LazyTransformer(
+                source,
+                schema,
+                _state.ActionStack,
+                filterSpecs => new DataMorph.Engine.IO.JsonLines.FilterRowIndexer(
+                    indexer,
+                    indexer.FilePath,
+                    [.. schema.Columns.Select(c => Encoding.UTF8.GetBytes(c.Name))],
+                    filterSpecs
+                )
+            )
+            : source;
 
         var view = new Views.JsonLinesTableView(() => _ = _onToggle(), HandleMorphAction)
         {
@@ -137,6 +160,11 @@ internal sealed class ViewManager : IDisposable
             Style = new TableStyle { AlwaysShowHeaders = true },
         };
         SwapView(view);
+
+        if (tableSource is Views.LazyTransformer { FilterRowIndexer: { } filterIndexer })
+        {
+            _ = Task.Run(() => filterIndexer.BuildIndexAsync(CancellationToken.None));
+        }
     }
 
     /// <summary>

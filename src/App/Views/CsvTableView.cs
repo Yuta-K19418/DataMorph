@@ -21,6 +21,13 @@ internal sealed class CsvTableView : TableView
     /// </summary>
     internal Action<MorphAction>? OnMorphAction { get; init; }
 
+    /// <summary>
+    /// Optional predicate that returns <see langword="true"/> when the row indexer's
+    /// <c>BuildIndex</c> has completed. When <see langword="null"/>, the guard is skipped.
+    /// The <c>Shift+F</c> filter action is blocked until this returns <see langword="true"/>.
+    /// </summary>
+    internal Func<bool>? IsRowIndexComplete { get; init; }
+
     /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)
     {
@@ -37,6 +44,11 @@ internal sealed class CsvTableView : TableView
         if (key.KeyCode == (KeyCode.C | KeyCode.ShiftMask))
         {
             return HandleCastColumn();
+        }
+
+        if (key.KeyCode == (KeyCode.F | KeyCode.ShiftMask))
+        {
+            return HandleFilterColumn();
         }
 
         var action = _vimKeys.Translate(key.KeyCode);
@@ -138,6 +150,39 @@ internal sealed class CsvTableView : TableView
 
         OnMorphAction(
             new CastColumnAction { ColumnName = columnName, TargetType = dialog.SelectedType.Value }
+        );
+        return true;
+    }
+
+    private bool HandleFilterColumn()
+    {
+        if (App is null || OnMorphAction is null || Table is null || SelectedColumn < 0)
+        {
+            return true;
+        }
+
+        if (IsRowIndexComplete is not null && !IsRowIndexComplete())
+        {
+            MessageBox.ErrorQuery(App, "Filter", "Row index is still being built. Please wait.", "OK");
+            return true;
+        }
+
+        var columnName = Table.ColumnNames[SelectedColumn];
+        using var dialog = new FilterColumnDialog(columnName);
+        App.Run(dialog);
+
+        if (!dialog.Confirmed || dialog.SelectedOperator is null || dialog.Value is null)
+        {
+            return true;
+        }
+
+        OnMorphAction(
+            new FilterAction
+            {
+                ColumnName = columnName,
+                Operator = dialog.SelectedOperator.Value,
+                Value = dialog.Value,
+            }
         );
         return true;
     }

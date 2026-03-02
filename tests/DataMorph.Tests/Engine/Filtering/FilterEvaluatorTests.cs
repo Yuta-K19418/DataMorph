@@ -272,11 +272,15 @@ public sealed class FilterEvaluatorTests
     }
 
     // -------------------------------------------------------------------------
-    // Numeric operators — WholeNumber
+    // Numeric operators — WholeNumber (boundary: threshold = 20)
     // -------------------------------------------------------------------------
 
-    [Fact]
-    public void EvaluateFilter_GreaterThan_WholeNumber_LargerValue_ReturnsTrue()
+    [Theory]
+    [InlineData("19", false)]   // below threshold
+    [InlineData("20", false)]   // at threshold
+    [InlineData("21", true)]    // above threshold
+    public void EvaluateFilter_GreaterThan_WholeNumber_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
     {
         // Arrange
         var spec = new FilterSpec(
@@ -287,50 +291,18 @@ public sealed class FilterEvaluatorTests
         );
 
         // Act
-        var result = FilterEvaluator.EvaluateFilter("50".AsSpan(), spec);
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(expected);
     }
 
-    [Fact]
-    public void EvaluateFilter_GreaterThan_WholeNumber_SmallerValue_ReturnsFalse()
-    {
-        // Arrange
-        var spec = new FilterSpec(
-            SourceColumnIndex: 0,
-            ColumnType: ColumnType.WholeNumber,
-            Operator: FilterOperator.GreaterThan,
-            Value: "20"
-        );
-
-        // Act
-        var result = FilterEvaluator.EvaluateFilter("10".AsSpan(), spec);
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public void EvaluateFilter_LessThan_WholeNumber_SmallerValue_ReturnsTrue()
-    {
-        // Arrange
-        var spec = new FilterSpec(
-            SourceColumnIndex: 0,
-            ColumnType: ColumnType.WholeNumber,
-            Operator: FilterOperator.LessThan,
-            Value: "20"
-        );
-
-        // Act
-        var result = FilterEvaluator.EvaluateFilter("10".AsSpan(), spec);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public void EvaluateFilter_GreaterThanOrEqual_WholeNumber_EqualValue_ReturnsTrue()
+    [Theory]
+    [InlineData("19", false)]   // below threshold
+    [InlineData("20", true)]    // at threshold
+    [InlineData("21", true)]    // above threshold
+    public void EvaluateFilter_GreaterThanOrEqual_WholeNumber_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
     {
         // Arrange
         var spec = new FilterSpec(
@@ -341,14 +313,40 @@ public sealed class FilterEvaluatorTests
         );
 
         // Act
-        var result = FilterEvaluator.EvaluateFilter("20".AsSpan(), spec);
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(expected);
     }
 
-    [Fact]
-    public void EvaluateFilter_LessThanOrEqual_WholeNumber_EqualValue_ReturnsTrue()
+    [Theory]
+    [InlineData("19", true)]    // below threshold
+    [InlineData("20", false)]   // at threshold
+    [InlineData("21", false)]   // above threshold
+    public void EvaluateFilter_LessThan_WholeNumber_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.WholeNumber,
+            Operator: FilterOperator.LessThan,
+            Value: "20"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("19", true)]    // below threshold
+    [InlineData("20", true)]    // at threshold
+    [InlineData("21", false)]   // above threshold
+    public void EvaluateFilter_LessThanOrEqual_WholeNumber_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
     {
         // Arrange
         var spec = new FilterSpec(
@@ -359,10 +357,10 @@ public sealed class FilterEvaluatorTests
         );
 
         // Act
-        var result = FilterEvaluator.EvaluateFilter("20".AsSpan(), spec);
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(expected);
     }
 
     [Fact]
@@ -384,11 +382,15 @@ public sealed class FilterEvaluatorTests
     }
 
     // -------------------------------------------------------------------------
-    // Numeric operators — FloatingPoint
+    // Numeric operators — FloatingPoint (boundary: threshold = 2.0)
     // -------------------------------------------------------------------------
 
-    [Fact]
-    public void EvaluateFilter_GreaterThan_FloatingPoint_LargerValue_ReturnsTrue()
+    [Theory]
+    [InlineData("1.9", false)]   // below threshold
+    [InlineData("2.0", false)]   // at threshold
+    [InlineData("2.1", true)]    // above threshold
+    public void EvaluateFilter_GreaterThan_FloatingPoint_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
     {
         // Arrange
         var spec = new FilterSpec(
@@ -399,14 +401,40 @@ public sealed class FilterEvaluatorTests
         );
 
         // Act
-        var result = FilterEvaluator.EvaluateFilter("3.14".AsSpan(), spec);
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(expected);
     }
 
-    [Fact]
-    public void EvaluateFilter_LessThan_FloatingPoint_SmallerValue_ReturnsTrue()
+    [Theory]
+    [InlineData("1.9", false)]   // below threshold
+    [InlineData("2.0", true)]    // at threshold
+    [InlineData("2.1", true)]    // above threshold
+    public void EvaluateFilter_GreaterThanOrEqual_FloatingPoint_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.FloatingPoint,
+            Operator: FilterOperator.GreaterThanOrEqual,
+            Value: "2.0"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("1.9", true)]    // below threshold
+    [InlineData("2.0", false)]   // at threshold
+    [InlineData("2.1", false)]   // above threshold
+    public void EvaluateFilter_LessThan_FloatingPoint_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
     {
         // Arrange
         var spec = new FilterSpec(
@@ -417,50 +445,124 @@ public sealed class FilterEvaluatorTests
         );
 
         // Act
-        var result = FilterEvaluator.EvaluateFilter("1.5".AsSpan(), spec);
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("1.9", true)]    // below threshold
+    [InlineData("2.0", true)]    // at threshold
+    [InlineData("2.1", false)]   // above threshold
+    public void EvaluateFilter_LessThanOrEqual_FloatingPoint_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.FloatingPoint,
+            Operator: FilterOperator.LessThanOrEqual,
+            Value: "2.0"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
+
+        // Assert
+        result.Should().Be(expected);
     }
 
     // -------------------------------------------------------------------------
-    // Timestamp operators
+    // Timestamp operators (boundary: threshold = 2024-06-15)
     // -------------------------------------------------------------------------
 
-    [Fact]
-    public void EvaluateFilter_GreaterThan_Timestamp_LaterDate_ReturnsTrue()
+    [Theory]
+    [InlineData("2024-06-14", false)]   // day before threshold
+    [InlineData("2024-06-15", false)]   // at threshold
+    [InlineData("2024-06-16", true)]    // day after threshold
+    public void EvaluateFilter_GreaterThan_Timestamp_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
     {
         // Arrange
         var spec = new FilterSpec(
             SourceColumnIndex: 0,
             ColumnType: ColumnType.Timestamp,
             Operator: FilterOperator.GreaterThan,
-            Value: "2024-01-01"
+            Value: "2024-06-15"
         );
 
         // Act
-        var result = FilterEvaluator.EvaluateFilter("2024-06-01".AsSpan(), spec);
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(expected);
     }
 
-    [Fact]
-    public void EvaluateFilter_LessThan_Timestamp_EarlierDate_ReturnsTrue()
+    [Theory]
+    [InlineData("2024-06-14", false)]   // day before threshold
+    [InlineData("2024-06-15", true)]    // at threshold
+    [InlineData("2024-06-16", true)]    // day after threshold
+    public void EvaluateFilter_GreaterThanOrEqual_Timestamp_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.Timestamp,
+            Operator: FilterOperator.GreaterThanOrEqual,
+            Value: "2024-06-15"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("2024-06-14", true)]    // day before threshold
+    [InlineData("2024-06-15", false)]   // at threshold
+    [InlineData("2024-06-16", false)]   // day after threshold
+    public void EvaluateFilter_LessThan_Timestamp_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
     {
         // Arrange
         var spec = new FilterSpec(
             SourceColumnIndex: 0,
             ColumnType: ColumnType.Timestamp,
             Operator: FilterOperator.LessThan,
-            Value: "2024-06-01"
+            Value: "2024-06-15"
         );
 
         // Act
-        var result = FilterEvaluator.EvaluateFilter("2024-01-01".AsSpan(), spec);
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
 
         // Assert
-        result.Should().BeTrue();
+        result.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("2024-06-14", true)]    // day before threshold
+    [InlineData("2024-06-15", true)]    // at threshold
+    [InlineData("2024-06-16", false)]   // day after threshold
+    public void EvaluateFilter_LessThanOrEqual_Timestamp_BoundaryValues_ReturnsExpected(
+        string rawValue, bool expected)
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.Timestamp,
+            Operator: FilterOperator.LessThanOrEqual,
+            Value: "2024-06-15"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter(rawValue.AsSpan(), spec);
+
+        // Assert
+        result.Should().Be(expected);
     }
 
     [Fact]

@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
-using System.Text;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 

@@ -99,6 +99,12 @@ internal sealed class FilterColumnDialog : Dialog
             Confirm();
         };
 
+        textField.Accepting += (sender, e) =>
+        {
+            e.Handled = true;
+            Confirm();
+        };
+
         selector.Accepting += (sender, e) =>
         {
             e.Handled = true;

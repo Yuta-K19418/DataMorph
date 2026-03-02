@@ -48,7 +48,7 @@ actions:
 
 | Element | Rule |
 |---------|------|
-| Top-level fields | `name`, `description` (omit if null), `lastModified` (omit if null), `actions` |
+| Top-level fields | `name` (required, non-empty), `description` (omit if null), `lastModified` (omit if null), `actions` |
 | Field order | Always: `name` → `description` → `lastModified` → `actions` |
 | String values | Always wrapped in `"..."`. Internal `"` is escaped as `\"`. |
 | Enum values | Written as the C# enum name, **unquoted** (e.g., `WholeNumber`, `Equals`). |

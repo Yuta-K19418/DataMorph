@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using DataMorph.Engine.Models;
+using DataMorph.Engine.Recipes;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.ViewBase;
@@ -17,6 +19,7 @@ internal sealed class MainWindow : Window
     private readonly AppState _state;
     private readonly FileLoader _fileLoader;
     private readonly ViewManager _viewManager;
+    private readonly RecipeManager _recipeManager = new();
 
     public MainWindow(IApplication app, AppState state)
     {
@@ -44,8 +47,10 @@ internal sealed class MainWindow : Window
     private void InitializeMenu()
     {
         var openMenuItem = new MenuItem("_Open", "", async () => await ShowFileDialogAsync());
+        var saveRecipeMenuItem = new MenuItem("_Save Recipe", "", async () => await HandleSaveRecipeAsync());
+        var loadRecipeMenuItem = new MenuItem("_Load Recipe", "", async () => await HandleLoadRecipeAsync());
         var exitMenuItem = new MenuItem("_Exit", "", () => _app.RequestStop());
-        var fileMenuBarItem = new MenuBarItem("_File", [openMenuItem, exitMenuItem]);
+        var fileMenuBarItem = new MenuBarItem("_File", [openMenuItem, saveRecipeMenuItem, loadRecipeMenuItem, exitMenuItem]);
         var menuBar = new MenuBar { Menus = [fileMenuBarItem] };
 
         Add(menuBar);
@@ -64,13 +69,19 @@ internal sealed class MainWindow : Window
             Title = "Open",
             Action = async () => await ShowFileDialogAsync(),
         };
+        var saveRecipeShortcut = new Shortcut
+        {
+            Key = KeyCode.S | KeyCode.CtrlMask,
+            Title = "Save Recipe",
+            Action = async () => await HandleSaveRecipeAsync(),
+        };
         var quitShortcut = new Shortcut
         {
             Key = KeyCode.X | KeyCode.CtrlMask,
             Title = "Quit",
             Action = () => _app.RequestStop(),
         };
-        var statusBar = new StatusBar([openShortcut, quitShortcut]);
+        var statusBar = new StatusBar([openShortcut, saveRecipeShortcut, quitShortcut]);
 
         Add(statusBar);
     }
@@ -127,6 +138,82 @@ internal sealed class MainWindow : Window
         {
             _viewManager.SwitchToJsonLinesTree(_state.JsonLinesIndexer);
         }
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The OpenDialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
+    private async Task HandleSaveRecipeAsync()
+    {
+        if (_state.CurrentMode is not (ViewMode.CsvTable or ViewMode.JsonLinesTable or ViewMode.JsonLinesTree))
+        {
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_state.CurrentFilePath))
+        {
+            return;
+        }
+
+        var dialog = new OpenDialog { Title = "Save Recipe" };
+        dialog.AllowedTypes.Add(new AllowedType("YAML file", ".yaml"));
+
+        _app.Run(dialog);
+
+        if (dialog.Canceled || string.IsNullOrEmpty(dialog.Path))
+        {
+            return;
+        }
+
+        var recipe = new Recipe
+        {
+            Name = Path.GetFileNameWithoutExtension(_state.CurrentFilePath),
+            Actions = _state.ActionStack,
+            LastModified = DateTimeOffset.UtcNow,
+        };
+
+        var result = await _recipeManager.SaveAsync(recipe, dialog.Path);
+
+        if (result.IsFailure)
+        {
+            _viewManager.ShowError(result.Error);
+        }
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The OpenDialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
+    private async Task HandleLoadRecipeAsync()
+    {
+        if (string.IsNullOrEmpty(_state.CurrentFilePath))
+        {
+            return;
+        }
+
+        var dialog = new OpenDialog { Title = "Load Recipe" };
+        dialog.AllowedTypes.Add(new AllowedType("YAML file", ".yaml"));
+
+        _app.Run(dialog);
+
+        if (dialog.Canceled || string.IsNullOrEmpty(dialog.Path))
+        {
+            return;
+        }
+
+        var result = await _recipeManager.LoadAsync(dialog.Path);
+
+        if (result.IsFailure)
+        {
+            _viewManager.ShowError(result.Error);
+            return;
+        }
+
+        _state.ActionStack = result.Value.Actions;
+        _viewManager.RefreshCurrentTableView();
     }
 
     private async Task HandleToggleAsync()

@@ -34,6 +34,18 @@ paths:
 - Prefer **immutable by default**: data should flow through transformations rather than being mutated in place
 - Mutable fields and mutable properties require justification; flag any that can be made immutable without meaningful cost
 
+## Pure Functions
+- Prefer **pure functions**: a method should compute and return its result rather than mutate state through `ref` or `out` parameters
+- Return a tuple or a dedicated result type instead of using `ref`/`out` to propagate computed values back to the caller
+
+### `out` parameters
+- Use `out` **only** when implementing a `TryParse`-style method — i.e., when the method returns `bool` to signal success and needs to hand back a parsed value on success
+- Do NOT use `out` for any other purpose; returning a `Result<T>` or tuple is always preferable
+
+### `ref` parameters
+- Use `ref` **only** as a performance optimization: when a large value-type (`struct`) would otherwise be copied repeatedly on every call, passing it by `ref` avoids that overhead
+- Do NOT use `ref` to return computed values or to simulate multiple return values — use tuples or result types instead
+
 ## Structure & Complexity (STRICT)
 
 ### Class Size
@@ -67,6 +79,7 @@ paths:
 ## Naming
 - Follow standard .NET Naming Guidelines
 - **Consistency with existing code**: if existing types follow a naming convention (e.g., a specific suffix or prefix), new types must follow the same pattern — flag any new class, interface, or member whose name breaks the established convention in its namespace or layer
+- **ValueTuple element names**: use **camelCase** (e.g., `(string key, string value)`, `(int count, bool found)`). Tuple elements are destructured into local variables, so camelCase aligns with the local variable naming convention
 
 ## Project and Directory Placement
 - Every class must reside in the project that matches its abstraction layer (`Engine` for core logic, `App` for TUI/presentation, `Tests` for test code)

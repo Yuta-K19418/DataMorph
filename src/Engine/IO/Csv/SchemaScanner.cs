@@ -32,9 +32,17 @@ public static class SchemaScanner
             return Results.Failure<TableSchema>("CSV has no columns");
         }
 
+        // Header-only CSV: infer Text/nullable schema from column names only
         if (rows.Count == 0)
         {
-            return Results.Failure<TableSchema>("No rows provided for schema inference");
+            var headerOnlyColumns = columnNames.Select((name, idx) => new ColumnSchema
+            {
+                Name = string.IsNullOrWhiteSpace(name) ? $"Column{idx + 1}" : name,
+                Type = ColumnType.Text,
+                IsNullable = true,
+                ColumnIndex = idx,
+            }).ToArray();
+            return Results.Success(new TableSchema { Columns = headerOnlyColumns, SourceFormat = DataFormat.Csv });
         }
 
         var actualScanCount = Math.Min(rows.Count, initialScanCount);

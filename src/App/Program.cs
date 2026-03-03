@@ -10,7 +10,7 @@ if (args.Contains("--cli"))
         return 1;
     }
 
-    using var cts = CancellationTokenSource.CreateLinkedTokenSource();
+    using var cts = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) =>
     {
         e.Cancel = true;

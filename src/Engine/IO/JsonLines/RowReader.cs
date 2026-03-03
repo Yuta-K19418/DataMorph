@@ -89,7 +89,7 @@ public sealed class RowReader : IDisposable
             );
             if (bytesConsumed <= 0)
             {
-                // No more data
+                HandleIncompleteLineAtEof(currentOffset, incompleteLineBytes, result);
                 return result;
             }
 
@@ -141,6 +141,33 @@ public sealed class RowReader : IDisposable
             }
         }
         return span;
+    }
+
+    private void HandleIncompleteLineAtEof(long offset, int incompleteLineBytes, List<ReadOnlyMemory<byte>> result)
+    {
+        if (incompleteLineBytes <= 0)
+        {
+            return;
+        }
+
+        // This is the last line without a newline
+        var lastLineBytes = new byte[incompleteLineBytes];
+        _mmap.Read(offset, lastLineBytes);
+        var lastTrimmedSpan = TrimNewline(lastLineBytes.AsSpan());
+        if (lastTrimmedSpan.Length <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            ValidateJsonLine(lastTrimmedSpan);
+            result.Add(lastLineBytes.AsMemory(0, lastTrimmedSpan.Length));
+        }
+        catch (InvalidDataException)
+        {
+            // Incomplete or invalid line at EOF; ignore and return what we have
+        }
     }
 
     // Removed CollectLineBytes method because it is no longer needed

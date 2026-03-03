@@ -178,4 +178,65 @@ public sealed class RowReaderTests : IDisposable
         // According to the current implementation, incomplete lines are not returned.
         lines.Should().BeEmpty();
     }
+
+    [Fact]
+    public void ReadLineBytes_WithLinesToSkipExceedingTotalLines_ReturnsEmptyList()
+    {
+        // Arrange
+        WriteTestContent("{\"a\":1}\n{\"b\":2}\n");
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 10, linesToRead: 1);
+
+        // Assert
+        lines.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReadLineBytes_WithCrLfLineEndings_TrimsCorrectly()
+    {
+        // Arrange
+        WriteTestContent("{\"a\":1}\r\n{\"b\":2}\r\n");
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+
+        // Assert
+        lines.Should().HaveCount(2);
+        Encoding.UTF8.GetString(lines[0].Span).Should().Be("{\"a\":1}");
+        Encoding.UTF8.GetString(lines[1].Span).Should().Be("{\"b\":2}");
+    }
+
+    [Fact]
+    public void ReadLineBytes_WithZeroLinesToRead_ReturnsEmptyList()
+    {
+        // Arrange
+        WriteTestContent("{\"a\":1}\n{\"b\":2}\n");
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 0);
+
+        // Assert
+        lines.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReadLineBytes_WithValidLineWithoutNewlineAtEOF_ReturnsLine()
+    {
+        // Arrange
+        // Valid JSON line without newline at EOF
+        WriteTestContent("{\"valid\":true}");
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
+
+        // Assert
+        lines.Should().ContainSingle();
+        var lineString = Encoding.UTF8.GetString(lines[0].Span);
+        lineString.Should().Be("{\"valid\":true}");
+    }
 }

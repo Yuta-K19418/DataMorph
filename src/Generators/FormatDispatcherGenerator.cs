@@ -1,0 +1,245 @@
+using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
+
+namespace DataMorph.Generators;
+
+[Generator]
+public class FormatDispatcherGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var readerDeclarations = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: static (s, _) => HasAttributes(s),
+                transform: static (ctx, _) => GetFormatAndType(ctx))
+            .Collect()
+            .Select(static (array, _) => FormatDispatcherGenerator.FilterNulls(array));
+
+        var writerDeclarations = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: static (s, _) => HasAttributes(s),
+                transform: static (ctx, _) => GetFormatAndType(ctx))
+            .Collect()
+            .Select(static (array, _) => FormatDispatcherGenerator.FilterNulls(array));
+
+        var combined = readerDeclarations.Combine(writerDeclarations);
+
+        context.RegisterSourceOutput(
+            combined,
+            static (spc, source) =>
+            {
+                Execute(source.Left, source.Right, spc);
+            }
+        );
+    }
+
+    private static List<FormatInfo> FilterNulls(global::System.Collections.Immutable.ImmutableArray<FormatInfo?> array)
+    {
+        List<FormatInfo> result = [];
+        foreach (var item in array)
+        {
+            if (item is null)
+            {
+                continue;
+            }
+            result.Add(item);
+        }
+        return result;
+    }
+
+    private static bool HasAttributes(SyntaxNode node)
+    {
+        if (node is StructDeclarationSyntax structDecl && structDecl.AttributeLists.Count > 0)
+        {
+            return true;
+        }
+        if (node is ClassDeclarationSyntax classDecl && classDecl.AttributeLists.Count > 0)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    private static FormatInfo? GetFormatAndType(GeneratorSyntaxContext context)
+    {
+        var typeDecl = (TypeDeclarationSyntax)context.Node;
+
+        foreach (var attribute in typeDecl.AttributeLists.SelectMany(al => al.Attributes))
+        {
+            if (TryExtractFormatInfo(context, typeDecl, attribute, out var formatInfo))
+            {
+                return formatInfo;
+            }
+        }
+        return null;
+    }
+
+    private static bool TryExtractFormatInfo(
+        GeneratorSyntaxContext context,
+        TypeDeclarationSyntax typeDecl,
+        AttributeSyntax attribute,
+        out FormatInfo? formatInfo)
+    {
+        formatInfo = null;
+        var name = attribute.Name.ToString();
+        if (!name.Contains("RecordReader") && !name.Contains("RecordWriter"))
+        {
+            return false;
+        }
+
+        var arg = attribute
+            .ArgumentList?.Arguments.FirstOrDefault()
+            ?.Expression.ToString();
+
+        if (arg is not null)
+        {
+            var formatValue = arg; // e.g. "DataFormat.Csv"
+            if (formatValue.StartsWith("DataFormat."))
+            {
+                formatValue = formatValue.Substring("DataFormat.".Length);
+            }
+
+            var createdType = ExtractCreatedType(typeDecl);
+
+            var declaredSymbol = context.SemanticModel.GetDeclaredSymbol(typeDecl) as INamedTypeSymbol;
+            var typeName = declaredSymbol?.Name;
+            var isReader = name.Contains("RecordReader");
+
+            if (!string.IsNullOrEmpty(typeName) && !string.IsNullOrEmpty(createdType))
+            {
+                formatInfo = new FormatInfo(formatValue, typeName, createdType, isReader);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static string ExtractCreatedType(TypeDeclarationSyntax typeDecl)
+    {
+        if (typeDecl.BaseList is null)
+        {
+            return "";
+        }
+
+        foreach (var baseType in typeDecl.BaseList.Types)
+        {
+            var baseStr = baseType.Type.ToString();
+            if (!baseStr.Contains("IRecordReaderFactory<") && !baseStr.Contains("IRecordWriterFactory<"))
+            {
+                continue;
+            }
+
+            var startIndex = baseStr.IndexOf('<') + 1;
+            var endIndex = baseStr.IndexOf('>');
+            if (startIndex > 0 && endIndex > startIndex)
+            {
+                return baseStr.Substring(startIndex, endIndex - startIndex);
+            }
+        }
+
+        return "";
+    }
+
+    private static void Execute(
+        List<FormatInfo> readers,
+        List<FormatInfo> writers,
+        SourceProductionContext context
+    )
+    {
+        if (readers.Count == 0 || writers.Count == 0)
+        {
+            return;
+        }
+
+        var sb = new StringBuilder();
+        sb.AppendLine("// <auto-generated/>");
+        sb.AppendLine("#nullable enable");
+        sb.AppendLine("using System;");
+        sb.AppendLine("using System.Threading;");
+        sb.AppendLine("using System.Threading.Tasks;");
+        sb.AppendLine("using DataMorph.Engine;");
+        sb.AppendLine("using DataMorph.Engine.Models;");
+        sb.AppendLine("using DataMorph.Engine.Types;");
+        sb.AppendLine();
+        sb.AppendLine("namespace DataMorph.App.Cli.Generated;");
+        sb.AppendLine();
+        sb.AppendLine("internal static class FormatDispatcher");
+        sb.AppendLine("{");
+        sb.AppendLine("    public static async ValueTask<int> DispatchAsync(");
+        sb.AppendLine("        DataFormat inputFormat,");
+        sb.AppendLine("        DataFormat outputFormat,");
+        sb.AppendLine("        Arguments args,");
+        sb.AppendLine("        TableSchema inputSchema,");
+        sb.AppendLine("        BatchOutputSchema outputSchema,");
+        sb.AppendLine("        CancellationToken ct)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        return (inputFormat, outputFormat) switch");
+        sb.AppendLine("        {");
+
+        foreach (var reader in readers.Where(r => r.IsReader))
+        {
+            foreach (var writer in writers.Where(w => !w.IsReader))
+            {
+                sb.AppendLine(
+                    $"            (DataFormat.{reader.FormatName}, DataFormat.{writer.FormatName}) =>"
+                );
+                sb.AppendLine(
+                    $"                await Run{reader.FormatName}To{writer.FormatName}Async(args, inputSchema, outputSchema, ct),"
+                );
+            }
+        }
+
+        sb.AppendLine(
+            "            _ => throw new NotSupportedException($\"Unsupported format combination: {inputFormat} -> {outputFormat}\")"
+        );
+        sb.AppendLine("        };");
+        sb.AppendLine("    }");
+
+        foreach (var reader in readers.Where(r => r.IsReader))
+        {
+            foreach (var writer in writers.Where(w => !w.IsReader))
+            {
+                sb.AppendLine();
+                sb.AppendLine(
+                    $"    private static async ValueTask<int> Run{reader.FormatName}To{writer.FormatName}Async("
+                );
+                sb.AppendLine("        Arguments args,");
+                sb.AppendLine("        TableSchema inputSchema,");
+                sb.AppendLine("        BatchOutputSchema outputSchema,");
+                sb.AppendLine("        CancellationToken ct)");
+                sb.AppendLine("    {");
+
+                sb.AppendLine($"        var readerFactory = new {reader.FactoryTypeName}();");
+                sb.AppendLine(
+                    $"        using var reader = await readerFactory.CreateAsync(args, inputSchema, outputSchema, ct).ConfigureAwait(false);"
+                );
+
+                sb.AppendLine($"        var writerFactory = new {writer.FactoryTypeName}();");
+                sb.AppendLine(
+                    $"        await using var writer = await writerFactory.CreateAsync(args, outputSchema, ct).ConfigureAwait(false);"
+                );
+
+                sb.AppendLine(
+                    $"        return await RecordProcessor.ProcessAsync<{reader.CreatedTypeName}, {writer.CreatedTypeName}>(reader, writer, outputSchema.Columns.Count, ct).ConfigureAwait(false);"
+                );
+                sb.AppendLine("    }");
+            }
+        }
+
+        sb.AppendLine("}");
+
+        context.AddSource(
+            "FormatDispatcher.g.cs",
+            SourceText.From(sb.ToString(), Encoding.UTF8)
+        );
+    }
+
+    private sealed record FormatInfo(
+        string FormatName,
+        string FactoryTypeName,
+        string CreatedTypeName,
+        bool IsReader
+    );
+}

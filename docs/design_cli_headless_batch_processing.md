@@ -204,6 +204,9 @@ surface area for the version in use (`0.12.2`) requires knowing the column
 count up-front and is optimized for in-memory round-trips. Manual escaping
 keeps the dependency surface minimal and the output predictable.
 
+**Static Polymorphism (Generics with struct constraints) for the pipeline:** 
+The transformation pipeline follows a generic structure: `Process<TReader, TWriter>(ref TReader reader, ref TWriter writer)`. By using `struct` constraints (`where T : struct`), we ensure the JIT/AOT compiler generates specialized, devirtualized, and inlinable code for every input/output combination (**Monomorphization**). This approach maintains "hand-written" performance and ensures **zero-allocation** by eliminating **boxing** of value types. To avoid the resulting $M \times N$ method branching explosion in hand-written source code, a **Source Generator** (`FormatDispatcherGenerator`) is utilized to automatically generate the dispatch logic.
+
 ### Alternatives Considered
 
 **A — Separate `CsvActionApplier` and `JsonLinesActionApplier`**
@@ -253,10 +256,15 @@ Rejected: The current flag surface is minimal (`--cli`, `--input`, `--recipe`,
 and significant complexity for four flags. This is documented as accepted debt
 for a future CLI expansion.
 
+**D — Use Interfaces (Dynamic Polymorphism) for Readers/Writers**
+Rejected: Virtual method calls in the hot path (millions of rows) prevent inlining and devirtualization. Furthermore, passing `ref struct` types like `ReadOnlySpan<byte>` through interfaces is restrictive and often forces heap allocations (boxing), violating the Zero-Allocation requirement.
+
+**E — Use Source Generators to generate $M \times N$ combinations**
+**Decision: Accepted** — While Static Polymorphism delegates the actual high-performance looping to a generic `Process<T, U>` method, instantiating the correct struct factories and calling that method for every format combination results in rigid, complex, and unmaintainable `if/else` or `switch` boilerplate in the main `Runner`. By employing a Roslyn Source Generator (`FormatDispatcherGenerator`), the app discovers implementations marked with `[RecordReader]` and `[RecordWriter]` attributes and automatically emits the complete $M \times N$ dispatch matrix at compile time. This hides the branching complexity entirely and drastically simplifies the orchestration code, providing the best of both worlds: zero-allocation execution and elegant, unpolluted application logic.
+
 ### Consequences
 
-- Adding more output formats (Parquet, TSV) requires only a new write method
-  in `Runner`; `ActionApplier` and `ArgumentParser` are unchanged.
+- Adding more output formats (Parquet, TSV) requires only implementing a new `struct` reader/writer factory and attaching the appropriate attribute; the generic `Runner` or `Processor` logic remains unchanged, and the Source Generator automatically wire-ups the new dispatch paths.
 - Cross-format conversion (CSV → JSON Lines and vice versa) works out of the
   box at no extra cost.
 - JSON Lines batch processing performs two full file scans (index + read).
@@ -265,3 +273,4 @@ for a future CLI expansion.
   is the natural next step.
 - `ActionApplier.BuildOutputSchema` is pure and stateless, making it
   straightforward to unit-test in isolation from the file system.
+- Performance is maximized through Monomorphization and Inlining by the compiler, despite the high-level abstraction.

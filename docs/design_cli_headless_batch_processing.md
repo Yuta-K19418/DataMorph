@@ -90,6 +90,15 @@ BatchOutputSchema
 (not indices) so it is format-agnostic — CSV writers resolve the index from
 the name; JSON Lines writers use the name directly as a JSON key.
 
+**Note on FilterSpec and column indices:**
+The `FilterSpec` type is reused from the existing filtering infrastructure and
+contains `SourceColumnIndex` (an `int`). For batch processing, this index always
+refers to the column index in the original input schema (before any actions are applied).
+The `ActionApplier` resolves column names to their original source indices when
+building `FilterSpec`s, and filter evaluation uses these indices to extract values
+from input rows. This design allows reuse of the existing `FilterSpec` type without
+modification.
+
 The applier iterates through the action stack in order, maintaining a mutable
 "working column list" (initialized from the input schema) and a filter list:
 

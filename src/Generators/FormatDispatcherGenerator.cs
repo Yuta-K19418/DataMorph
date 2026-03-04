@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,17 +11,19 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var readerDeclarations = context.SyntaxProvider
-            .CreateSyntaxProvider(
+        var readerDeclarations = context
+            .SyntaxProvider.CreateSyntaxProvider(
                 predicate: static (s, _) => HasAttributes(s),
-                transform: static (ctx, _) => GetFormatAndType(ctx))
+                transform: static (ctx, _) => GetFormatAndType(ctx)
+            )
             .Collect()
             .Select(static (array, _) => FormatDispatcherGenerator.FilterNulls(array));
 
-        var writerDeclarations = context.SyntaxProvider
-            .CreateSyntaxProvider(
+        var writerDeclarations = context
+            .SyntaxProvider.CreateSyntaxProvider(
                 predicate: static (s, _) => HasAttributes(s),
-                transform: static (ctx, _) => GetFormatAndType(ctx))
+                transform: static (ctx, _) => GetFormatAndType(ctx)
+            )
             .Collect()
             .Select(static (array, _) => FormatDispatcherGenerator.FilterNulls(array));
 
@@ -35,7 +38,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         );
     }
 
-    private static List<FormatInfo> FilterNulls(global::System.Collections.Immutable.ImmutableArray<FormatInfo?> array)
+    private static List<FormatInfo> FilterNulls(ImmutableArray<FormatInfo?> array)
     {
         List<FormatInfo> result = [];
         foreach (var item in array)
@@ -80,7 +83,8 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         GeneratorSyntaxContext context,
         TypeDeclarationSyntax typeDecl,
         AttributeSyntax attribute,
-        out FormatInfo? formatInfo)
+        out FormatInfo? formatInfo
+    )
     {
         formatInfo = null;
         var name = attribute.Name.ToString();
@@ -89,9 +93,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
             return false;
         }
 
-        var arg = attribute
-            .ArgumentList?.Arguments.FirstOrDefault()
-            ?.Expression.ToString();
+        var arg = attribute.ArgumentList?.Arguments.FirstOrDefault()?.Expression.ToString();
 
         if (arg is not null)
         {
@@ -103,8 +105,9 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
 
             var createdType = ExtractCreatedType(typeDecl);
 
-            var declaredSymbol = context.SemanticModel.GetDeclaredSymbol(typeDecl) as INamedTypeSymbol;
-            var typeName = declaredSymbol?.Name;
+            var declaredSymbol =
+                context.SemanticModel.GetDeclaredSymbol(typeDecl) as INamedTypeSymbol;
+            var typeName = declaredSymbol?.Name ?? string.Empty;
             var isReader = name.Contains("RecordReader");
 
             if (!string.IsNullOrEmpty(typeName) && !string.IsNullOrEmpty(createdType))
@@ -126,7 +129,10 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         foreach (var baseType in typeDecl.BaseList.Types)
         {
             var baseStr = baseType.Type.ToString();
-            if (!baseStr.Contains("IRecordReaderFactory<") && !baseStr.Contains("IRecordWriterFactory<"))
+            if (
+                !baseStr.Contains("IRecordReaderFactory<")
+                && !baseStr.Contains("IRecordWriterFactory<")
+            )
             {
                 continue;
             }
@@ -143,8 +149,8 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
     }
 
     private static void Execute(
-        List<FormatInfo> readers,
-        List<FormatInfo> writers,
+        IReadOnlyList<FormatInfo> readers,
+        IReadOnlyList<FormatInfo> writers,
         SourceProductionContext context
     )
     {
@@ -230,10 +236,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
 
         sb.AppendLine("}");
 
-        context.AddSource(
-            "FormatDispatcher.g.cs",
-            SourceText.From(sb.ToString(), Encoding.UTF8)
-        );
+        context.AddSource("FormatDispatcher.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
     private sealed record FormatInfo(

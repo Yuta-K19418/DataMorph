@@ -381,6 +381,60 @@ public sealed class FilterEvaluatorTests
         result.Should().BeFalse();
     }
 
+    [Fact]
+    public void EvaluateFilter_GreaterThan_WholeNumber_WhitespaceValue_ReturnsFalse()
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.WholeNumber,
+            Operator: FilterOperator.GreaterThan,
+            Value: "20"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter(" 15 ".AsSpan(), spec);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void EvaluateFilter_GreaterThan_WholeNumber_NegativeValues_WorksCorrectly()
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.WholeNumber,
+            Operator: FilterOperator.GreaterThan,
+            Value: "-10"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter("-5".AsSpan(), spec);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EvaluateFilter_GreaterThan_WholeNumber_ZeroBoundary_WorksCorrectly()
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.WholeNumber,
+            Operator: FilterOperator.GreaterThan,
+            Value: "0"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter("0".AsSpan(), spec);
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
     // -------------------------------------------------------------------------
     // Numeric operators — FloatingPoint (boundary: threshold = 2.0)
     // -------------------------------------------------------------------------
@@ -471,6 +525,42 @@ public sealed class FilterEvaluatorTests
 
         // Assert
         result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void EvaluateFilter_GreaterThan_FloatingPoint_NegativeValues_WorksCorrectly()
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.FloatingPoint,
+            Operator: FilterOperator.GreaterThan,
+            Value: "-10.5"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter("-5.3".AsSpan(), spec);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void EvaluateFilter_GreaterThan_FloatingPoint_ScientificNotation_WorksCorrectly()
+    {
+        // Arrange
+        var spec = new FilterSpec(
+            SourceColumnIndex: 0,
+            ColumnType: ColumnType.FloatingPoint,
+            Operator: FilterOperator.GreaterThan,
+            Value: "1.5"
+        );
+
+        // Act
+        var result = FilterEvaluator.EvaluateFilter("2.5e2".AsSpan(), spec);
+
+        // Assert
+        result.Should().BeTrue();
     }
 
     // -------------------------------------------------------------------------

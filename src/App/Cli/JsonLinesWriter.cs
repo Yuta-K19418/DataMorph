@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using DataMorph.Engine;
+using DataMorph.Engine.Filtering;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using nietras.SeparatedValues;
@@ -50,7 +51,7 @@ internal static class JsonLinesWriter
                 ct.ThrowIfCancellationRequested();
 
                 var record = reader.Current;
-                if (!FilterEvaluator.EvaluateCsvFilters(record, outputSchema.Filters))
+                if (!FilterEvaluator.EvaluateCsvFilters(record, (IReadOnlyList<FilterSpec>)outputSchema.Filters))
                 {
                     continue;
                 }
@@ -133,7 +134,7 @@ internal static class JsonLinesWriter
                         continue;
                     }
 
-                    if (!FilterEvaluator.EvaluateJsonFilters(lineBytes, outputSchema.Filters, filterIndexToNameBytes))
+                    if (!FilterEvaluator.EvaluateJsonFilters(lineBytes, (IReadOnlyList<FilterSpec>)outputSchema.Filters, filterIndexToNameBytes))
                     {
                         continue;
                     }

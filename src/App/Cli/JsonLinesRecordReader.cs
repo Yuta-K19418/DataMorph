@@ -1,5 +1,6 @@
 using System.Text;
 using DataMorph.Engine;
+using DataMorph.Engine.Filtering;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 
@@ -70,7 +71,7 @@ internal struct JsonLinesRecordReader : IRecordReader, IDisposable
 
     public readonly bool EvaluateFilters()
     {
-        return FilterEvaluator.EvaluateJsonFilters(_currentLineBytes, _filters, _filterIndexToNameBytes);
+        return FilterEvaluator.EvaluateJsonFilters(_currentLineBytes, (IReadOnlyList<FilterSpec>)_filters, _filterIndexToNameBytes);
     }
 
     public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)

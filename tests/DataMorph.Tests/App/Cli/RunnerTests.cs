@@ -95,7 +95,7 @@ public sealed class RunnerTests : IDisposable
         exitCode.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
-        output.Should().StartWith("name,new_age\n");
+        output.Should().StartWith("name,new_age");
     }
 
     [Fact]

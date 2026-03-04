@@ -8,7 +8,7 @@ namespace DataMorph.App.Cli;
 /// Required flags: <c>--cli</c>, <c>--input</c>, <c>--recipe</c>, <c>--output</c>.
 /// Unknown flags are rejected.
 /// </summary>
-internal static class ArgumentParser
+internal static partial class ArgumentParser
 {
     private const string InputFlag = "--input";
     private const string RecipeFlag = "--recipe";
@@ -106,12 +106,5 @@ internal static class ArgumentParser
             RecipeFile = result.RecipeFile,
             OutputFile = result.OutputFile,
         });
-    }
-
-    private sealed class ArgumentsParseResult
-    {
-        public string? InputFile { get; set; }
-        public string? RecipeFile { get; set; }
-        public string? OutputFile { get; set; }
     }
 }

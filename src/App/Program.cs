@@ -10,6 +10,8 @@ if (args.Contains("--cli"))
         return 1;
     }
 
+    var logger = new ConsoleAppLogger();
+
     using var cts = new CancellationTokenSource();
     Console.CancelKeyPress += (_, e) =>
     {
@@ -17,7 +19,7 @@ if (args.Contains("--cli"))
         cts.Cancel();
     };
 
-    return await Runner.RunAsync(parseResult.Value, cts.Token);
+    return await Runner.RunAsync(parseResult.Value, logger, cts.Token);
 }
 
 var result = TuiApplication.Create();

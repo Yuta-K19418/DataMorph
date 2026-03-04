@@ -168,6 +168,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         sb.AppendLine("using DataMorph.Engine;");
         sb.AppendLine("using DataMorph.Engine.Models;");
         sb.AppendLine("using DataMorph.Engine.Types;");
+        sb.AppendLine("using DataMorph.App.Cli;");
         sb.AppendLine();
         sb.AppendLine("namespace DataMorph.App.Cli.Generated;");
         sb.AppendLine();
@@ -179,6 +180,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         sb.AppendLine("        Arguments args,");
         sb.AppendLine("        TableSchema inputSchema,");
         sb.AppendLine("        BatchOutputSchema outputSchema,");
+        sb.AppendLine("        IAppLogger logger,");
         sb.AppendLine("        CancellationToken ct)");
         sb.AppendLine("    {");
         sb.AppendLine("        return (inputFormat, outputFormat) switch");
@@ -192,7 +194,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
                     $"            (DataFormat.{reader.FormatName}, DataFormat.{writer.FormatName}) =>"
                 );
                 sb.AppendLine(
-                    $"                await Run{reader.FormatName}To{writer.FormatName}Async(args, inputSchema, outputSchema, ct),"
+                    $"                await Run{reader.FormatName}To{writer.FormatName}Async(args, inputSchema, outputSchema, logger, ct),"
                 );
             }
         }
@@ -214,17 +216,18 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
                 sb.AppendLine("        Arguments args,");
                 sb.AppendLine("        TableSchema inputSchema,");
                 sb.AppendLine("        BatchOutputSchema outputSchema,");
+                sb.AppendLine("        IAppLogger logger,");
                 sb.AppendLine("        CancellationToken ct)");
                 sb.AppendLine("    {");
 
                 sb.AppendLine($"        var readerFactory = new {reader.FactoryTypeName}();");
                 sb.AppendLine(
-                    $"        using var reader = await readerFactory.CreateAsync(args, inputSchema, outputSchema, ct).ConfigureAwait(false);"
+                    $"        using var reader = await readerFactory.CreateAsync(args, inputSchema, outputSchema, logger, ct).ConfigureAwait(false);"
                 );
 
                 sb.AppendLine($"        var writerFactory = new {writer.FactoryTypeName}();");
                 sb.AppendLine(
-                    $"        await using var writer = await writerFactory.CreateAsync(args, outputSchema, ct).ConfigureAwait(false);"
+                    $"        await using var writer = await writerFactory.CreateAsync(args, outputSchema, logger, ct).ConfigureAwait(false);"
                 );
 
                 sb.AppendLine(

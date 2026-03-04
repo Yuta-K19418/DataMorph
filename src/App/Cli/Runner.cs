@@ -17,9 +17,10 @@ internal static class Runner
     /// Runs the CLI headless batch processing pipeline.
     /// </summary>
     /// <param name="args">The validated CLI arguments.</param>
+    /// <param name="logger">The app logger for logging messages.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Exit code: <c>0</c> on success, <c>1</c> on any failure.</returns>
-    public static async ValueTask<int> RunAsync(Arguments args, CancellationToken ct = default)
+    public static async ValueTask<int> RunAsync(Arguments args, IAppLogger logger, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -29,7 +30,7 @@ internal static class Runner
             var recipeResult = await new RecipeManager().LoadAsync(args.RecipeFile, ct).ConfigureAwait(false);
             if (recipeResult.IsFailure)
             {
-                await Console.Error.WriteLineAsync($"Error loading recipe: {recipeResult.Error}");
+                await logger.WriteErrorAsync($"Error loading recipe: {recipeResult.Error}");
                 return 1;
             }
 
@@ -39,14 +40,14 @@ internal static class Runner
             var inputFormat = DetectFileFormat(args.InputFile);
             if (inputFormat == DataFormat.JsonArray || inputFormat == DataFormat.JsonObject)
             {
-                await Console.Error.WriteLineAsync($"Unsupported input format: {inputFormat}");
+                await logger.WriteErrorAsync($"Unsupported input format: {inputFormat}");
                 return 1;
             }
 
             var outputFormat = DetectFileFormat(args.OutputFile);
             if (outputFormat == DataFormat.JsonArray || outputFormat == DataFormat.JsonObject)
             {
-                await Console.Error.WriteLineAsync($"Unsupported output format: {outputFormat}");
+                await logger.WriteErrorAsync($"Unsupported output format: {outputFormat}");
                 return 1;
             }
 
@@ -58,18 +59,18 @@ internal static class Runner
 
             // Dispatch to generated static monomorphization logic
             return await Generated.FormatDispatcher.DispatchAsync(
-                inputFormat, outputFormat, args, inputSchema, outputSchema, ct).ConfigureAwait(false);
+                inputFormat, outputFormat, args, inputSchema, outputSchema, logger, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
-            await Console.Error.WriteLineAsync("Operation cancelled");
+            await logger.WriteErrorAsync("Operation cancelled");
             return 1;
         }
 #pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
 #pragma warning restore CA1031 // Do not catch general exception types
         {
-            await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+            await logger.WriteErrorAsync($"Error: {ex.Message}");
             return 1;
         }
     }

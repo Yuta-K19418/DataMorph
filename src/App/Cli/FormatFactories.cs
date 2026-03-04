@@ -10,7 +10,7 @@ namespace DataMorph.App.Cli;
 [RecordReader(DataFormat.Csv)]
 internal readonly struct CsvRecordReaderFactory : IRecordReaderFactory<CsvRecordReader>
 {
-    public async ValueTask<CsvRecordReader> CreateAsync(Arguments args, TableSchema inputSchema, BatchOutputSchema outputSchema, CancellationToken ct)
+    public async ValueTask<CsvRecordReader> CreateAsync(Arguments args, TableSchema inputSchema, BatchOutputSchema outputSchema, IAppLogger logger, CancellationToken ct)
     {
         var sepReader = await Sep.New(',').Reader().FromFileAsync(args.InputFile, ct).ConfigureAwait(false);
         return new CsvRecordReader(sepReader, outputSchema);
@@ -20,7 +20,7 @@ internal readonly struct CsvRecordReaderFactory : IRecordReaderFactory<CsvRecord
 [RecordWriter(DataFormat.Csv)]
 internal readonly struct CsvRecordWriterFactory : IRecordWriterFactory<CsvRecordWriter>
 {
-    public ValueTask<CsvRecordWriter> CreateAsync(Arguments args, BatchOutputSchema outputSchema, CancellationToken ct)
+    public ValueTask<CsvRecordWriter> CreateAsync(Arguments args, BatchOutputSchema outputSchema, IAppLogger logger, CancellationToken ct)
     {
         var writer = new StreamWriter(args.OutputFile, append: false, Encoding.UTF8);
         return new ValueTask<CsvRecordWriter>(new CsvRecordWriter(writer, outputSchema));
@@ -30,7 +30,7 @@ internal readonly struct CsvRecordWriterFactory : IRecordWriterFactory<CsvRecord
 [RecordReader(DataFormat.JsonLines)]
 internal readonly struct JsonLinesRecordReaderFactory : IRecordReaderFactory<JsonLinesRecordReader>
 {
-    public ValueTask<JsonLinesRecordReader> CreateAsync(Arguments args, TableSchema inputSchema, BatchOutputSchema outputSchema, CancellationToken ct)
+    public ValueTask<JsonLinesRecordReader> CreateAsync(Arguments args, TableSchema inputSchema, BatchOutputSchema outputSchema, IAppLogger logger, CancellationToken ct)
     {
         var rowIndexer = new Engine.IO.JsonLines.RowIndexer(args.InputFile);
         rowIndexer.BuildIndex();
@@ -42,7 +42,7 @@ internal readonly struct JsonLinesRecordReaderFactory : IRecordReaderFactory<Jso
 [RecordWriter(DataFormat.JsonLines)]
 internal readonly struct JsonLinesRecordWriterFactory : IRecordWriterFactory<JsonLinesRecordWriter>
 {
-    public ValueTask<JsonLinesRecordWriter> CreateAsync(Arguments args, BatchOutputSchema outputSchema, CancellationToken ct)
+    public ValueTask<JsonLinesRecordWriter> CreateAsync(Arguments args, BatchOutputSchema outputSchema, IAppLogger logger, CancellationToken ct)
     {
         var writer = new StreamWriter(args.OutputFile, append: false, Encoding.UTF8);
         var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(8192);

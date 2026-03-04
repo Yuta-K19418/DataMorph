@@ -49,9 +49,10 @@ public sealed class RunnerTests : IDisposable
     {
         // Arrange
         Arguments? args = null;
+        var logger = new TestAppLogger();
 
         // Act
-        var act = async () => await Runner.RunAsync(args!);
+        var act = async () => await Runner.RunAsync(args!, logger);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentNullException>();
@@ -65,12 +66,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("name,age");
@@ -87,12 +90,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", TestRecipeYaml);
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().StartWith("name,new_age");
@@ -106,12 +111,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Delete age\nactions:\n  - type: delete\n    columnName: age");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("name");
@@ -126,12 +133,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Filter age\nactions:\n  - type: filter\n    columnName: age\n    operator: greaterThan\n    value: 30");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("name");
@@ -148,12 +157,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.jsonl");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("Alice");
@@ -169,12 +180,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", TestRecipeYaml);
         var outputFile = Path.Combine(_testDir, "output.jsonl");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("\"new_age\"");
@@ -189,12 +202,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Delete age\nactions:\n  - type: delete\n    columnName: age");
         var outputFile = Path.Combine(_testDir, "output.jsonl");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("\"name\"");
@@ -209,12 +224,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Filter age\nactions:\n  - type: filter\n    columnName: age\n    operator: greaterThan\n    value: 30");
         var outputFile = Path.Combine(_testDir, "output.jsonl");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("Charlie");
@@ -230,12 +247,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.jsonl");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("\"name\"");
@@ -251,12 +270,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().Contain("name,age");
@@ -271,12 +292,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(1);
+        logger.Errors.Should().ContainSingle().Which.Should().StartWith("Error: Could not find file");
         File.Exists(outputFile).Should().BeFalse();
     }
 
@@ -288,12 +311,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = Path.Combine(_testDir, "nonexistent.yaml");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(1);
+        logger.Errors.Should().ContainSingle().Which.Should().StartWith("Error loading recipe: File not found:");
         File.Exists(outputFile).Should().BeFalse();
     }
 
@@ -305,12 +330,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(1);
+        logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported input format: JsonArray");
         File.Exists(outputFile).Should().BeFalse();
     }
 
@@ -322,12 +349,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.json");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(1);
+        logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported output format: JsonArray");
         File.Exists(outputFile).Should().BeFalse();
     }
 
@@ -339,14 +368,16 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
         using var cts = new CancellationTokenSource();
         await cts.CancelAsync();
 
         // Act
-        var exitCode = await Runner.RunAsync(args, cts.Token);
+        var exitCode = await Runner.RunAsync(args, logger, cts.Token);
 
         // Assert
         exitCode.Should().Be(1);
+        logger.Errors.Should().ContainSingle().Which.Should().Be("Operation cancelled");
         File.Exists(outputFile).Should().BeFalse();
     }
 
@@ -358,12 +389,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "invalid: yaml: content");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(1);
+        logger.Errors.Should().ContainSingle().Which.Should().StartWith("Error loading recipe: Unknown root-level key:");
         File.Exists(outputFile).Should().BeFalse();
     }
 
@@ -375,12 +408,14 @@ public sealed class RunnerTests : IDisposable
         var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
         var outputFile = Path.Combine(_testDir, "output.csv");
         var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
 
         // Act
-        var exitCode = await Runner.RunAsync(args);
+        var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
         exitCode.Should().Be(0);
+        logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
         output.Should().StartWith("name,age");

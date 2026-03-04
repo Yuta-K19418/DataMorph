@@ -20,6 +20,7 @@ internal static class JsonLinesWriter
     internal static async ValueTask<int> WriteJsonLinesFromCsvAsync(
         Arguments args,
         BatchOutputSchema outputSchema,
+        IAppLogger logger,
         CancellationToken ct
     )
     {
@@ -28,7 +29,7 @@ internal static class JsonLinesWriter
         var header = reader.Header;
         if (header.ColNames.Count == 0)
         {
-            await Console.Error.WriteLineAsync("Input file has no columns");
+            await logger.WriteErrorAsync("Input file has no columns");
             return 1;
         }
 

@@ -17,6 +17,7 @@ internal static class CsvWriter
     internal static async ValueTask<int> WriteCsvFromCsvAsync(
         Arguments args,
         BatchOutputSchema outputSchema,
+        IAppLogger logger,
         CancellationToken ct
     )
     {
@@ -25,7 +26,7 @@ internal static class CsvWriter
         var header = reader.Header;
         if (header.ColNames.Count == 0)
         {
-            await Console.Error.WriteLineAsync("Input file has no columns");
+            await logger.WriteErrorAsync("Input file has no columns");
             return 1;
         }
 

@@ -169,7 +169,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("internal static class FormatDispatcher");
         sb.AppendLine("{");
-        sb.AppendLine("    public static async ValueTask<int> DispatchAsync(");
+        sb.AppendLine("    public static async ValueTask<ExitCode> DispatchAsync(");
         sb.AppendLine("        DataFormat inputFormat,");
         sb.AppendLine("        DataFormat outputFormat,");
         sb.AppendLine("        Arguments args,");
@@ -206,7 +206,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
             {
                 sb.AppendLine();
                 sb.AppendLine(
-                    $"    private static async ValueTask<int> Run{reader.FormatName}To{writer.FormatName}Async("
+                    $"    private static async ValueTask<ExitCode> Run{reader.FormatName}To{writer.FormatName}Async("
                 );
                 sb.AppendLine("        Arguments args,");
                 sb.AppendLine("        TableSchema inputSchema,");

@@ -2,7 +2,7 @@ namespace DataMorph.App.Cli;
 
 internal static class RecordProcessor
 {
-    public static async ValueTask<int> ProcessAsync<TReader, TWriter>(
+    public static async ValueTask<ExitCode> ProcessAsync<TReader, TWriter>(
         TReader reader,
         TWriter writer,
         int outputColumnCount,
@@ -33,6 +33,6 @@ internal static class RecordProcessor
         }
 
         await writer.FlushAsync(ct).ConfigureAwait(false);
-        return 0;
+        return ExitCode.Success;
     }
 }

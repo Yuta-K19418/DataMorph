@@ -7,7 +7,7 @@ if (args.Contains("--cli"))
     if (parseResult.IsFailure)
     {
         await Console.Error.WriteLineAsync(parseResult.Error);
-        return 1;
+        return (int)ExitCode.Failure;
     }
 
     var logger = new ConsoleAppLogger();
@@ -19,7 +19,7 @@ if (args.Contains("--cli"))
         cts.Cancel();
     };
 
-    return await Runner.RunAsync(parseResult.Value, logger, cts.Token);
+    return (int)await Runner.RunAsync(parseResult.Value, logger, cts.Token);
 }
 
 var result = TuiApplication.Create();
@@ -28,4 +28,4 @@ using var mainWindow = result.mainWindow;
 
 app.Init();
 app.Run(mainWindow);
-return 0;
+return (int)ExitCode.Success;

@@ -83,6 +83,6 @@ internal struct JsonLinesRecordReader : IRecordReader, IDisposable
 
     public void Dispose()
     {
-        _rowReader?.Dispose();
+        _rowReader.Dispose();
     }
 }

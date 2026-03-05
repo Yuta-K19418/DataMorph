@@ -6,9 +6,10 @@ namespace DataMorph.App.Cli;
 
 internal struct CsvRecordReader : IRecordReader, IDisposable
 {
-    private readonly SepReader _reader;
     private readonly int[] _outputToSourceIndexMap;
     private readonly IReadOnlyList<FilterSpec> _filters;
+    private SepReader? _reader;
+    private bool _disposed;
 
     public CsvRecordReader(SepReader reader, BatchOutputSchema outputSchema)
     {
@@ -29,20 +30,42 @@ internal struct CsvRecordReader : IRecordReader, IDisposable
         }
 
         _filters = outputSchema.Filters;
+        _disposed = false;
     }
 
     public ValueTask<bool> MoveNextAsync(CancellationToken ct)
     {
+        ThrowIfDisposed();
+        if (_reader is null)
+        {
+            return new ValueTask<bool>(false);
+        }
         return _reader.MoveNextAsync(ct);
+    }
+
+    public readonly void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
     }
 
     public readonly bool EvaluateFilters()
     {
+        ThrowIfDisposed();
+        if (_reader is null)
+        {
+            return false;
+        }
         return FilterEvaluator.EvaluateCsvFilters(_reader.Current, _filters);
     }
 
     public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
     {
+        ThrowIfDisposed();
+        if (_reader is null)
+        {
+            return [];
+        }
+
         var sourceIndex = _outputToSourceIndexMap[outputColumnIndex];
         if (sourceIndex >= 0 && sourceIndex < _reader.Current.ColCount)
         {
@@ -53,6 +76,13 @@ internal struct CsvRecordReader : IRecordReader, IDisposable
 
     public void Dispose()
     {
-        _reader.Dispose();
+        if (_disposed)
+        {
+            return;
+        }
+
+        _reader?.Dispose();
+        _reader = null;
+        _disposed = true;
     }
 }

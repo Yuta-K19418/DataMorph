@@ -41,10 +41,29 @@ public sealed class IncrementalSchemaScannerTests : IDisposable
     }
 
     [Fact]
-    public async Task InitialScanAsync_WithEmptyFile_ThrowsInvalidOperationException()
+    public async Task InitialScanAsync_WithHeaderOnlyFile_ReturnsDefaultSchema()
     {
         // Arrange
         var csvContent = "Id,Name,Age\n";
+        await File.WriteAllTextAsync(_tempFilePath, csvContent);
+        var scanner = new IncrementalSchemaScanner(_tempFilePath);
+
+        // Act
+        var schema = await scanner.InitialScanAsync();
+
+        // Assert
+        schema.Should().NotBeNull();
+        schema.ColumnCount.Should().Be(3);
+        schema.Columns[0].Name.Should().Be("Id");
+        schema.Columns[0].Type.Should().Be(ColumnType.Text);
+        schema.Columns[0].IsNullable.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task InitialScanAsync_WithEmptyFile_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var csvContent = "";
         await File.WriteAllTextAsync(_tempFilePath, csvContent);
         var scanner = new IncrementalSchemaScanner(_tempFilePath);
 
@@ -151,9 +170,8 @@ public sealed class IncrementalSchemaScannerTests : IDisposable
         cts.Cancel();
 
         // Assert
-        // Background task should be cancelled or completed due to disposal
-        // Wait a short time for cancellation to propagate
-        await Task.Delay(100);
-        (backgroundTask.IsCompleted || backgroundTask.IsCanceled || backgroundTask.IsFaulted).Should().BeTrue();
+        // Wait deterministically for the cancellation to propagate (up to 5 seconds)
+        await Task.WhenAny(backgroundTask, Task.Delay(TimeSpan.FromSeconds(5)));
+        backgroundTask.IsCompleted.Should().BeTrue();
     }
 }

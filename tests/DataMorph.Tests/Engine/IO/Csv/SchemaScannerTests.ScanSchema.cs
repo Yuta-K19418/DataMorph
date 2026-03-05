@@ -389,6 +389,63 @@ public sealed partial class SchemaScannerTests
     }
 
     [Fact]
+    public void ScanSchema_WithEmptyRowCollection_ReturnsTextNullableSchemaFromColumnNamesOnly()
+    {
+        // Arrange — no rows at all; schema inferred from column names only
+        var columnNames = new[] { "id", "name", "score" };
+        IReadOnlyList<ReadOnlyMemory<char>[]> rows = [];
+
+        // Act
+        var result = SchemaScanner.ScanSchema(columnNames, rows);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.ColumnCount.Should().Be(3);
+        result.Value.Columns[0].Name.Should().Be("id");
+        result.Value.Columns[0].Type.Should().Be(ColumnType.Text);
+        result.Value.Columns[0].IsNullable.Should().BeTrue();
+        result.Value.Columns[1].Name.Should().Be("name");
+        result.Value.Columns[1].IsNullable.Should().BeTrue();
+        result.Value.Columns[2].Name.Should().Be("score");
+        result.Value.Columns[2].IsNullable.Should().BeTrue();
+        result.Value.SourceFormat.Should().Be(DataFormat.Csv);
+    }
+
+    [Fact]
+    public void ScanSchema_WithEmptyRowCollection_AndBlankColumnNames_GeneratesColumnNames()
+    {
+        // Arrange — blank column names in the header-only path should be auto-generated
+        var columnNames = new[] { "", "  ", "real_name" };
+        IReadOnlyList<ReadOnlyMemory<char>[]> rows = [];
+
+        // Act
+        var result = SchemaScanner.ScanSchema(columnNames, rows);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Columns[0].Name.Should().Be("Column1");
+        result.Value.Columns[1].Name.Should().Be("Column2");
+        result.Value.Columns[2].Name.Should().Be("real_name");
+    }
+
+    [Fact]
+    public void ScanSchema_WithZeroInitialScanCount_ProcessesFirstRowOnly()
+    {
+        // Arrange — second row conflicts the type to Text; with scanCount=0 the loop does not run
+        var columnNames = new[] { "value" };
+        var row1 = new[] { "42".AsMemory() };
+        var row2 = new[] { "not-a-number".AsMemory() };
+        IReadOnlyList<ReadOnlyMemory<char>[]> rows = [row1, row2];
+
+        // Act
+        var result = SchemaScanner.ScanSchema(columnNames, rows, initialScanCount: 0);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Columns[0].Type.Should().Be(ColumnType.WholeNumber);
+    }
+
+    [Fact]
     public void ScanSchema_WithNegativeInitialScanCount_ThrowsException()
     {
         // Arrange

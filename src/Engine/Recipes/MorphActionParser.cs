@@ -97,7 +97,7 @@ internal sealed class MorphActionParser
             return Results.Failure<MorphAction>("Missing required field 'value' for filter action");
         }
 
-        if (!Enum.TryParse<FilterOperator>(operatorStr, ignoreCase: false, out var filterOperator))
+        if (!Enum.TryParse<FilterOperator>(operatorStr, ignoreCase: true, out var filterOperator))
         {
             return Results.Failure<MorphAction>($"Invalid enum value for operator: '{operatorStr}'");
         }

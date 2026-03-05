@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Engine\DataMorph.Engine.csproj" />
+    <ProjectReference Include="..\Generators\DataMorph.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

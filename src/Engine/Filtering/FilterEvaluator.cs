@@ -10,7 +10,7 @@ namespace DataMorph.Engine.Filtering;
 /// All methods accept <see cref="ReadOnlySpan{T}"/> to avoid heap allocations on the
 /// hot path (invoked once per cell per row during index construction).
 /// </summary>
-internal static class FilterEvaluator
+public static class FilterEvaluator
 {
     /// <summary>
     /// Evaluates a single filter condition against a raw cell value represented as a
@@ -20,7 +20,7 @@ internal static class FilterEvaluator
     /// Applying a numeric operator to a <see cref="ColumnType.Text"/> column
     /// falls back to returning <see langword="false"/>.
     /// </summary>
-    internal static bool EvaluateFilter(ReadOnlySpan<char> rawValue, FilterSpec spec)
+    public static bool EvaluateFilter(ReadOnlySpan<char> rawValue, FilterSpec spec)
     {
         var op = spec.Operator;
 

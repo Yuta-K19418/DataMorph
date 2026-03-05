@@ -7,7 +7,7 @@ Implement the Terminal.Gui v2.0 application shell as the foundation for DataMorp
 ## Background
 
 - **Current State**: `src/App/Program.cs` contains only "Hello, World!" placeholder
-- **Existing Infrastructure**: Engine layer has `TableSchema`, `ColumnSchema`, `CsvRowIndexer`, `FormatDetector`
+- **Existing Infrastructure**: Engine layer has `TableSchema`, `ColumnSchema`, `CsvRowIndexer`
 - **Goal**: Create a minimal but complete TUI application shell that can be extended with views in subsequent issues
 
 ## Objectives

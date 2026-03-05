@@ -7,8 +7,3 @@ internal interface IRecordReaderFactory<TReader> where TReader : struct, IRecord
 {
     ValueTask<TReader> CreateAsync(Arguments args, TableSchema inputSchema, BatchOutputSchema outputSchema, IAppLogger logger, CancellationToken ct);
 }
-
-internal interface IRecordWriterFactory<TWriter> where TWriter : struct, IRecordWriter
-{
-    ValueTask<TWriter> CreateAsync(Arguments args, BatchOutputSchema outputSchema, IAppLogger logger, CancellationToken ct);
-}

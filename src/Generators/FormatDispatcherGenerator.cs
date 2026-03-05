@@ -11,7 +11,8 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var readerDeclarations = context
+        // Collect all reader and writer declarations in a single pass
+        var allDeclarations = context
             .SyntaxProvider.CreateSyntaxProvider(
                 predicate: static (s, _) => HasAttributes(s),
                 transform: static (ctx, _) => GetFormatAndType(ctx)
@@ -19,21 +20,12 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
             .Collect()
             .Select(static (array, _) => FormatDispatcherGenerator.FilterNulls(array));
 
-        var writerDeclarations = context
-            .SyntaxProvider.CreateSyntaxProvider(
-                predicate: static (s, _) => HasAttributes(s),
-                transform: static (ctx, _) => GetFormatAndType(ctx)
-            )
-            .Collect()
-            .Select(static (array, _) => FormatDispatcherGenerator.FilterNulls(array));
-
-        var combined = readerDeclarations.Combine(writerDeclarations);
-
+        // Pass the collected list directly
         context.RegisterSourceOutput(
-            combined,
+            allDeclarations,
             static (spc, source) =>
             {
-                Execute(source.Left, source.Right, spc);
+                Execute(source, spc);
             }
         );
     }
@@ -149,11 +141,14 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
     }
 
     private static void Execute(
-        IReadOnlyList<FormatInfo> readers,
-        IReadOnlyList<FormatInfo> writers,
+        IReadOnlyList<FormatInfo> allItems,
         SourceProductionContext context
     )
     {
+        // Extract readers and writers separately
+        var readers = allItems.Where(i => i.IsReader).ToList();
+        var writers = allItems.Where(i => !i.IsReader).ToList();
+
         if (readers.Count == 0 || writers.Count == 0)
         {
             return;
@@ -186,9 +181,9 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         sb.AppendLine("        return (inputFormat, outputFormat) switch");
         sb.AppendLine("        {");
 
-        foreach (var reader in readers.Where(r => r.IsReader))
+        foreach (var reader in readers)
         {
-            foreach (var writer in writers.Where(w => !w.IsReader))
+            foreach (var writer in writers)
             {
                 sb.AppendLine(
                     $"            (DataFormat.{reader.FormatName}, DataFormat.{writer.FormatName}) =>"
@@ -205,9 +200,9 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         sb.AppendLine("        };");
         sb.AppendLine("    }");
 
-        foreach (var reader in readers.Where(r => r.IsReader))
+        foreach (var reader in readers)
         {
-            foreach (var writer in writers.Where(w => !w.IsReader))
+            foreach (var writer in writers)
             {
                 sb.AppendLine();
                 sb.AppendLine(

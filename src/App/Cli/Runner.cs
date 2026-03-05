@@ -19,8 +19,8 @@ internal static class Runner
     /// <param name="args">The validated CLI arguments.</param>
     /// <param name="logger">The app logger for logging messages.</param>
     /// <param name="ct">Cancellation token.</param>
-    /// <returns>Exit code: <c>0</c> on success, <c>1</c> on any failure.</returns>
-    public static async ValueTask<int> RunAsync(Arguments args, IAppLogger logger, CancellationToken ct = default)
+    /// <returns>Exit code: <see cref="ExitCode.Success"/> on success, <see cref="ExitCode.Failure"/> on any failure.</returns>
+    public static async ValueTask<ExitCode> RunAsync(Arguments args, IAppLogger logger, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -31,7 +31,7 @@ internal static class Runner
             if (recipeResult.IsFailure)
             {
                 await logger.WriteErrorAsync($"Error loading recipe: {recipeResult.Error}");
-                return 1;
+                return ExitCode.Failure;
             }
 
             var recipe = recipeResult.Value;
@@ -53,19 +53,19 @@ internal static class Runner
         catch (OperationCanceledException)
         {
             await logger.WriteErrorAsync("Operation cancelled");
-            return 1;
+            return ExitCode.Failure;
         }
         catch (NotSupportedException ex)
         {
             await logger.WriteErrorAsync(ex.Message);
-            return 1;
+            return ExitCode.Failure;
         }
 #pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
 #pragma warning restore CA1031 // Do not catch general exception types
         {
             await logger.WriteErrorAsync($"Error: {ex.Message}");
-            return 1;
+            return ExitCode.Failure;
         }
     }
 

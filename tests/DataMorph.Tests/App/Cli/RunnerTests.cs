@@ -72,7 +72,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -96,7 +96,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -117,7 +117,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -139,7 +139,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -163,7 +163,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -186,7 +186,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -208,7 +208,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -230,7 +230,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -253,7 +253,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -276,7 +276,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);
@@ -298,7 +298,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(1);
+        exitCode.Should().Be(ExitCode.Failure);
         logger.Errors.Should().ContainSingle().Which.Should().StartWith("Error: Could not find file");
         File.Exists(outputFile).Should().BeFalse();
     }
@@ -317,7 +317,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(1);
+        exitCode.Should().Be(ExitCode.Failure);
         logger.Errors.Should().ContainSingle().Which.Should().StartWith("Error loading recipe: File not found:");
         File.Exists(outputFile).Should().BeFalse();
     }
@@ -336,7 +336,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(1);
+        exitCode.Should().Be(ExitCode.Failure);
         logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported format: .JSON (Standard JSON format is not supported for batch processing. Use .jsonl for JSON Lines.)");
         File.Exists(outputFile).Should().BeFalse();
     }
@@ -355,7 +355,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(1);
+        exitCode.Should().Be(ExitCode.Failure);
         logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported format: .JSON (Standard JSON format is not supported for batch processing. Use .jsonl for JSON Lines.)");
         File.Exists(outputFile).Should().BeFalse();
     }
@@ -374,7 +374,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(1);
+        exitCode.Should().Be(ExitCode.Failure);
         logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported file extension: .UNKNOWN");
         File.Exists(outputFile).Should().BeFalse();
     }
@@ -395,7 +395,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger, cts.Token);
 
         // Assert
-        exitCode.Should().Be(1);
+        exitCode.Should().Be(ExitCode.Failure);
         logger.Errors.Should().ContainSingle().Which.Should().Be("Operation cancelled");
         File.Exists(outputFile).Should().BeFalse();
     }
@@ -414,7 +414,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(1);
+        exitCode.Should().Be(ExitCode.Failure);
         logger.Errors.Should().ContainSingle().Which.Should().StartWith("Error loading recipe: Unknown root-level key:");
         File.Exists(outputFile).Should().BeFalse();
     }
@@ -433,7 +433,7 @@ public sealed class RunnerTests : IDisposable
         var exitCode = await Runner.RunAsync(args, logger);
 
         // Assert
-        exitCode.Should().Be(0);
+        exitCode.Should().Be(ExitCode.Success);
         logger.Errors.Count.Should().Be(0);
         File.Exists(outputFile).Should().BeTrue();
         var output = await File.ReadAllTextAsync(outputFile);

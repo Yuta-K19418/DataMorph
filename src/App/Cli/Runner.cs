@@ -36,20 +36,9 @@ internal static class Runner
 
             var recipe = recipeResult.Value;
 
-            // Detect formats
+            // Detect formats (throws NotSupportedException if invalid)
             var inputFormat = DetectFileFormat(args.InputFile);
-            if (inputFormat == DataFormat.JsonArray || inputFormat == DataFormat.JsonObject)
-            {
-                await logger.WriteErrorAsync($"Unsupported input format: {inputFormat}");
-                return 1;
-            }
-
             var outputFormat = DetectFileFormat(args.OutputFile);
-            if (outputFormat == DataFormat.JsonArray || outputFormat == DataFormat.JsonObject)
-            {
-                await logger.WriteErrorAsync($"Unsupported output format: {outputFormat}");
-                return 1;
-            }
 
             // Scan schema
             var inputSchema = await ScanInputSchemaAsync(args.InputFile, inputFormat).ConfigureAwait(false);
@@ -64,6 +53,11 @@ internal static class Runner
         catch (OperationCanceledException)
         {
             await logger.WriteErrorAsync("Operation cancelled");
+            return 1;
+        }
+        catch (NotSupportedException ex)
+        {
+            await logger.WriteErrorAsync(ex.Message);
             return 1;
         }
 #pragma warning disable CA1031 // Do not catch general exception types
@@ -94,8 +88,8 @@ internal static class Runner
             ".CSV" => DataFormat.Csv,
             ".JSONL" => DataFormat.JsonLines,
             // .json is a JSON array/object format, not JSON Lines — unsupported
-            ".JSON" => DataFormat.JsonArray,
-            _ => DataFormat.JsonLines,
+            ".JSON" => throw new NotSupportedException($"Unsupported format: {extension} (Standard JSON format is not supported for batch processing. Use .jsonl for JSON Lines.)"),
+            _ => throw new NotSupportedException($"Unsupported file extension: {extension}"),
         };
     }
 

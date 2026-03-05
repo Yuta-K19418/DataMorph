@@ -337,7 +337,7 @@ public sealed class RunnerTests : IDisposable
 
         // Assert
         exitCode.Should().Be(1);
-        logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported input format: JsonArray");
+        logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported format: .JSON (Standard JSON format is not supported for batch processing. Use .jsonl for JSON Lines.)");
         File.Exists(outputFile).Should().BeFalse();
     }
 
@@ -356,7 +356,26 @@ public sealed class RunnerTests : IDisposable
 
         // Assert
         exitCode.Should().Be(1);
-        logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported output format: JsonArray");
+        logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported format: .JSON (Standard JSON format is not supported for batch processing. Use .jsonl for JSON Lines.)");
+        File.Exists(outputFile).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RunAsync_WithUnknownExtension_ReturnsExitCode1()
+    {
+        // Arrange
+        var inputFile = CreateTestFile("input.unknown", "content");
+        var recipeFile = CreateTestFile("recipe.yaml", "name: Empty\nactions: []");
+        var outputFile = Path.Combine(_testDir, "output.csv");
+        var args = new Arguments { InputFile = inputFile, RecipeFile = recipeFile, OutputFile = outputFile };
+        var logger = new TestAppLogger();
+
+        // Act
+        var exitCode = await Runner.RunAsync(args, logger);
+
+        // Assert
+        exitCode.Should().Be(1);
+        logger.Errors.Should().ContainSingle().Which.Should().Be("Unsupported file extension: .UNKNOWN");
         File.Exists(outputFile).Should().BeFalse();
     }
 

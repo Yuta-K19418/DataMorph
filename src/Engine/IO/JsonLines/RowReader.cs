@@ -49,8 +49,21 @@ public sealed class RowReader : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var result = new List<ReadOnlyMemory<byte>>(linesToRead);
+        List<ReadOnlyMemory<byte>> result = [];
+        result.EnsureCapacity(linesToRead);
         var currentOffset = byteOffset;
+
+        // Skip UTF-8 BOM if present at the beginning of the file
+        if (currentOffset == 0 && _mmap.Length >= 3)
+        {
+            Span<byte> bomHeader = stackalloc byte[3];
+            _mmap.Read(0, bomHeader);
+            if (HasUtf8Bom(bomHeader))
+            {
+                currentOffset = 3;
+            }
+        }
+
         var skipped = 0;
 
         var scanner = new RowScanner();
@@ -127,6 +140,11 @@ public sealed class RowReader : IDisposable
         }
 
         return result;
+    }
+
+    private static bool HasUtf8Bom(ReadOnlySpan<byte> header)
+    {
+        return header.Length >= 3 && header[0] == 0xEF && header[1] == 0xBB && header[2] == 0xBF;
     }
 
     private static ReadOnlySpan<byte> TrimNewline(ReadOnlySpan<byte> span)

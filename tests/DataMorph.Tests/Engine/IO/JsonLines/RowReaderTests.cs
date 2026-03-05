@@ -23,9 +23,9 @@ public sealed class RowReaderTests : IDisposable
         }
     }
 
-    private void WriteTestContent(string content)
+    private void WriteTestContent(string content, Encoding? encoding = null)
     {
-        File.WriteAllText(_testFilePath, content);
+        File.WriteAllText(_testFilePath, content, encoding ?? new UTF8Encoding(false));
     }
 
     [Fact]
@@ -238,5 +238,23 @@ public sealed class RowReaderTests : IDisposable
         lines.Should().ContainSingle();
         var lineString = Encoding.UTF8.GetString(lines[0].Span);
         lineString.Should().Be("{\"valid\":true}");
+    }
+
+    [Fact]
+    public void ReadLineBytes_WhenFileHasBOM_ReturnsCorrectLines()
+    {
+        // Arrange
+        // Write JSONL with BOM
+        var content = "{\"id\":1,\"name\":\"Alice\"}\n";
+        WriteTestContent(content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        // Act
+        using var reader = new RowReader(_testFilePath);
+        var lines = reader.ReadLineBytes(0, 0, 10);
+
+        // Assert
+        lines.Should().ContainSingle();
+        var lineContent = Encoding.UTF8.GetString(lines[0].Span);
+        lineContent.Should().Be("{\"id\":1,\"name\":\"Alice\"}");
     }
 }

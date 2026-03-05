@@ -6,38 +6,27 @@ using DataMorph.Engine.Models;
 
 namespace DataMorph.App.Cli;
 
-internal struct JsonLinesRecordReader : IRecordReader, IDisposable
+internal struct JsonLinesRecordReader(
+    RowIndexer rowIndexer,
+    RowReader rowReader,
+    TableSchema inputSchema,
+    BatchOutputSchema outputSchema) : IRecordReader
 {
-    private readonly RowIndexer _rowIndexer;
-    private readonly Memory<byte>[] _columnNameUtf8Bytes;
-    private readonly Dictionary<int, ReadOnlyMemory<byte>> _filterIndexToNameBytes;
-    private readonly IReadOnlyList<Engine.Filtering.FilterSpec> _filters;
-    private RowReader? _rowReader;
+    private readonly Memory<byte>[] _columnNameUtf8Bytes = [.. outputSchema.Columns
+        .Select(c => Encoding.UTF8.GetBytes(c.SourceName).AsMemory())];
+
+    private readonly Dictionary<int, ReadOnlyMemory<byte>> _filterIndexToNameBytes = inputSchema.Columns
+        .ToDictionary(c => c.ColumnIndex, c => (ReadOnlyMemory<byte>)Encoding.UTF8.GetBytes(c.Name));
+
+    private readonly IReadOnlyList<Engine.Filtering.FilterSpec> _filters = outputSchema.Filters;
+
+    private readonly RowIndexer _rowIndexer = rowIndexer;
+    private RowReader? _rowReader = rowReader;
     private long _batchStart;
-    private IReadOnlyList<ReadOnlyMemory<byte>> _currentBatch;
-    private int _batchIndex;
-    private ReadOnlyMemory<byte> _currentLineBytes;
+    private IReadOnlyList<ReadOnlyMemory<byte>> _currentBatch = [];
+    private int _batchIndex = -1;
+    private ReadOnlyMemory<byte> _currentLineBytes = default;
     private bool _disposed;
-
-    public JsonLinesRecordReader(RowIndexer rowIndexer, RowReader rowReader, TableSchema inputSchema, BatchOutputSchema outputSchema)
-    {
-        _rowIndexer = rowIndexer;
-        _rowReader = rowReader;
-
-        _columnNameUtf8Bytes = [.. outputSchema.Columns
-            .Select(c => Encoding.UTF8.GetBytes(c.SourceName).AsMemory())];
-
-        _filterIndexToNameBytes = inputSchema.Columns
-            .ToDictionary(c => c.ColumnIndex, c => (ReadOnlyMemory<byte>)Encoding.UTF8.GetBytes(c.Name));
-
-        _filters = outputSchema.Filters;
-
-        _batchStart = 0;
-        _currentBatch = [];
-        _batchIndex = -1;
-        _currentLineBytes = default;
-        _disposed = false;
-    }
 
     public ValueTask<bool> MoveNextAsync(CancellationToken ct)
     {

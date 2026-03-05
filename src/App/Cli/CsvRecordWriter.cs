@@ -3,7 +3,7 @@ using DataMorph.Engine;
 
 namespace DataMorph.App.Cli;
 
-internal struct CsvRecordWriter : IRecordWriter, IDisposable, IAsyncDisposable
+internal struct CsvRecordWriter : IRecordWriter
 {
     private readonly BatchOutputSchema _outputSchema;
     private readonly StringBuilder _sb;

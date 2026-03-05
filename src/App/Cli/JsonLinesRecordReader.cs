@@ -9,15 +9,15 @@ namespace DataMorph.App.Cli;
 internal struct JsonLinesRecordReader : IRecordReader, IDisposable
 {
     private readonly RowIndexer _rowIndexer;
-    private readonly RowReader _rowReader;
     private readonly Memory<byte>[] _columnNameUtf8Bytes;
     private readonly Dictionary<int, ReadOnlyMemory<byte>> _filterIndexToNameBytes;
     private readonly IReadOnlyList<Engine.Filtering.FilterSpec> _filters;
-
+    private RowReader? _rowReader;
     private long _batchStart;
     private IReadOnlyList<ReadOnlyMemory<byte>> _currentBatch;
     private int _batchIndex;
     private ReadOnlyMemory<byte> _currentLineBytes;
+    private bool _disposed;
 
     public JsonLinesRecordReader(RowIndexer rowIndexer, RowReader rowReader, TableSchema inputSchema, BatchOutputSchema outputSchema)
     {
@@ -36,10 +36,17 @@ internal struct JsonLinesRecordReader : IRecordReader, IDisposable
         _currentBatch = [];
         _batchIndex = -1;
         _currentLineBytes = default;
+        _disposed = false;
     }
 
     public ValueTask<bool> MoveNextAsync(CancellationToken ct)
     {
+        ThrowIfDisposed();
+        if (_rowReader is null)
+        {
+            return new ValueTask<bool>(false);
+        }
+
         while (true)
         {
             _batchIndex++;
@@ -69,13 +76,20 @@ internal struct JsonLinesRecordReader : IRecordReader, IDisposable
         }
     }
 
+    public readonly void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+
     public readonly bool EvaluateFilters()
     {
+        ThrowIfDisposed();
         return FilterEvaluator.EvaluateJsonFilters(_currentLineBytes, (IReadOnlyList<FilterSpec>)_filters, _filterIndexToNameBytes);
     }
 
     public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
     {
+        ThrowIfDisposed();
         var columnNameSpan = _columnNameUtf8Bytes[outputColumnIndex].Span;
         var value = CellExtractor.ExtractCell(_currentLineBytes.Span, columnNameSpan);
         return value.AsSpan();
@@ -83,6 +97,13 @@ internal struct JsonLinesRecordReader : IRecordReader, IDisposable
 
     public void Dispose()
     {
-        _rowReader.Dispose();
+        if (_disposed)
+        {
+            return;
+        }
+
+        _rowReader?.Dispose();
+        _rowReader = null;
+        _disposed = true;
     }
 }

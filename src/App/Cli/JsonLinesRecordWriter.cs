@@ -122,5 +122,9 @@ internal struct JsonLinesRecordWriter : IRecordWriter, IDisposable, IAsyncDispos
         {
             await _writer.DisposeAsync().ConfigureAwait(false);
         }
+        if (_buffer is not null)
+        {
+            System.Buffers.ArrayPool<byte>.Shared.Return(_buffer);
+        }
     }
 }

@@ -29,7 +29,7 @@ internal sealed class JsonLinesTreeView : TreeView
     {
         _cache = new RowByteCache(indexer);
         _onTableModeToggle = onTableModeToggle;
-        LoadInitialRootNodes();
+        _ = LoadInitialRootNodesAsync();
 
         ObjectActivated += OnObjectActivated;
     }
@@ -45,8 +45,10 @@ internal sealed class JsonLinesTreeView : TreeView
         Expand(e.ActivatedObject);
     }
 
-    private void LoadInitialRootNodes()
+    private async Task LoadInitialRootNodesAsync()
     {
+        await Task.Delay(100);
+
         var linesToLoad = Math.Min(_cache.TotalLines, InitialLoadCount);
 
         for (var i = 0; i < linesToLoad; i++)

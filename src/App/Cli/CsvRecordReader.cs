@@ -4,7 +4,7 @@ using nietras.SeparatedValues;
 
 namespace DataMorph.App.Cli;
 
-internal struct CsvRecordReader : IRecordReader, IDisposable
+internal struct CsvRecordReader : IRecordReader
 {
     private readonly int[] _outputToSourceIndexMap;
     private readonly IReadOnlyList<FilterSpec> _filters;

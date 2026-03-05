@@ -1,6 +1,6 @@
 namespace DataMorph.App.Cli;
 
-internal interface IRecordWriter
+internal interface IRecordWriter : IDisposable, IAsyncDisposable
 {
     ValueTask WriteHeaderAsync(CancellationToken ct);
     ValueTask WriteStartRecordAsync(CancellationToken ct);

@@ -6,7 +6,7 @@ using DataMorph.Engine.Models;
 
 namespace DataMorph.App.Cli;
 
-internal struct JsonLinesRecordReader : IRecordReader, IDisposable
+internal struct JsonLinesRecordReader : IRecordReader
 {
     private readonly RowIndexer _rowIndexer;
     private readonly Memory<byte>[] _columnNameUtf8Bytes;

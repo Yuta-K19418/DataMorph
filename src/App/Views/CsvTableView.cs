@@ -31,6 +31,11 @@ internal sealed class CsvTableView : TableView
     /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)
     {
+        if (Table is null)
+        {
+            throw new InvalidOperationException("Table cannot be null");
+        }
+
         if (key.KeyCode == (KeyCode.R | KeyCode.ShiftMask))
         {
             return HandleRenameColumn();

@@ -45,6 +45,11 @@ internal sealed class JsonLinesTableView : TableView
     /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)
     {
+        if (Table is null)
+        {
+            throw new InvalidOperationException("Table cannot be null");
+        }
+
         if (key.KeyCode == KeyCode.T)
         {
             _onTableModeToggle();

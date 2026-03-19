@@ -162,7 +162,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
 
         // Assert
         source.Columns.Should().Be(3);
-        source.ColumnNames[2].Should().Be("email");
+        source.ColumnNames[2].Should().Be("email (text)");
     }
 
     [Fact]

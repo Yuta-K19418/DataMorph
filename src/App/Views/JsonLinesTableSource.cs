@@ -83,7 +83,7 @@ internal sealed class JsonLinesTableSource : ITableSource
     }
 
     private static string[] BuildColumnNames(TableSchema schema) =>
-        [.. schema.Columns.Select(c => c.Name)];
+        [.. schema.Columns.Select(c => $"{c.Name} ({ColumnTypeLabel.ToLabel(c.Type)})")];
 
     private static byte[][] BuildColumnNamesUtf8(TableSchema schema) =>
         [.. schema.Columns.Select(c => Encoding.UTF8.GetBytes(c.Name))];

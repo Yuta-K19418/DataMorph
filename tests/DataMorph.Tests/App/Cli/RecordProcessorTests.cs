@@ -404,6 +404,8 @@ public sealed class RecordProcessorTests
             _recordsProcessed = 0;
         }
 
+        public void Dispose() { }
+
         public ValueTask<bool> MoveNextAsync(CancellationToken ct)
         {
             _recordsProcessed++;
@@ -479,6 +481,9 @@ public sealed class RecordProcessorTests
             WriteCellCallback = writeCellCallback;
             _cells = [];
         }
+
+        public void Dispose() { }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
         public ValueTask WriteHeaderAsync(CancellationToken ct)
         {

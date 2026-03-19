@@ -1,6 +1,6 @@
 namespace DataMorph.App.Cli;
 
-internal interface IRecordReader
+internal interface IRecordReader : IDisposable
 {
     ValueTask<bool> MoveNextAsync(CancellationToken ct);
     bool EvaluateFilters();

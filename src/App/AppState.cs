@@ -58,12 +58,6 @@ internal sealed class AppState
     public JsonLinesSchema.IncrementalSchemaScanner? JsonLinesSchemaScanner { get; set; }
 
     /// <summary>
-    /// Gets or sets the last error message from a load operation.
-    /// Null if the last operation succeeded.
-    /// </summary>
-    public string? LastError { get; set; }
-
-    /// <summary>
     /// Gets or sets the callback invoked when the background schema scan completes.
     /// Set by <c>ViewManager</c> when creating a table source that supports schema updates;
     /// invoked by <c>FileLoader</c> after background refinement finishes.

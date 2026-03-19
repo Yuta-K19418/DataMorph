@@ -115,12 +115,11 @@ internal sealed class MainWindow : Window
             return;
         }
 
-        await _fileLoader.LoadAsync(dialog.Path);
+        var result = await _fileLoader.LoadAsync(dialog.Path);
 
-        if (_state.LastError is not null)
+        if (result.IsFailure)
         {
-            _viewManager.ShowError(_state.LastError);
-            _state.LastError = null;
+            _viewManager.ShowError(result.Error);
             return;
         }
 
@@ -227,12 +226,11 @@ internal sealed class MainWindow : Window
 
     private async Task HandleToggleAsync()
     {
-        await _fileLoader.ToggleJsonLinesModeAsync();
+        var result = await _fileLoader.ToggleJsonLinesModeAsync();
 
-        if (_state.LastError is not null)
+        if (result.IsFailure)
         {
-            _viewManager.ShowError(_state.LastError);
-            _state.LastError = null;
+            _viewManager.ShowError(result.Error);
             return;
         }
 

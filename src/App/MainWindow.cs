@@ -176,10 +176,16 @@ internal sealed class MainWindow : Window
 
         var result = await _recipeManager.SaveAsync(recipe, dialog.Path);
 
-        if (result.IsFailure)
+        _app.Invoke(() =>
         {
-            _viewManager.ShowError(result.Error);
-        }
+            if (result.IsFailure)
+            {
+                _viewManager.ShowError(result.Error);
+                return;
+            }
+
+            MessageBox.Query(_app, "Save Recipe", "Recipe saved successfully.", "OK");
+        });
     }
 
     [SuppressMessage(
@@ -206,14 +212,17 @@ internal sealed class MainWindow : Window
 
         var result = await _recipeManager.LoadAsync(dialog.Path);
 
-        if (result.IsFailure)
+        _app.Invoke(() =>
         {
-            _viewManager.ShowError(result.Error);
-            return;
-        }
+            if (result.IsFailure)
+            {
+                _viewManager.ShowError(result.Error);
+                return;
+            }
 
-        _state.ActionStack = result.Value.Actions;
-        _viewManager.RefreshCurrentTableView();
+            _state.ActionStack = result.Value.Actions;
+            _viewManager.RefreshCurrentTableView();
+        });
     }
 
     private async Task HandleToggleAsync()

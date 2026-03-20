@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.Engine.Models.Actions;
 using Terminal.Gui.ViewBase;
@@ -61,6 +62,27 @@ internal sealed class FilterColumnDialog : Dialog
             Width = Dim.Fill(),
             Value = FilterOperator.Equals,
         };
+
+        // Wire focus changes to value changes so that arrow key navigation immediately
+        // selects the focused operator (standard radio button UX). OptionSelector<TEnum>
+        // is sealed, so post-construction subscription is the only extension point.
+        // GetCheckBoxValue is an "advanced scenarios" API on SelectorBase; using it here
+        // is intentional — there is no other way to map a CheckBox child to its int value.
+        var wiredCount = 0;
+        foreach (var cb in selector.SubViews.OfType<CheckBox>())
+        {
+            var cbValue = (FilterOperator)selector.GetCheckBoxValue(cb);
+            cb.HasFocusChanged += (_, e) =>
+            {
+                if (e.NewValue)
+                {
+                    selector.Value = cbValue;
+                }
+            };
+            wiredCount++;
+        }
+
+        Debug.Assert(wiredCount > 0, "No CheckBox subviews found in OptionSelector<FilterOperator>; focus-to-selection wiring was skipped.");
         var valueLabel = new Label
         {
             Text = "Value:",

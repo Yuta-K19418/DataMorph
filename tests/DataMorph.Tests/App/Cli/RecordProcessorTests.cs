@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using DataMorph.App.Cli;
+using DataMorph.Engine;
 using DataMorph.Engine.Filtering;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
@@ -9,6 +10,21 @@ namespace DataMorph.Tests.App.Cli;
 
 public sealed class RecordProcessorTests
 {
+    private static readonly IReadOnlyList<BatchOutputColumn> _oneColumn = [
+        new BatchOutputColumn("col0", "col0"),
+    ];
+
+    private static readonly IReadOnlyList<BatchOutputColumn> _twoColumns = [
+        new BatchOutputColumn("col0", "col0"),
+        new BatchOutputColumn("col1", "col1"),
+    ];
+
+    private static readonly IReadOnlyList<BatchOutputColumn> _threeColumns = [
+        new BatchOutputColumn("col0", "col0"),
+        new BatchOutputColumn("col1", "col1"),
+        new BatchOutputColumn("col2", "col2"),
+    ];
+
     // -------------------------------------------------------------------------
     // ProcessAsync — Basic flow with valid data
     // -------------------------------------------------------------------------
@@ -34,7 +50,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, default);
 
         // Assert
         result.Should().Be(0);
@@ -74,7 +90,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, default);
 
         // Assert
         result.Should().Be(0);
@@ -109,7 +125,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, default);
 
         // Assert
         result.Should().Be(0);
@@ -144,7 +160,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, default);
 
         // Assert
         result.Should().Be(0);
@@ -176,7 +192,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 2, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _twoColumns, default);
 
         // Assert
         result.Should().Be(0);
@@ -205,7 +221,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 1, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _oneColumn, default);
 
         // Assert
         result.Should().Be(0);
@@ -236,7 +252,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, default);
 
         // Assert
         result.Should().Be(0);
@@ -273,7 +289,7 @@ public sealed class RecordProcessorTests
 
         // Act
         var exception = await Assert.ThrowsAsync<OperationCanceledException>(
-            async () => await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, cts.Token));
+            async () => await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, cts.Token));
 
         // Assert
         cts.Dispose();
@@ -307,7 +323,7 @@ public sealed class RecordProcessorTests
 
         // Act
         var exception = await Assert.ThrowsAsync<OperationCanceledException>(
-            async () => await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, cts.Token));
+            async () => await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, cts.Token));
 
         // Assert
         cts.Dispose();
@@ -341,7 +357,7 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, default);
 
         // Assert
         result.Should().Be(0);
@@ -369,12 +385,46 @@ public sealed class RecordProcessorTests
         );
 
         // Act
-        var result = await RecordProcessor.ProcessAsync(reader, writer, outputColumnCount: 3, default);
+        var result = await RecordProcessor.ProcessAsync(reader, writer, _threeColumns, default);
 
         // Assert
         result.Should().Be(0);
         writtenRecords.Should().HaveCount(1);
         writtenRecords[0].Should().BeEquivalentTo(["  spaces  ", "\ttabs\t", " mixed "]);
+    }
+
+    // -------------------------------------------------------------------------
+    // ProcessAsync — Fill transform
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task ProcessAsync_WithFillTransform_SingleColumn_OverwritesCellValues()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithFillTransform_MultiColumnRecipe_OverwritesOnlyTargetColumn()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithFillTransform_EmptyDataset_WritesOnlyHeader()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
     }
 
     // -------------------------------------------------------------------------

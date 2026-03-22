@@ -1,3 +1,5 @@
+using DataMorph.Engine;
+
 namespace DataMorph.App.Cli;
 
 internal static class RecordProcessor
@@ -5,7 +7,7 @@ internal static class RecordProcessor
     public static async ValueTask<ExitCode> ProcessAsync<TReader, TWriter>(
         TReader reader,
         TWriter writer,
-        int outputColumnCount,
+        IReadOnlyList<BatchOutputColumn> columns,
         CancellationToken ct)
         where TReader : struct, IRecordReader
         where TWriter : struct, IRecordWriter
@@ -23,8 +25,13 @@ internal static class RecordProcessor
 
             await writer.WriteStartRecordAsync(ct).ConfigureAwait(false);
 
-            for (var i = 0; i < outputColumnCount; i++)
+            for (var i = 0; i < columns.Count; i++)
             {
+                if (columns[i].Transform is not null)
+                {
+                    throw new NotImplementedException();
+                }
+
                 var span = reader.GetCellSpan(i);
                 writer.WriteCellSpan(i, span);
             }

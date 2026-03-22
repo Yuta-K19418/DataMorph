@@ -175,6 +175,16 @@ public sealed class RecipeYamlSerializerTests
     }
 
     [Fact]
+    public void Serialize_WithFillAction_RoundTrip_ProducesCorrectYaml()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
     public void Serialize_FieldOrder_NameFirstActionsLast()
     {
         // Arrange

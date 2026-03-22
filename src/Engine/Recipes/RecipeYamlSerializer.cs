@@ -69,6 +69,8 @@ internal sealed class RecipeYamlSerializer
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    operator: {filter.Operator}");
                 sb.Append("    value: ").AppendLine(QuoteString(filter.Value));
                 break;
+            case FillColumnAction:
+                throw new NotImplementedException();
             default:
                 throw new UnreachableException($"Unhandled MorphAction subtype in serializer");
         }

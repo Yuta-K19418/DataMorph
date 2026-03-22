@@ -11,6 +11,7 @@ namespace DataMorph.Engine.Models.Actions;
 [JsonDerivedType(typeof(DeleteColumnAction), typeDiscriminator: "delete")]
 [JsonDerivedType(typeof(CastColumnAction), typeDiscriminator: "cast")]
 [JsonDerivedType(typeof(FilterAction), typeDiscriminator: "filter")]
+[JsonDerivedType(typeof(FillColumnAction), typeDiscriminator: "fill")]
 public abstract record MorphAction
 {
     /// <summary>

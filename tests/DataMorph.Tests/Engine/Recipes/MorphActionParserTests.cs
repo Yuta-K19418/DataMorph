@@ -263,4 +263,34 @@ public sealed class MorphActionParserTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("'value'");
     }
+
+    [Fact]
+    public void ParseAction_ValidFillAction_ReturnsSuccess()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void ParseAction_FillAction_WithMissingColumnName_ReturnsFailure()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void ParseAction_FillAction_WithMissingValue_ReturnsFailure()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

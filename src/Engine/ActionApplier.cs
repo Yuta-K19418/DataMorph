@@ -101,6 +101,11 @@ public static class ActionApplier
                 continue;
             }
 
+            if (action is FillColumnAction)
+            {
+                throw new NotImplementedException();
+            }
+
             throw new UnreachableException($"Unhandled action type: {action.GetType().Name}");
         }
 

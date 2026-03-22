@@ -410,4 +410,48 @@ public sealed class ActionApplierTests
         result.Filters.Should().HaveCount(1);
         result.Filters[0].ColumnType.Should().Be(ColumnType.WholeNumber);
     }
+
+    // -------------------------------------------------------------------------
+    // FillColumnAction
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void BuildOutputSchema_WithFillAction_SingleColumn_AttachesTransformToColumn()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFillAction_OnNonExistentColumn_SkipsSilently()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithMultipleActions_IncludingFill_AppliesAllCorrectly()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFillAction_EmptySchema_ReturnsEmptyColumns()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

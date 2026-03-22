@@ -104,15 +104,15 @@ In the per-cell loop, pattern-match on `Transform`:
 ```csharp
 for (var i = 0; i < columns.Count; i++)
 {
-    if (columns[i].Transform is null)
+    if (columns[i].Transform is not { } transform)
     {
         writer.WriteCellSpan(i, reader.GetCellSpan(i));
         continue;
     }
-    var span = columns[i].Transform switch
+    var span = transform switch
     {
         FillSpec fill => fill.Value.AsSpan(),
-        _             => throw new UnreachableException($"Unhandled CellTransformSpec: {columns[i].Transform.GetType().Name}"),
+        _             => throw new UnreachableException($"Unhandled CellTransformSpec: {transform.GetType().Name}"),
     };
     writer.WriteCellSpan(i, span);
 }

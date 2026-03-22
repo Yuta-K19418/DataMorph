@@ -178,10 +178,36 @@ public sealed class RecipeYamlSerializerTests
     public void Serialize_WithFillAction_RoundTrip_ProducesCorrectYaml()
     {
         // Arrange
+        var recipe = new Recipe
+        {
+            Name = "test",
+            Actions = [new FillColumnAction { ColumnName = "Email", Value = "REDACTED" }],
+        };
 
         // Act
+        var yaml = RecipeYamlSerializer.Serialize(recipe);
 
         // Assert
+        yaml.Should().Contain("  - type: fill");
+        yaml.Should().Contain("    columnName: \"Email\"");
+        yaml.Should().Contain("    value: \"REDACTED\"");
+    }
+
+    [Fact]
+    public void Serialize_WithFillAction_ValueWithSpecialChars_EscapesCorrectly()
+    {
+        // Arrange
+        var recipe = new Recipe
+        {
+            Name = "test",
+            Actions = [new FillColumnAction { ColumnName = "col", Value = "val\"with\\special" }],
+        };
+
+        // Act
+        var yaml = RecipeYamlSerializer.Serialize(recipe);
+
+        // Assert
+        yaml.Should().Contain("    value: \"val\\\"with\\\\special\"");
     }
 
     [Fact]

@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using DataMorph.Engine;
+using DataMorph.Engine.Models;
 
 namespace DataMorph.App.Cli;
 
@@ -27,12 +29,12 @@ internal static class RecordProcessor
 
             for (var i = 0; i < columns.Count; i++)
             {
-                if (columns[i].Transform is not null)
+                var span = columns[i].Transform switch
                 {
-                    throw new NotImplementedException();
-                }
-
-                var span = reader.GetCellSpan(i);
+                    null => reader.GetCellSpan(i),
+                    FillSpec fill => fill.Value.AsSpan(),
+                    _ => throw new UnreachableException("Unhandled CellTransformSpec subtype"),
+                };
                 writer.WriteCellSpan(i, span);
             }
 

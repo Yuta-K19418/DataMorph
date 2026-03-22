@@ -41,6 +41,7 @@ public static class ActionApplier
         }
 
         List<FilterSpec> filterSpecs = [];
+        Dictionary<int, CellTransformSpec> transformsByWorkingIndex = [];
 
         // Process actions in order
         foreach (var action in actions)
@@ -101,9 +102,15 @@ public static class ActionApplier
                 continue;
             }
 
-            if (action is FillColumnAction)
+            if (action is FillColumnAction fill)
             {
-                throw new NotImplementedException();
+                if (!nameToWorkingIndex.TryGetValue(fill.ColumnName, out var idx))
+                {
+                    continue;
+                }
+
+                transformsByWorkingIndex[idx] = new FillSpec(fill.Value);
+                continue;
             }
 
             throw new UnreachableException($"Unhandled action type: {action.GetType().Name}");
@@ -115,7 +122,8 @@ public static class ActionApplier
             .Select(kvp =>
             {
                 var (name, _, _, outputName) = workingColumns[kvp.Value];
-                return new BatchOutputColumn(SourceName: name, OutputName: outputName);
+                var transform = transformsByWorkingIndex.GetValueOrDefault(kvp.Value);
+                return new BatchOutputColumn(SourceName: name, OutputName: outputName, Transform: transform);
             })
             .ToList();
 

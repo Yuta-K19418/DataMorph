@@ -2,6 +2,7 @@ using AwesomeAssertions;
 using DataMorph.App.Cli;
 using DataMorph.Engine;
 using DataMorph.Engine.Filtering;
+using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
 using CliFilterEvaluator = DataMorph.App.Cli.FilterEvaluator;
@@ -401,30 +402,163 @@ public sealed class RecordProcessorTests
     public async Task ProcessAsync_WithFillTransform_SingleColumn_OverwritesCellValues()
     {
         // Arrange
+        var writtenRecords = new List<string[]>();
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new FillSpec("ANON")),
+            new BatchOutputColumn("col1", "col1"),
+        ];
+
+        var reader = new TestRecordReader(
+            [
+                ["Alice", "30"],
+                ["Bob", "25"],
+            ],
+            []
+        );
+
+        var writer = new TestRecordWriter(
+            null,
+            (record) => writtenRecords.Add([.. record])
+        );
 
         // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
 
         // Assert
+        result.Should().Be(0);
+        writtenRecords.Should().HaveCount(2);
+        writtenRecords[0].Should().BeEquivalentTo(["ANON", "30"]);
+        writtenRecords[1].Should().BeEquivalentTo(["ANON", "25"]);
     }
 
     [Fact]
     public async Task ProcessAsync_WithFillTransform_MultiColumnRecipe_OverwritesOnlyTargetColumn()
     {
         // Arrange
+        var writtenRecords = new List<string[]>();
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0"),
+            new BatchOutputColumn("col1", "col1", new FillSpec("***")),
+            new BatchOutputColumn("col2", "col2"),
+        ];
+
+        var reader = new TestRecordReader(
+            [
+                ["Alice", "alice@example.com", "NY"],
+                ["Bob", "bob@example.com", "CA"],
+            ],
+            []
+        );
+
+        var writer = new TestRecordWriter(
+            null,
+            (record) => writtenRecords.Add([.. record])
+        );
 
         // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
 
         // Assert
+        result.Should().Be(0);
+        writtenRecords.Should().HaveCount(2);
+        writtenRecords[0].Should().BeEquivalentTo(["Alice", "***", "NY"]);
+        writtenRecords[1].Should().BeEquivalentTo(["Bob", "***", "CA"]);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithFillTransform_FilteredRowsAreNotWritten()
+    {
+        // Arrange
+        var writtenRecords = new List<string[]>();
+        var filters = new List<FilterSpec>
+        {
+            new(1, ColumnType.WholeNumber, FilterOperator.GreaterThan, "25")
+        };
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new FillSpec("ANON")),
+            new BatchOutputColumn("col1", "col1"),
+        ];
+
+        var reader = new TestRecordReader(
+            [
+                ["Alice", "30"],
+                ["Bob", "20"],
+            ],
+            filters
+        );
+
+        var writer = new TestRecordWriter(
+            null,
+            (record) => writtenRecords.Add([.. record])
+        );
+
+        // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
+
+        // Assert
+        result.Should().Be(0);
+        writtenRecords.Should().HaveCount(1);
+        writtenRecords[0].Should().BeEquivalentTo(["ANON", "30"]);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithFillTransform_EmptyStringValue_WritesEmptyStrings()
+    {
+        // Arrange
+        var writtenRecords = new List<string[]>();
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new FillSpec("")),
+            new BatchOutputColumn("col1", "col1"),
+        ];
+
+        var reader = new TestRecordReader(
+            [["Alice", "30"]],
+            []
+        );
+
+        var writer = new TestRecordWriter(
+            null,
+            (record) => writtenRecords.Add([.. record])
+        );
+
+        // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
+
+        // Assert
+        result.Should().Be(0);
+        writtenRecords.Should().HaveCount(1);
+        writtenRecords[0].Should().BeEquivalentTo(["", "30"]);
     }
 
     [Fact]
     public async Task ProcessAsync_WithFillTransform_EmptyDataset_WritesOnlyHeader()
     {
         // Arrange
+        var writtenRecords = new List<string[]>();
+        var writtenHeader = false;
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new FillSpec("FILL")),
+        ];
+
+        var reader = new TestRecordReader([], []);
+
+        var writer = new TestRecordWriter(
+            () => writtenHeader = true,
+            (record) => writtenRecords.Add([.. record])
+        );
 
         // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
 
         // Assert
+        result.Should().Be(0);
+        writtenHeader.Should().BeTrue();
+        writtenRecords.Should().BeEmpty();
     }
 
     // -------------------------------------------------------------------------

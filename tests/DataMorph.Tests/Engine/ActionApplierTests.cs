@@ -559,4 +559,27 @@ public sealed class ActionApplierTests
         result.Columns.Should().BeEmpty();
         result.Filters.Should().BeEmpty();
     }
+
+    [Fact]
+    public void BuildOutputSchema_WithFillThenDelete_ColumnIsRemoved()
+    {
+        // Arrange — fill column, then delete it; column should not appear in output
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "A", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new FillColumnAction { ColumnName = "A", Value = "FILLED" },
+            new DeleteColumnAction { ColumnName = "A" },
+        ];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().BeEmpty();
+        result.Filters.Should().BeEmpty();
+    }
 }

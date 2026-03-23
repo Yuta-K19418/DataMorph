@@ -76,6 +76,11 @@ internal sealed class JsonLinesTableView : TableView
             return HandleFilterColumn();
         }
 
+        if (key.KeyCode == (KeyCode.L | KeyCode.ShiftMask))
+        {
+            return HandleFillColumn();
+        }
+
         var action = _vimKeys.Translate(key.KeyCode);
 
         return action switch
@@ -209,6 +214,26 @@ internal sealed class JsonLinesTableView : TableView
                 Value = dialog.Value,
             }
         );
+        return true;
+    }
+
+    private bool HandleFillColumn()
+    {
+        if (App is null || _onMorphAction is null || Table is null || SelectedColumn < 0)
+        {
+            return true;
+        }
+
+        var columnName = Table.ColumnNames[SelectedColumn];
+        using var dialog = new FillColumnDialog(columnName);
+        App.Run(dialog);
+
+        if (!dialog.Confirmed)
+        {
+            return true;
+        }
+
+        _onMorphAction(new FillColumnAction { ColumnName = columnName, Value = dialog.Value });
         return true;
     }
 }

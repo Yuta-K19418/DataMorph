@@ -227,6 +227,7 @@ internal sealed class ViewManager : IDisposable
         }
         _currentView = newView;
         _container.Add(_currentView);
+        _container.SetNeedsDraw();
     }
 
     /// <inheritdoc/>

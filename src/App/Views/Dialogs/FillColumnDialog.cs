@@ -57,12 +57,23 @@ internal sealed class FillColumnDialog : Dialog
         var okButton = new Button { Text = "OK" };
         var cancelButton = new Button { Text = "Cancel" };
 
-        okButton.Accepting += (sender, e) =>
+        void Confirm()
         {
-            e.Handled = true;
             Value = textField.Text;
             Confirmed = true;
             App?.RequestStop();
+        }
+
+        okButton.Accepting += (sender, e) =>
+        {
+            e.Handled = true;
+            Confirm();
+        };
+
+        textField.Accepting += (sender, e) =>
+        {
+            e.Handled = true;
+            Confirm();
         };
 
         AddButton(okButton);

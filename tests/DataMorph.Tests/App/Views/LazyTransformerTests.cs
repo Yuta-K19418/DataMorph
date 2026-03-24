@@ -1053,4 +1053,36 @@ public sealed class LazyTransformerTests
         // FillValue takes precedence over cast formatting
         transformer[0, 0].Should().Be("hello");
     }
+
+    [Fact]
+    public void FillColumnAction_ColumnNames_PreservesAllColumnNames()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1", "b1", "c1"],
+            ],
+            ["A", "B", "C"]
+        );
+        var schema = MakeSchema(
+            ("A", ColumnType.Text),
+            ("B", ColumnType.Text),
+            ("C", ColumnType.Text)
+        );
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "B", Value = "FILLED" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        // All three columns should be present after fill action
+        transformer.ColumnNames.Should().HaveCount(3);
+        transformer.ColumnNames[0].Should().Be("A");
+        transformer.ColumnNames[1].Should().Be("B");
+        transformer.ColumnNames[2].Should().Be("C");
+        transformer.Columns.Should().Be(3);
+    }
 }

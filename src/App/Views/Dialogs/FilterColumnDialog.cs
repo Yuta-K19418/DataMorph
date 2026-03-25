@@ -61,6 +61,7 @@ internal sealed class FilterColumnDialog : Dialog
             Width = Dim.Fill(),
             Value = FilterOperator.Equals,
         };
+        selector.EnableAutoSelectOnFocus();
         var valueLabel = new Label
         {
             Text = "Value:",

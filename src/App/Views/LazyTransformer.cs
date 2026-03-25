@@ -22,6 +22,7 @@ internal sealed class LazyTransformer : ITableSource
     private readonly IReadOnlyList<int> _sourceColumnIndices;
     private readonly string[] _columnNames;
     private readonly IReadOnlyList<ColumnType> _columnTypes;
+    private readonly IReadOnlyList<string?> _fillValues;
     private readonly IFilterRowIndexer? _filterRowIndexer;
 
     /// <summary>
@@ -49,7 +50,7 @@ internal sealed class LazyTransformer : ITableSource
         ArgumentNullException.ThrowIfNull(actions);
 
         _source = source;
-        (_columnNames, _columnTypes, _sourceColumnIndices, var filterSpecs) =
+        (_columnNames, _columnTypes, _sourceColumnIndices, _fillValues, var filterSpecs) =
             BuildTransformedSchema(originalSchema, actions);
 
         if (filterSpecs.Count > 0 && filterRowIndexerFactory is not null)
@@ -65,6 +66,12 @@ internal sealed class LazyTransformer : ITableSource
     internal IFilterRowIndexer? FilterRowIndexer => _filterRowIndexer;
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// When <see cref="FilterRowIndexer"/> is present, the value may be partial
+    /// while <see cref="IFilterRowIndexer.BuildIndexAsync"/> is still running
+    /// on a background task. The caller is responsible for waiting for index
+    /// build completion before displaying row counts.
+    /// </remarks>
     public int Rows =>
         _filterRowIndexer is not null ? _filterRowIndexer.TotalMatchedRows : _source.Rows;
 
@@ -98,6 +105,13 @@ internal sealed class LazyTransformer : ITableSource
                 return string.Empty;
             }
 
+            var fillValue = _fillValues[col];
+            if (fillValue is not null)
+            {
+                // Fill values bypass FormatCellValue by design — they are raw display overrides
+                return fillValue;
+            }
+
             var sourceCol = _sourceColumnIndices[col];
             var rawValue = _source[sourceRow, sourceCol]?.ToString() ?? string.Empty;
             return FormatCellValue(rawValue, _columnTypes[col]);
@@ -115,6 +129,7 @@ internal sealed class LazyTransformer : ITableSource
         string[] columnNames,
         IReadOnlyList<ColumnType> columnTypes,
         IReadOnlyList<int> sourceColumnIndices,
+        IReadOnlyList<string?> fillValues,
         IReadOnlyList<FilterSpec> filterSpecs
     ) BuildTransformedSchema(TableSchema originalSchema, IReadOnlyList<MorphAction> actions)
     {
@@ -122,13 +137,12 @@ internal sealed class LazyTransformer : ITableSource
             .Columns.Select(c => new WorkingColumn(
                 SourceIndex: c.ColumnIndex,
                 Name: c.Name,
-                Type: c.Type,
-                IsNullable: c.IsNullable
+                Type: c.Type
             ))
             .ToList();
 
         var nameToIndex = working.Select((w, i) => (w.Name, i)).ToDictionary(t => t.Name, t => t.i);
-        var filterSpecs = new List<FilterSpec>();
+        List<FilterSpec> filterSpecs = [];
 
         foreach (var action in actions)
         {
@@ -182,8 +196,20 @@ internal sealed class LazyTransformer : ITableSource
                 );
                 continue;
             }
+
+            if (action is FillColumnAction fill)
+            {
+                if (!nameToIndex.TryGetValue(fill.ColumnName, out var fillIdx))
+                {
+                    continue;
+                }
+
+                working[fillIdx] = working[fillIdx] with { FillValue = fill.Value };
+                continue;
+            }
         }
 
+        // Pre-size to avoid reallocation; collection expressions do not support capacity hints.
         var remaining = new List<WorkingColumn>(nameToIndex.Count);
         foreach (var idx in nameToIndex.Values.Order())
         {
@@ -194,6 +220,7 @@ internal sealed class LazyTransformer : ITableSource
             remaining.ConvertAll(workingColumn => workingColumn.Name).ToArray(),
             remaining.ConvertAll(workingColumn => workingColumn.Type),
             remaining.ConvertAll(workingColumn => workingColumn.SourceIndex),
+            remaining.ConvertAll(workingColumn => workingColumn.FillValue),
             filterSpecs
         );
     }
@@ -226,10 +253,14 @@ internal sealed class LazyTransformer : ITableSource
             _ => rawValue,
         };
 
+    /// <summary>
+    /// Internal working representation of a column during schema transformation.
+    /// Tracks source column index, current name, type, and optional fill value.
+    /// </summary>
     private sealed record WorkingColumn(
         int SourceIndex,
         string Name,
         ColumnType Type,
-        bool IsNullable
+        string? FillValue = null
     );
 }

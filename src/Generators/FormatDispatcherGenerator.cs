@@ -226,7 +226,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
                 );
 
                 sb.AppendLine(
-                    $"        return await RecordProcessor.ProcessAsync<{reader.CreatedTypeName}, {writer.CreatedTypeName}>(reader, writer, outputSchema.Columns.Count, ct).ConfigureAwait(false);"
+                    $"        return await RecordProcessor.ProcessAsync<{reader.CreatedTypeName}, {writer.CreatedTypeName}>(reader, writer, outputSchema.Columns, ct).ConfigureAwait(false);"
                 );
                 sb.AppendLine("    }");
             }

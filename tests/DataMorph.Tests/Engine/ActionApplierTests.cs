@@ -410,4 +410,176 @@ public sealed class ActionApplierTests
         result.Filters.Should().HaveCount(1);
         result.Filters[0].ColumnType.Should().Be(ColumnType.WholeNumber);
     }
+
+    // -------------------------------------------------------------------------
+    // FillColumnAction
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void BuildOutputSchema_WithFillAction_SingleColumn_AttachesTransformToColumn()
+    {
+        // Arrange
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "Email", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions = [new FillColumnAction { ColumnName = "Email", Value = "REDACTED" }];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().HaveCount(1);
+        result.Columns[0].SourceName.Should().Be("Email");
+        result.Columns[0].OutputName.Should().Be("Email");
+        result.Columns[0].Transform.Should().BeOfType<FillSpec>().Which.Value.Should().Be("REDACTED");
+        result.Filters.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFillAction_OnNonExistentColumn_SkipsSilently()
+    {
+        // Arrange
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "A", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions = [new FillColumnAction { ColumnName = "NonExistent", Value = "FILL" }];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().HaveCount(1);
+        result.Columns[0].Transform.Should().BeNull();
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithMultipleActions_IncludingFill_AppliesAllCorrectly()
+    {
+        // Arrange
+        var schema = new TableSchema
+        {
+            Columns =
+            [
+                new ColumnSchema { Name = "Name", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 },
+                new ColumnSchema { Name = "Email", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 1 },
+                new ColumnSchema { Name = "Age", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 2 },
+            ],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new RenameColumnAction { OldName = "Name", NewName = "FullName" },
+            new FillColumnAction { ColumnName = "Email", Value = "REDACTED" },
+            new DeleteColumnAction { ColumnName = "Age" },
+        ];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().HaveCount(2);
+        result.Columns[0].SourceName.Should().Be("Name");
+        result.Columns[0].OutputName.Should().Be("FullName");
+        result.Columns[0].Transform.Should().BeNull();
+        result.Columns[1].SourceName.Should().Be("Email");
+        result.Columns[1].Transform.Should().BeOfType<FillSpec>().Which.Value.Should().Be("REDACTED");
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithRenameAndFill_FillTargetsRenamedColumn()
+    {
+        // Arrange — rename first, then fill using the new name; transform must be attached
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "Email", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new RenameColumnAction { OldName = "Email", NewName = "EmailAddress" },
+            new FillColumnAction { ColumnName = "EmailAddress", Value = "REDACTED" },
+        ];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().HaveCount(1);
+        result.Columns[0].SourceName.Should().Be("Email");
+        result.Columns[0].OutputName.Should().Be("EmailAddress");
+        result.Columns[0].Transform.Should().BeOfType<FillSpec>().Which.Value.Should().Be("REDACTED");
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithTwoFillsOnSameColumn_LastFillWins()
+    {
+        // Arrange — two consecutive fills on the same column; second value must win
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "Status", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new FillColumnAction { ColumnName = "Status", Value = "FIRST" },
+            new FillColumnAction { ColumnName = "Status", Value = "SECOND" },
+        ];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().HaveCount(1);
+        result.Columns[0].Transform.Should().BeOfType<FillSpec>().Which.Value.Should().Be("SECOND");
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFillAction_OnDeletedColumn_SkipsSilently()
+    {
+        // Arrange — delete the column first; subsequent fill on the same (now removed) column is a no-op
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "Email", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new DeleteColumnAction { ColumnName = "Email" },
+            new FillColumnAction { ColumnName = "Email", Value = "REDACTED" },
+        ];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().BeEmpty();
+        result.Filters.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFillThenDelete_ColumnIsRemoved()
+    {
+        // Arrange — fill column, then delete it; column should not appear in output
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "A", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new FillColumnAction { ColumnName = "A", Value = "FILLED" },
+            new DeleteColumnAction { ColumnName = "A" },
+        ];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.Columns.Should().BeEmpty();
+        result.Filters.Should().BeEmpty();
+    }
 }

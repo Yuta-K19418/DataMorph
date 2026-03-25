@@ -1,4 +1,5 @@
 using DataMorph.Engine.Filtering;
+using DataMorph.Engine.Models;
 
 namespace DataMorph.Engine;
 
@@ -8,7 +9,8 @@ namespace DataMorph.Engine;
 /// </summary>
 /// <param name="SourceName">The original column name in the input file.</param>
 /// <param name="OutputName">The column name to use in the output file.</param>
-public sealed record BatchOutputColumn(string SourceName, string OutputName);
+/// <param name="Transform">Optional cell-level transformation; <see langword="null"/> means pass-through.</param>
+public sealed record BatchOutputColumn(string SourceName, string OutputName, CellTransformSpec? Transform = null);
 
 /// <summary>
 /// Immutable, format-agnostic output plan produced by <see cref="ActionApplier"/>.

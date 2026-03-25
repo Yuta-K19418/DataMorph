@@ -41,6 +41,7 @@ public static class ActionApplier
         }
 
         List<FilterSpec> filterSpecs = [];
+        Dictionary<int, CellTransformSpec> transformsByWorkingIndex = [];
 
         // Process actions in order
         foreach (var action in actions)
@@ -101,18 +102,28 @@ public static class ActionApplier
                 continue;
             }
 
+            if (action is FillColumnAction fill)
+            {
+                if (!nameToWorkingIndex.TryGetValue(fill.ColumnName, out var idx))
+                {
+                    continue;
+                }
+
+                transformsByWorkingIndex[idx] = new FillSpec(fill.Value);
+                continue;
+            }
+
             throw new UnreachableException($"Unhandled action type: {action.GetType().Name}");
         }
 
         // Build remaining columns in order (filter out deleted columns)
-        var outputColumns = nameToWorkingIndex
-            .OrderBy(kvp => kvp.Value)
-            .Select(kvp =>
-            {
-                var (name, _, _, outputName) = workingColumns[kvp.Value];
-                return new BatchOutputColumn(SourceName: name, OutputName: outputName);
-            })
-            .ToList();
+        List<BatchOutputColumn> outputColumns = [];
+        foreach (var kvp in nameToWorkingIndex.OrderBy(kvp => kvp.Value))
+        {
+            var (name, _, _, outputName) = workingColumns[kvp.Value];
+            var transform = transformsByWorkingIndex.GetValueOrDefault(kvp.Value);
+            outputColumns.Add(new BatchOutputColumn(SourceName: name, OutputName: outputName, Transform: transform));
+        }
 
         return new BatchOutputSchema(outputColumns, filterSpecs);
     }

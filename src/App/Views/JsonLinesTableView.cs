@@ -16,6 +16,7 @@ internal sealed class JsonLinesTableView : TableView
     private readonly Action _onTableModeToggle;
     private readonly Action<MorphAction>? _onMorphAction;
     private readonly Func<bool>? _isRowIndexComplete;
+    private readonly Func<int, string>? _getRawColumnName;
     private readonly VimKeyTranslator _vimKeys = new();
 
     /// <summary>
@@ -31,15 +32,22 @@ internal sealed class JsonLinesTableView : TableView
     /// <c>BuildIndex</c> has completed. When <see langword="null"/>, the guard is skipped.
     /// The <c>Shift+F</c> filter action is blocked until this returns <see langword="true"/>.
     /// </param>
+    /// <param name="getRawColumnName">
+    /// Optional delegate that resolves a column index to its raw (unlabeled) schema name.
+    /// Used when constructing <see cref="MorphAction"/>s to avoid embedding type labels in
+    /// action column names. When <see langword="null"/>, morphing actions are disabled.
+    /// </param>
     internal JsonLinesTableView(
         Action onTableModeToggle,
         Action<MorphAction>? onMorphAction = null,
-        Func<bool>? isRowIndexComplete = null
+        Func<bool>? isRowIndexComplete = null,
+        Func<int, string>? getRawColumnName = null
     )
     {
         _onTableModeToggle = onTableModeToggle;
         _onMorphAction = onMorphAction;
         _isRowIndexComplete = isRowIndexComplete;
+        _getRawColumnName = getRawColumnName;
     }
 
     /// <inheritdoc/>
@@ -124,13 +132,14 @@ internal sealed class JsonLinesTableView : TableView
 
     private bool HandleRenameColumn()
     {
-        if (App is null || _onMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || _onMorphAction is null || _getRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new RenameColumnDialog(columnName);
+        var rawName = _getRawColumnName(SelectedColumn);
+        using var dialog = new RenameColumnDialog(rawName);
         App.Run(dialog);
 
         if (!dialog.Confirmed || dialog.NewName is null)
@@ -138,19 +147,21 @@ internal sealed class JsonLinesTableView : TableView
             return true;
         }
 
-        _onMorphAction(new RenameColumnAction { OldName = columnName, NewName = dialog.NewName });
+        _onMorphAction(new RenameColumnAction { OldName = rawName, NewName = dialog.NewName });
         return true;
     }
 
     private bool HandleDeleteColumn()
     {
-        if (App is null || _onMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || _onMorphAction is null || _getRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new DeleteColumnDialog(columnName);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = _getRawColumnName(SelectedColumn);
+        using var dialog = new DeleteColumnDialog(displayName);
         App.Run(dialog);
 
         if (!dialog.Confirmed)
@@ -158,19 +169,21 @@ internal sealed class JsonLinesTableView : TableView
             return true;
         }
 
-        _onMorphAction(new DeleteColumnAction { ColumnName = columnName });
+        _onMorphAction(new DeleteColumnAction { ColumnName = rawName });
         return true;
     }
 
     private bool HandleCastColumn()
     {
-        if (App is null || _onMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || _onMorphAction is null || _getRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new CastColumnDialog(columnName, ColumnType.Text);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = _getRawColumnName(SelectedColumn);
+        using var dialog = new CastColumnDialog(displayName, ColumnType.Text);
         App.Run(dialog);
 
         if (!dialog.Confirmed || dialog.SelectedType is null)
@@ -179,14 +192,15 @@ internal sealed class JsonLinesTableView : TableView
         }
 
         _onMorphAction(
-            new CastColumnAction { ColumnName = columnName, TargetType = dialog.SelectedType.Value }
+            new CastColumnAction { ColumnName = rawName, TargetType = dialog.SelectedType.Value }
         );
         return true;
     }
 
     private bool HandleFilterColumn()
     {
-        if (App is null || _onMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || _onMorphAction is null || _getRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
@@ -197,8 +211,9 @@ internal sealed class JsonLinesTableView : TableView
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new FilterColumnDialog(columnName);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = _getRawColumnName(SelectedColumn);
+        using var dialog = new FilterColumnDialog(displayName);
         App.Run(dialog);
 
         if (!dialog.Confirmed || dialog.SelectedOperator is null || dialog.Value is null)
@@ -209,7 +224,7 @@ internal sealed class JsonLinesTableView : TableView
         _onMorphAction(
             new FilterAction
             {
-                ColumnName = columnName,
+                ColumnName = rawName,
                 Operator = dialog.SelectedOperator.Value,
                 Value = dialog.Value,
             }
@@ -219,13 +234,15 @@ internal sealed class JsonLinesTableView : TableView
 
     private bool HandleFillColumn()
     {
-        if (App is null || _onMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || _onMorphAction is null || _getRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new FillColumnDialog(columnName);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = _getRawColumnName(SelectedColumn);
+        using var dialog = new FillColumnDialog(displayName);
         App.Run(dialog);
 
         if (!dialog.Confirmed)
@@ -233,7 +250,7 @@ internal sealed class JsonLinesTableView : TableView
             return true;
         }
 
-        _onMorphAction(new FillColumnAction { ColumnName = columnName, Value = dialog.Value });
+        _onMorphAction(new FillColumnAction { ColumnName = rawName, Value = dialog.Value });
         return true;
     }
 }

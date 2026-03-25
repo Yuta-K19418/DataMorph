@@ -137,8 +137,8 @@ public sealed class LazyTransformerTests
         var transformer = new LazyTransformer(source, schema, actions);
 
         // Assert
-        transformer.ColumnNames[0].Should().Be("X");
-        transformer.ColumnNames[1].Should().Be("B");
+        transformer.ColumnNames[0].Should().Be("X (text)");
+        transformer.ColumnNames[1].Should().Be("B (text)");
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed class LazyTransformerTests
 
         // Assert
         transformer.Columns.Should().Be(2);
-        transformer.ColumnNames.Should().BeEquivalentTo(["A", "C"], o => o.WithStrictOrdering());
+        transformer.ColumnNames.Should().BeEquivalentTo(["A (text)", "C (text)"], o => o.WithStrictOrdering());
     }
 
     [Fact]
@@ -293,7 +293,7 @@ public sealed class LazyTransformerTests
 
         // Assert
         transformer.Columns.Should().Be(1);
-        transformer.ColumnNames[0].Should().Be("B");
+        transformer.ColumnNames[0].Should().Be("B (text)");
     }
 
     // -------------------------------------------------------------------------
@@ -570,7 +570,7 @@ public sealed class LazyTransformerTests
         var names = transformer.ColumnNames;
 
         // Assert
-        names.Should().BeEquivalentTo(["X", "B"], o => o.WithStrictOrdering());
+        names.Should().BeEquivalentTo(["X (text)", "B (text)"], o => o.WithStrictOrdering());
     }
 
     // -------------------------------------------------------------------------
@@ -947,6 +947,7 @@ public sealed class LazyTransformerTests
         var transformer = new LazyTransformer(source, schema, actions);
 
         // Assert
+        transformer.ColumnNames[0].Should().Be("X (text)");
         transformer[0, 0].Should().Be("FILLED");
         transformer[0, 1].Should().Be("b1");
     }
@@ -1025,7 +1026,7 @@ public sealed class LazyTransformerTests
         var transformer = new LazyTransformer(source, schema, actions);
 
         // Assert
-        transformer.ColumnNames[0].Should().Be("X");
+        transformer.ColumnNames[0].Should().Be("X (text)");
         transformer[0, 0].Should().Be("FILLED");
     }
 
@@ -1080,9 +1081,194 @@ public sealed class LazyTransformerTests
         // Assert
         // All three columns should be present after fill action
         transformer.ColumnNames.Should().HaveCount(3);
-        transformer.ColumnNames[0].Should().Be("A");
-        transformer.ColumnNames[1].Should().Be("B");
-        transformer.ColumnNames[2].Should().Be("C");
+        transformer.ColumnNames[0].Should().Be("A (text)");
+        transformer.ColumnNames[1].Should().Be("B (text)");
+        transformer.ColumnNames[2].Should().Be("C (text)");
         transformer.Columns.Should().Be(3);
+    }
+
+    // -------------------------------------------------------------------------
+    // RawColumnNames — unlabeled raw names
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void RawColumnNames_EmptyActionStack_ReturnsSchemaNames()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["42", "hello"],
+            ],
+            ["Age", "Name"]
+        );
+        var schema = MakeSchema(("Age", ColumnType.WholeNumber), ("Name", ColumnType.Text));
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, []);
+
+        // Assert
+        transformer.RawColumnNames[0].Should().Be("Age");
+        transformer.RawColumnNames[1].Should().Be("Name");
+    }
+
+    [Fact]
+    public void RawColumnNames_WithRenameAction_ReflectsNewName()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["hello", "world"],
+            ],
+            ["A", "B"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text), ("B", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new RenameColumnAction { OldName = "A", NewName = "X" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer.RawColumnNames[0].Should().Be("X");
+        transformer.RawColumnNames[1].Should().Be("B");
+    }
+
+    [Fact]
+    public void RawColumnNames_WithDeleteAction_ExcludesDeletedColumn()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a", "b", "c"],
+            ],
+            ["A", "B", "C"]
+        );
+        var schema = MakeSchema(
+            ("A", ColumnType.Text),
+            ("B", ColumnType.Text),
+            ("C", ColumnType.Text)
+        );
+        IReadOnlyList<MorphAction> actions = [new DeleteColumnAction { ColumnName = "B" }];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer.RawColumnNames.Should().BeEquivalentTo(["A", "C"], o => o.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void ColumnNames_WithCastAction_ReflectsNewTypeLabel()
+    {
+        // Arrange
+        var source = new FakeTableSource([["42"]], ["A"]);
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new CastColumnAction { ColumnName = "A", TargetType = ColumnType.WholeNumber },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer.ColumnNames[0].Should().Be("A (number)");
+        transformer.RawColumnNames[0].Should().Be("A");
+    }
+
+    [Fact]
+    public void ColumnNames_EmptyActionStack_ReturnsLabeledNames()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["42", "hello"],
+            ],
+            ["Age", "Name"]
+        );
+        var schema = MakeSchema(("Age", ColumnType.WholeNumber), ("Name", ColumnType.Text));
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, []);
+
+        // Assert
+        transformer.ColumnNames[0].Should().Be("Age (number)");
+        transformer.ColumnNames[1].Should().Be("Name (text)");
+    }
+
+    // -------------------------------------------------------------------------
+    // Fill — type inference
+    // -------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("42", "number")]
+    [InlineData("3.14", "float")]
+    [InlineData("true", "bool")]
+    [InlineData("hello", "text")]
+    [InlineData("", "text")]
+    public void FillColumnAction_InfersTypeFromValue_HeaderLabelUpdated(
+        string fillValue,
+        string expectedLabel
+    )
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["original"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.WholeNumber));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "A", Value = fillValue },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer.ColumnNames[0].Should().Be($"A ({expectedLabel})");
+        transformer.RawColumnNames[0].Should().Be("A");
+    }
+
+    [Fact]
+    public void FillColumnAction_NumberColumnFilledWithText_TypeChangesToText()
+    {
+        // Arrange
+        var source = new FakeTableSource([["100"]], ["Price"]);
+        var schema = MakeSchema(("Price", ColumnType.WholeNumber));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "Price", Value = "N/A" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer.ColumnNames[0].Should().Be("Price (text)");
+        transformer[0, 0].Should().Be("N/A");
+    }
+
+    [Fact]
+    public void FillColumnAction_TextColumnFilledWithNumber_TypeChangesToNumber()
+    {
+        // Arrange
+        var source = new FakeTableSource([["hello"]], ["Value"]);
+        var schema = MakeSchema(("Value", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "Value", Value = "42" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer.ColumnNames[0].Should().Be("Value (number)");
+        transformer[0, 0].Should().Be("42");
     }
 }

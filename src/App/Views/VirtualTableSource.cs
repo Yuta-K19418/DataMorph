@@ -13,17 +13,20 @@ internal sealed class VirtualTableSource : ITableSource
     private readonly DataRowCache _cache;
     private readonly TableSchema _schema;
     private readonly string[] _columnNames;
+    private readonly string[] _rawColumnNames;
 
     public VirtualTableSource(DataRowIndexer indexer, TableSchema schema)
     {
         _schema = schema;
         _columnNames = [.. _schema.Columns.Select(c => $"{c.Name} ({ColumnTypeLabel.ToLabel(c.Type)})")];
+        _rawColumnNames = [.. _schema.Columns.Select(c => c.Name)];
         _cache = new DataRowCache(indexer, _schema.ColumnCount);
     }
 
     public int Rows => _cache.TotalRows;
     public int Columns => _schema.ColumnCount;
     public string[] ColumnNames => _columnNames;
+    internal string[] RawColumnNames => _rawColumnNames;
 
     public object this[int row, int col]
     {

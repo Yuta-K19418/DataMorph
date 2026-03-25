@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using DataMorph.Engine.IO.Csv;
@@ -72,6 +73,13 @@ internal sealed class ViewManager : IDisposable
             )
             : rawSource;
 
+        Func<int, string> getRawColumnName = source switch
+        {
+            Views.LazyTransformer lt => i => lt.RawColumnNames[i],
+            Views.VirtualTableSource vts => i => vts.RawColumnNames[i],
+            _ => throw new UnreachableException(),
+        };
+
         var view = new Views.CsvTableView
         {
             X = 0,
@@ -81,6 +89,7 @@ internal sealed class ViewManager : IDisposable
             Table = source,
             Style = new TableStyle { AlwaysShowHeaders = true },
             OnMorphAction = HandleMorphAction,
+            GetRawColumnName = getRawColumnName,
         };
         SwapView(view);
 
@@ -150,7 +159,18 @@ internal sealed class ViewManager : IDisposable
             )
             : source;
 
-        var view = new Views.JsonLinesTableView(() => _ = _onToggle(), HandleMorphAction)
+        Func<int, string> getRawColumnName = tableSource switch
+        {
+            Views.LazyTransformer lt => i => lt.RawColumnNames[i],
+            Views.JsonLinesTableSource jts => i => jts.RawColumnNames[i],
+            _ => throw new UnreachableException(),
+        };
+
+        var view = new Views.JsonLinesTableView(
+            () => _ = _onToggle(),
+            HandleMorphAction,
+            getRawColumnName: getRawColumnName
+        )
         {
             X = 0,
             Y = 0,

@@ -14,6 +14,7 @@ internal sealed class JsonLinesTableSource : ITableSource
     private readonly RowByteCache _cache;
     private volatile TableSchema _schema;
     private volatile string[] _columnNames;
+    private volatile string[] _rawColumnNames;
     private volatile byte[][] _columnNameUtf8;
 
     /// <summary>
@@ -28,6 +29,7 @@ internal sealed class JsonLinesTableSource : ITableSource
         _cache = cache;
         _schema = schema;
         _columnNames = BuildColumnNames(schema);
+        _rawColumnNames = BuildRawColumnNames(schema);
         _columnNameUtf8 = BuildColumnNamesUtf8(schema);
     }
 
@@ -39,6 +41,8 @@ internal sealed class JsonLinesTableSource : ITableSource
 
     /// <inheritdoc/>
     public string[] ColumnNames => _columnNames;
+
+    internal string[] RawColumnNames => _rawColumnNames;
 
     /// <inheritdoc/>
     public object this[int row, int col]
@@ -76,14 +80,19 @@ internal sealed class JsonLinesTableSource : ITableSource
     {
         ArgumentNullException.ThrowIfNull(schema);
         var newColumnNames = BuildColumnNames(schema);
+        var newRawColumnNames = BuildRawColumnNames(schema);
         var newColumnNameUtf8 = BuildColumnNamesUtf8(schema);
         _columnNames = newColumnNames;
+        _rawColumnNames = newRawColumnNames;
         _columnNameUtf8 = newColumnNameUtf8;
         _schema = schema;
     }
 
     private static string[] BuildColumnNames(TableSchema schema) =>
         [.. schema.Columns.Select(c => $"{c.Name} ({ColumnTypeLabel.ToLabel(c.Type)})")];
+
+    private static string[] BuildRawColumnNames(TableSchema schema) =>
+        [.. schema.Columns.Select(c => c.Name)];
 
     private static byte[][] BuildColumnNamesUtf8(TableSchema schema) =>
         [.. schema.Columns.Select(c => Encoding.UTF8.GetBytes(c.Name))];

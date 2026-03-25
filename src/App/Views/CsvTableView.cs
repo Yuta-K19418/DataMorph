@@ -28,6 +28,12 @@ internal sealed class CsvTableView : TableView
     /// </summary>
     internal Func<bool>? IsRowIndexComplete { get; init; }
 
+    /// <summary>
+    /// Resolves a column index to the raw (un-labeled) column name for action creation.
+    /// When <see langword="null"/>, morphing is disabled (same guard as <see cref="OnMorphAction"/>).
+    /// </summary>
+    internal Func<int, string>? GetRawColumnName { get; init; }
+
     /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)
     {
@@ -104,13 +110,14 @@ internal sealed class CsvTableView : TableView
 
     private bool HandleRenameColumn()
     {
-        if (App is null || OnMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || OnMorphAction is null || GetRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new RenameColumnDialog(columnName);
+        var rawName = GetRawColumnName(SelectedColumn);
+        using var dialog = new RenameColumnDialog(rawName);
         App.Run(dialog);
 
         if (!dialog.Confirmed || dialog.NewName is null)
@@ -118,19 +125,21 @@ internal sealed class CsvTableView : TableView
             return true;
         }
 
-        OnMorphAction(new RenameColumnAction { OldName = columnName, NewName = dialog.NewName });
+        OnMorphAction(new RenameColumnAction { OldName = rawName, NewName = dialog.NewName });
         return true;
     }
 
     private bool HandleDeleteColumn()
     {
-        if (App is null || OnMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || OnMorphAction is null || GetRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new DeleteColumnDialog(columnName);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = GetRawColumnName(SelectedColumn);
+        using var dialog = new DeleteColumnDialog(displayName);
         App.Run(dialog);
 
         if (!dialog.Confirmed)
@@ -138,19 +147,21 @@ internal sealed class CsvTableView : TableView
             return true;
         }
 
-        OnMorphAction(new DeleteColumnAction { ColumnName = columnName });
+        OnMorphAction(new DeleteColumnAction { ColumnName = rawName });
         return true;
     }
 
     private bool HandleCastColumn()
     {
-        if (App is null || OnMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || OnMorphAction is null || GetRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new CastColumnDialog(columnName, ColumnType.Text);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = GetRawColumnName(SelectedColumn);
+        using var dialog = new CastColumnDialog(displayName, ColumnType.Text);
         App.Run(dialog);
 
         if (!dialog.Confirmed || dialog.SelectedType is null)
@@ -159,14 +170,15 @@ internal sealed class CsvTableView : TableView
         }
 
         OnMorphAction(
-            new CastColumnAction { ColumnName = columnName, TargetType = dialog.SelectedType.Value }
+            new CastColumnAction { ColumnName = rawName, TargetType = dialog.SelectedType.Value }
         );
         return true;
     }
 
     private bool HandleFilterColumn()
     {
-        if (App is null || OnMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || OnMorphAction is null || GetRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
@@ -177,8 +189,9 @@ internal sealed class CsvTableView : TableView
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new FilterColumnDialog(columnName);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = GetRawColumnName(SelectedColumn);
+        using var dialog = new FilterColumnDialog(displayName);
         App.Run(dialog);
 
         if (!dialog.Confirmed || dialog.SelectedOperator is null || dialog.Value is null)
@@ -189,7 +202,7 @@ internal sealed class CsvTableView : TableView
         OnMorphAction(
             new FilterAction
             {
-                ColumnName = columnName,
+                ColumnName = rawName,
                 Operator = dialog.SelectedOperator.Value,
                 Value = dialog.Value,
             }
@@ -199,13 +212,15 @@ internal sealed class CsvTableView : TableView
 
     private bool HandleFillColumn()
     {
-        if (App is null || OnMorphAction is null || Table is null || SelectedColumn < 0)
+        if (App is null || OnMorphAction is null || GetRawColumnName is null
+            || Table is null || SelectedColumn < 0)
         {
             return true;
         }
 
-        var columnName = Table.ColumnNames[SelectedColumn];
-        using var dialog = new FillColumnDialog(columnName);
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = GetRawColumnName(SelectedColumn);
+        using var dialog = new FillColumnDialog(displayName);
         App.Run(dialog);
 
         if (!dialog.Confirmed)
@@ -213,7 +228,7 @@ internal sealed class CsvTableView : TableView
             return true;
         }
 
-        OnMorphAction(new FillColumnAction { ColumnName = columnName, Value = dialog.Value });
+        OnMorphAction(new FillColumnAction { ColumnName = rawName, Value = dialog.Value });
         return true;
     }
 }

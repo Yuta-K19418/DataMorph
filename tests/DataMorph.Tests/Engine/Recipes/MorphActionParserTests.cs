@@ -263,4 +263,81 @@ public sealed class MorphActionParserTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("'value'");
     }
+
+    [Fact]
+    public void ParseAction_ValidFillAction_ReturnsSuccess()
+    {
+        // Arrange
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "fill" },
+            { "columnName", "Email" },
+            { "value", "REDACTED" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var action = result.Value.Should().BeOfType<FillColumnAction>().Subject;
+        action.ColumnName.Should().Be("Email");
+        action.Value.Should().Be("REDACTED");
+    }
+
+    [Fact]
+    public void ParseAction_FillAction_WithMissingColumnName_ReturnsFailure()
+    {
+        // Arrange
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "fill" },
+            { "value", "REDACTED" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("'columnName'");
+    }
+
+    [Fact]
+    public void ParseAction_FillAction_WithMissingValue_ReturnsFailure()
+    {
+        // Arrange
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "fill" },
+            { "columnName", "Email" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("'value'");
+    }
+
+    [Fact]
+    public void ParseAction_FillAction_WithEmptyValue_ReturnsSuccess()
+    {
+        // Arrange — empty string is a valid fill value (e.g., blank-out a column)
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "fill" },
+            { "columnName", "Email" },
+            { "value", "" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var action = result.Value.Should().BeOfType<FillColumnAction>().Subject;
+        action.Value.Should().Be("");
+    }
 }

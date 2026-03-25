@@ -1,3 +1,7 @@
+using System.Diagnostics;
+using DataMorph.Engine;
+using DataMorph.Engine.Models;
+
 namespace DataMorph.App.Cli;
 
 internal static class RecordProcessor
@@ -5,7 +9,7 @@ internal static class RecordProcessor
     public static async ValueTask<ExitCode> ProcessAsync<TReader, TWriter>(
         TReader reader,
         TWriter writer,
-        int outputColumnCount,
+        IReadOnlyList<BatchOutputColumn> columns,
         CancellationToken ct)
         where TReader : struct, IRecordReader
         where TWriter : struct, IRecordWriter
@@ -23,9 +27,18 @@ internal static class RecordProcessor
 
             await writer.WriteStartRecordAsync(ct).ConfigureAwait(false);
 
-            for (var i = 0; i < outputColumnCount; i++)
+            for (var i = 0; i < columns.Count; i++)
             {
-                var span = reader.GetCellSpan(i);
+                if (columns[i].Transform is not { } transform)
+                {
+                    writer.WriteCellSpan(i, reader.GetCellSpan(i));
+                    continue;
+                }
+                var span = transform switch
+                {
+                    FillSpec fill => fill.Value.AsSpan(),
+                    _ => throw new UnreachableException($"Unhandled CellTransformSpec: {transform.GetType().Name}"),
+                };
                 writer.WriteCellSpan(i, span);
             }
 

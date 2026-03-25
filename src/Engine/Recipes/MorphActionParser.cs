@@ -22,6 +22,7 @@ internal sealed class MorphActionParser
                 "delete" => ParseDeleteAction(fields),
                 "cast" => ParseCastAction(fields),
                 "filter" => ParseFilterAction(fields),
+                "fill" => ParseFillAction(fields),
                 _ => Results.Failure<MorphAction>($"Unknown action type: '{type}'"),
             }
             : Results.Failure<MorphAction>("Missing action type");
@@ -78,6 +79,21 @@ internal sealed class MorphActionParser
             ColumnName = columnName,
             TargetType = targetType,
         });
+    }
+
+    private static Result<MorphAction> ParseFillAction(Dictionary<string, string> fields)
+    {
+        if (!fields.TryGetValue("columnName", out var columnName))
+        {
+            return Results.Failure<MorphAction>("Missing required field 'columnName' for fill action");
+        }
+
+        if (!fields.TryGetValue("value", out var value))
+        {
+            return Results.Failure<MorphAction>("Missing required field 'value' for fill action");
+        }
+
+        return Results.Success<MorphAction>(new FillColumnAction { ColumnName = columnName, Value = value });
     }
 
     private static Result<MorphAction> ParseFilterAction(Dictionary<string, string> fields)

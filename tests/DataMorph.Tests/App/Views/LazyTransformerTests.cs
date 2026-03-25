@@ -773,8 +773,8 @@ public sealed class LazyTransformerTests
             },
         ];
 
-        // Act — the filter spec is skipped (Status column was deleted), so the factory receives
-        // an empty FilterSpec list and no IFilterRowIndexer is created; all source rows are exposed
+        // Act — the filter spec is skipped (Status column was deleted), so no FilterSpec
+        // is generated and the factory is never called; all source rows are exposed
         var transformer = MakeFilteredTransformer(source, schema, actions, []);
 
         // Assert — both rows retained because the filter was silently skipped
@@ -845,5 +845,244 @@ public sealed class LazyTransformerTests
 
         // Assert — all rows excluded because numeric operators are unsupported on Text columns
         transformer.Rows.Should().Be(0);
+    }
+
+    // -------------------------------------------------------------------------
+    // Schema transformation — Fill
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void FillColumnAction_SingleColumn_AllCellsReturnFillValue()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1"],
+                ["a2"],
+                ["a3"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "A", Value = "FILLED" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer[0, 0].Should().Be("FILLED");
+        transformer[1, 0].Should().Be("FILLED");
+        transformer[2, 0].Should().Be("FILLED");
+    }
+
+    [Fact]
+    public void FillColumnAction_NonExistentColumn_IsIgnored()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "DoesNotExist", Value = "FILLED" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer[0, 0].Should().Be("a1");
+    }
+
+    [Fact]
+    public void FillColumnAction_EmptyString_AllCellsReturnEmpty()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1"],
+                ["a2"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "A", Value = string.Empty },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer[0, 0].Should().Be(string.Empty);
+        transformer[1, 0].Should().Be(string.Empty);
+    }
+
+    [Fact]
+    public void FillColumnAction_WithRename_FillAppliedAfterRename()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1", "b1"],
+            ],
+            ["A", "B"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text), ("B", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new RenameColumnAction { OldName = "A", NewName = "X" },
+            new FillColumnAction { ColumnName = "X", Value = "FILLED" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer[0, 0].Should().Be("FILLED");
+        transformer[0, 1].Should().Be("b1");
+    }
+
+    [Fact]
+    public void FillColumnAction_SameColumnFilledTwice_LastValueWins()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["original"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "A", Value = "first" },
+            new FillColumnAction { ColumnName = "A", Value = "second" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer[0, 0].Should().Be("second");
+    }
+
+    [Fact]
+    public void FillColumnAction_MultipleColumns_OnlyTargetColumnFilled()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1", "b1", "c1"],
+            ],
+            ["A", "B", "C"]
+        );
+        var schema = MakeSchema(
+            ("A", ColumnType.Text),
+            ("B", ColumnType.Text),
+            ("C", ColumnType.Text)
+        );
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "B", Value = "FILLED" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer[0, 0].Should().Be("a1");
+        transformer[0, 1].Should().Be("FILLED");
+        transformer[0, 2].Should().Be("c1");
+    }
+
+    [Fact]
+    public void FillColumnAction_FillBeforeRename_FillPreservedAfterRename()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "A", Value = "FILLED" },
+            new RenameColumnAction { OldName = "A", NewName = "X" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        transformer.ColumnNames[0].Should().Be("X");
+        transformer[0, 0].Should().Be("FILLED");
+    }
+
+    [Fact]
+    public void FillColumnAction_WithCast_FillValueBypassesCastFormatting()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["42"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new CastColumnAction { ColumnName = "A", TargetType = ColumnType.WholeNumber },
+            new FillColumnAction { ColumnName = "A", Value = "hello" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        // FillValue takes precedence over cast formatting
+        transformer[0, 0].Should().Be("hello");
+    }
+
+    [Fact]
+    public void FillColumnAction_ColumnNames_PreservesAllColumnNames()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["a1", "b1", "c1"],
+            ],
+            ["A", "B", "C"]
+        );
+        var schema = MakeSchema(
+            ("A", ColumnType.Text),
+            ("B", ColumnType.Text),
+            ("C", ColumnType.Text)
+        );
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FillColumnAction { ColumnName = "B", Value = "FILLED" },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        // All three columns should be present after fill action
+        transformer.ColumnNames.Should().HaveCount(3);
+        transformer.ColumnNames[0].Should().Be("A");
+        transformer.ColumnNames[1].Should().Be("B");
+        transformer.ColumnNames[2].Should().Be("C");
+        transformer.Columns.Should().Be(3);
     }
 }

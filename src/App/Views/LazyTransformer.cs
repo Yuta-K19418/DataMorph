@@ -1,5 +1,6 @@
 using System.Globalization;
 using DataMorph.Engine.Filtering;
+using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
@@ -21,6 +22,7 @@ internal sealed class LazyTransformer : ITableSource
     private readonly ITableSource _source;
     private readonly IReadOnlyList<int> _sourceColumnIndices;
     private readonly string[] _columnNames;
+    private readonly string[] _rawColumnNames;
     private readonly IReadOnlyList<ColumnType> _columnTypes;
     private readonly IReadOnlyList<string?> _fillValues;
     private readonly IFilterRowIndexer? _filterRowIndexer;
@@ -50,7 +52,7 @@ internal sealed class LazyTransformer : ITableSource
         ArgumentNullException.ThrowIfNull(actions);
 
         _source = source;
-        (_columnNames, _columnTypes, _sourceColumnIndices, _fillValues, var filterSpecs) =
+        (_columnNames, _rawColumnNames, _columnTypes, _sourceColumnIndices, _fillValues, var filterSpecs) =
             BuildTransformedSchema(originalSchema, actions);
 
         if (filterSpecs.Count > 0 && filterRowIndexerFactory is not null)
@@ -80,6 +82,13 @@ internal sealed class LazyTransformer : ITableSource
 
     /// <inheritdoc/>
     public string[] ColumnNames => _columnNames;
+
+    /// <summary>
+    /// Gets the raw (unlabeled) column names in output order.
+    /// Use these when constructing <see cref="MorphAction"/>s so that action
+    /// <c>ColumnName</c> values match the schema names used inside <see cref="BuildTransformedSchema"/>.
+    /// </summary>
+    internal string[] RawColumnNames => _rawColumnNames;
 
     /// <inheritdoc/>
     public object this[int row, int col]
@@ -127,6 +136,7 @@ internal sealed class LazyTransformer : ITableSource
     /// </summary>
     private static (
         string[] columnNames,
+        string[] rawColumnNames,
         IReadOnlyList<ColumnType> columnTypes,
         IReadOnlyList<int> sourceColumnIndices,
         IReadOnlyList<string?> fillValues,
@@ -204,7 +214,8 @@ internal sealed class LazyTransformer : ITableSource
                     continue;
                 }
 
-                working[fillIdx] = working[fillIdx] with { FillValue = fill.Value };
+                var inferredType = TypeInferrer.InferType(fill.Value.AsSpan());
+                working[fillIdx] = working[fillIdx] with { FillValue = fill.Value, Type = inferredType };
                 continue;
             }
         }
@@ -217,6 +228,9 @@ internal sealed class LazyTransformer : ITableSource
         }
 
         return (
+            remaining
+                .ConvertAll(workingColumn => $"{workingColumn.Name} ({ColumnTypeLabel.ToLabel(workingColumn.Type)})")
+                .ToArray(),
             remaining.ConvertAll(workingColumn => workingColumn.Name).ToArray(),
             remaining.ConvertAll(workingColumn => workingColumn.Type),
             remaining.ConvertAll(workingColumn => workingColumn.SourceIndex),

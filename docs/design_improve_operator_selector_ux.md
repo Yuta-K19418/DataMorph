@@ -2,87 +2,58 @@
 
 ## Requirements
 
-The operator selector in the Filter Column dialog must behave like a standard radio group:
-arrow key navigation should immediately select the focused item. Currently,
-`OptionSelector<FilterOperator>` only moves highlight on arrow keys and requires an explicit
-Space or Enter keypress to confirm the selection, which is unintuitive.
+The operator selector and value input in the Filter Column dialog need several UX improvements:
+
+1.  **Select-on-Navigate**: Arrow key navigation should immediately select the focused item in the operator list. Currently, it only moves the highlight and requires an explicit Space or Enter keypress to confirm, which is unintuitive.
+2.  **Adaptive Layout**: The "Value" input box must be positioned relative to the operator list (using `Pos.Bottom`) to avoid overlapping when the operator list grows.
+3.  **Selection Flow**: After an operator is selected (via Enter, Space, or mouse click), the focus should automatically move to the "Value" text field to streamline input.
+4.  **Vim-style Navigation**: Support `j` and `k` keys for navigating up and down the operator list.
 
 ## Root Cause
 
-`OptionSelector<FilterOperator>` (from Terminal.Gui v2) uses `CheckBox` subviews with radio
-style. Its `MoveNext`/`MovePrevious` methods (bound to the arrow keys) only call `SetFocus()`
-on the target checkbox — they do not update `Value`. `Value` changes only when a checkbox is
-*activated* (Space/Enter or double-click). This is the correct behavior for a multi-step
-selector, but it does not match the intuitive "select-on-navigate" radio button UX.
+1.  **Selection Logic**: `OptionSelector<FilterOperator>` (from Terminal.Gui v2) uses `CheckBox` subviews with radio style. Its `MoveNext`/`MovePrevious` methods (bound to the arrow keys) only call `SetFocus()` on the target checkbox — they do not update `Value`. `Value` changes only when a checkbox is *activated* (Space/Enter or double-click).
+2.  **Static Layout**: The `FilterColumnDialog` currently uses a fixed `Y=4` for the Value input, which causes it to overlap with the operator list (which has 10 items).
+3.  **Manual Focus**: Users must manually tab from the operator selector to the text field, adding an extra step to the common workflow.
 
 ## Approach
 
-Introduce `AutoSelectOptionSelector<TEnum>` — a thin subclass of `OptionSelector<TEnum>` that
-overrides `CreateSubViews()`. After calling the base implementation, it subscribes to each
-`CheckBox` child's `HasFocusChanged` event. When a checkbox gains focus, the selector's
-`SelectorBase.Value` is immediately updated to that checkbox's integer value, which in turn
-causes `OptionSelector<TEnum>.Value` (the typed `TEnum?` property) to reflect the newly
-focused item without requiring any additional keypress.
-
-Replace `OptionSelector<FilterOperator>` with `AutoSelectOptionSelector<FilterOperator>` in
-`FilterColumnDialog`.
+1.  **Auto-selection**: Introduce `AutoSelectOptionSelector<TEnum>` — a thin subclass of `OptionSelector<TEnum>` that overrides `CreateSubViews()`. It subscribes to each `CheckBox` child's `HasFocusChanged` event. When a checkbox gains focus, the selector's `Value` is immediately updated.
+2.  **Relative Positioning**: In `FilterColumnDialog.cs`, set `valueLabel.Y` and `textField.Y` to `Pos.Bottom(selector) + 1`. This ensures the input area always stays below the full list of operators.
+3.  **Automatic Focus Transition**: Subscribe to the `selector.Accepting` event in `FilterColumnDialog`. When an operator is confirmed (via Enter/Space), call `textField.SetFocus()`.
+4.  **Vim Key Support**: Handle the `KeyDown` event on the `OptionSelector` to map `j` to `MoveNext()` and `k` to `MovePrevious()`.
 
 ## Files to Change
 
 | File | Change |
 |------|--------|
-| `src/App/Views/AutoSelectOptionSelector.cs` | **New** — `AutoSelectOptionSelector<TEnum>` class |
-| `src/App/Views/Dialogs/FilterColumnDialog.cs` | Replace `OptionSelector<FilterOperator>` with `AutoSelectOptionSelector<FilterOperator>` |
+| `src/App/Views/AutoSelectOptionSelector.cs` | **New** — `AutoSelectOptionSelector<TEnum>` class with auto-select and Vim key support. |
+| `src/App/Views/Dialogs/FilterColumnDialog.cs` | Replace `OptionSelector` with `AutoSelectOptionSelector`, update layout to use `Pos.Bottom`, and handle `Accepting` for focus transition. |
 
 ## Implementation Notes
 
-- `AutoSelectOptionSelector<TEnum>` subscribes to each `CheckBox`'s `HasFocusChanged` event
-  inside `CreateSubViews()`, which is called once at construction time (triggered by
-  `OptionSelector<TEnum>()`'s `Labels = Enum.GetValues<TEnum>()...` assignment).
-- To update `Value`, the handler casts `this` to `SelectorBase` and sets the `int?` property
-  directly. This bypasses `OptionSelector<TEnum>`'s hiding `new` declaration and invokes the
-  real `SelectorBase.Value` setter, which handles validation, `UpdateChecked()`, and events.
-- No changes are needed to `FilterOperator`, `FilterAction`, `FilterEvaluator`, or any
-  callers of `FilterColumnDialog` — the public API of `FilterColumnDialog` is unchanged.
-- `App/Views` components are not unit-tested in this project (the testing guidelines
-  prioritize engine hot-path logic). No new test file is required.
+- **`AutoSelectOptionSelector<TEnum>`**:
+  - Subscribes to each `CheckBox`'s `HasFocusChanged` event inside `CreateSubViews()`.
+  - To update `Value`, the handler casts `this` to `SelectorBase` and sets the `int?` property directly. This bypasses `OptionSelector<TEnum>`'s hiding `new` declaration and invokes the real `SelectorBase.Value` setter, which handles validation and UI updates.
+  - Overrides key handling to support `j`/`k` for navigation.
+- **Layout**: `Pos.Bottom(selector)` is a dynamic layout primitive in Terminal.Gui that recalculates when the selector's height or content changes.
+- **Focus Transition**: The `Accepting` event is fired by `OptionSelector` when the user confirms a selection. This is the ideal trigger for moving to the next input field.
 
 ## Decision Record
 
 ### Rationale
 
-Subscribing to `HasFocusChanged` on each child `CheckBox` is the narrowest correct hook:
-focus changes whenever the user presses an arrow key (via `SelectorBase`'s `MoveNext` /
-`MovePrevious` commands), so wiring `Value` to focus gives exactly the desired behavior
-without duplicating any key-binding or layout logic.
+- Subscribing to `HasFocusChanged` on each child `CheckBox` is the narrowest correct hook for arrow-key navigation.
+- Using `Pos.Bottom` is the standard "Terminal.Gui way" to handle vertical stacks of variable-sized views.
+- Vim keys (`j`/`k`) provide a consistent experience for power users.
 
 ### Alternatives Considered
 
-1. **Override `MoveNext`/`MovePrevious` in a subclass** — These methods are `private` in
-   `SelectorBase`, making them inaccessible to subclasses. Forking the methods would require
-   copying a significant amount of internal logic and would break on future Terminal.Gui
-   updates.
-
-2. **Handle `KeyDown` on `FilterColumnDialog`** — Listening for `CursorDown`/`CursorUp` at
-   the dialog level and manually updating `selector.Value` is fragile: it would need to
-   replicate the orientation-aware focus-traversal logic already in `SelectorBase`, and could
-   interfere with other key handlers in the dialog.
-
-3. **Replace with `DropDownList`** — A dropdown changes the interaction model (click to open,
-   then select). It does not match the "always-visible radio button list" UX described in the
-   issue.
-
-4. **Replace with `ListView`** — A `ListView` would need custom rendering, value mapping, and
-   keyboard handling to replace what `OptionSelector<TEnum>` already provides. Higher
-   complexity for the same outcome.
+1.  **Override `MoveNext`/`MovePrevious` in a subclass** — These methods are `private` in `SelectorBase`, making them inaccessible. Forking them would require copying internal logic.
+2.  **Handle `KeyDown` on `FilterColumnDialog`** — Listening for navigation keys at the dialog level is fragile and could interfere with other key handlers.
+3.  **Fixed Height with Scrollbar** — Making the operator selector a fixed height (e.g., 3 rows) with a scrollbar would save space but hide available operators.
+4.  **Replace with DropDownList/ComboBox** — A dropdown would solve the space issue but require more clicks to see the options.
 
 ### Consequences
 
-- `AutoSelectOptionSelector<TEnum>` is a reusable generic component. If the same UX issue is
-  later reported for `CastColumnDialog` (which also uses `OptionSelector<ColumnType>`), it can
-  be swapped in without any design work.
-- The change does not affect `CastColumnDialog` intentionally: that dialog's confirmation
-  flow is different (it checks whether the selected type differs from the current type), and
-  the issue specifically targets `FilterColumnDialog`.
-- The `HasFocusChanged` subscription captures `int value` by value in a closure, which is
-  safe and allocation-free after construction (no heap allocations on each keystroke).
+- `AutoSelectOptionSelector<TEnum>` is a reusable generic component that can be used in other dialogs like `CastColumnDialog`.
+- The `HasFocusChanged` subscription captures `int value` by value in a closure, which is safe and allocation-free after construction.

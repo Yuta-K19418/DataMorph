@@ -61,18 +61,18 @@ internal sealed class FilterColumnDialog : Dialog
             Width = Dim.Fill(),
             Value = FilterOperator.Equals,
         };
-        selector.EnableAutoSelectOnFocus();
+        selector.EnableAutoSelectAndVimKeys();
         var valueLabel = new Label
         {
             Text = "Value:",
             X = 0,
-            Y = 4,
+            Y = Pos.Bottom(selector) + 1,
         };
         var textField = new TextField
         {
             Text = string.Empty,
             X = Pos.Right(valueLabel) + 1,
-            Y = 4,
+            Y = Pos.Bottom(selector) + 1,
             Width = Dim.Fill(),
         };
         Add(colLabel, operatorLabel, selector, valueLabel, textField);
@@ -109,7 +109,7 @@ internal sealed class FilterColumnDialog : Dialog
         selector.Accepting += (sender, e) =>
         {
             e.Handled = true;
-            Confirm();
+            textField.SetFocus();
         };
 
         AddButton(okButton);

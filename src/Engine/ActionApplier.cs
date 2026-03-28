@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DataMorph.Engine.Filtering;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
+using DataMorph.Engine.Types;
 
 namespace DataMorph.Engine;
 
@@ -114,9 +115,22 @@ public static class ActionApplier
                 continue;
             }
 
-            if (action is FormatTimestampAction)
+            if (action is FormatTimestampAction formatTimestamp)
             {
-                throw new NotImplementedException();
+                if (!nameToWorkingIndex.TryGetValue(formatTimestamp.ColumnName, out var idx))
+                {
+                    continue;
+                }
+
+                var (_, type, _, _) = workingColumns[idx];
+                if (type != ColumnType.Timestamp)
+                {
+                    return Results.Failure<BatchOutputSchema>(
+                        $"FormatTimestampAction requires column '{formatTimestamp.ColumnName}' to be of type Timestamp, but it is {type}.");
+                }
+
+                transformsByWorkingIndex[idx] = new TimestampFormatSpec(formatTimestamp.TargetFormat);
+                continue;
             }
 
             throw new UnreachableException($"Unhandled action type: {action.GetType().Name}");

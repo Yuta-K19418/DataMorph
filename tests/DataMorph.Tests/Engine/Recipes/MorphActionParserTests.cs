@@ -340,4 +340,81 @@ public sealed class MorphActionParserTests
         var action = result.Value.Should().BeOfType<FillColumnAction>().Subject;
         action.Value.Should().Be("");
     }
+
+    [Fact]
+    public void ParseAction_ValidFormatTimestampAction_ReturnsSuccess()
+    {
+        // Arrange
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "format_timestamp" },
+            { "columnName", "CreatedAt" },
+            { "targetFormat", "yyyy/MM/dd" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var action = result.Value.Should().BeOfType<FormatTimestampAction>().Subject;
+        action.ColumnName.Should().Be("CreatedAt");
+        action.TargetFormat.Should().Be("yyyy/MM/dd");
+    }
+
+    [Fact]
+    public void ParseAction_FormatTimestampAction_WithMissingColumnName_ReturnsFailure()
+    {
+        // Arrange
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "format_timestamp" },
+            { "targetFormat", "yyyy/MM/dd" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("'columnName'");
+    }
+
+    [Fact]
+    public void ParseAction_FormatTimestampAction_WithMissingTargetFormat_ReturnsFailure()
+    {
+        // Arrange
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "format_timestamp" },
+            { "columnName", "CreatedAt" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("'targetFormat'");
+    }
+
+    [Fact]
+    public void ParseAction_FormatTimestampAction_WithEmptyTargetFormat_ReturnsFailure()
+    {
+        // Arrange
+        var fields = new Dictionary<string, string>
+        {
+            { "type", "format_timestamp" },
+            { "columnName", "CreatedAt" },
+            { "targetFormat", "" },
+        };
+
+        // Act
+        var result = MorphActionParser.ParseAction(fields);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("targetFormat");
+        result.Error.Should().Contain("empty");
+    }
 }

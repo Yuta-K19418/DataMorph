@@ -591,31 +591,110 @@ public sealed class ActionApplierTests
     public void BuildOutputSchema_WithFormatTimestampAction_OnTimestampColumn_AttachesTransformToColumn()
     {
         // Arrange
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "CreatedAt", Type = ColumnType.Timestamp, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions = [new FormatTimestampAction { ColumnName = "CreatedAt", TargetFormat = "yyyy/MM/dd" }];
+
         // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Columns.Should().HaveCount(1);
+        result.Value.Columns[0].SourceName.Should().Be("CreatedAt");
+        result.Value.Columns[0].Transform.Should().BeOfType<TimestampFormatSpec>()
+            .Which.TargetFormat.Should().Be("yyyy/MM/dd");
     }
 
     [Fact]
     public void BuildOutputSchema_WithFormatTimestampAction_OnTextColumn_ReturnsFailure()
     {
         // Arrange
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "Name", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions = [new FormatTimestampAction { ColumnName = "Name", TargetFormat = "yyyy/MM/dd" }];
+
         // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
         // Assert
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("Name");
+        result.Error.Should().Contain("Timestamp");
     }
 
     [Fact]
     public void BuildOutputSchema_WithFormatTimestampAction_OnNonExistentColumn_SkipsSilently()
     {
         // Arrange
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "A", Type = ColumnType.Timestamp, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions = [new FormatTimestampAction { ColumnName = "NonExistent", TargetFormat = "yyyy/MM/dd" }];
+
         // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Columns.Should().HaveCount(1);
+        result.Value.Columns[0].Transform.Should().BeNull();
     }
 
     [Fact]
     public void BuildOutputSchema_WithCastToTimestampThenFormat_AppliesCorrectly()
     {
         // Arrange
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "Date", Type = ColumnType.Text, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new CastColumnAction { ColumnName = "Date", TargetType = ColumnType.Timestamp },
+            new FormatTimestampAction { ColumnName = "Date", TargetFormat = "dd-MM-yyyy" },
+        ];
+
         // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Columns.Should().HaveCount(1);
+        result.Value.Columns[0].Transform.Should().BeOfType<TimestampFormatSpec>()
+            .Which.TargetFormat.Should().Be("dd-MM-yyyy");
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFormatTimestampAction_OnDeletedColumn_SkipsSilently()
+    {
+        // Arrange — delete column first; subsequent format_timestamp on same (now removed) column is a no-op
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "CreatedAt", Type = ColumnType.Timestamp, IsNullable = false, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.Csv,
+        };
+        MorphAction[] actions =
+        [
+            new DeleteColumnAction { ColumnName = "CreatedAt" },
+            new FormatTimestampAction { ColumnName = "CreatedAt", TargetFormat = "yyyy/MM/dd" },
+        ];
+
+        // Act
+        var result = ActionApplier.BuildOutputSchema(schema, actions);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Columns.Should().BeEmpty();
+        result.Value.Filters.Should().BeEmpty();
     }
 }

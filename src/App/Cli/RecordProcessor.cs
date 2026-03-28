@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using DataMorph.Engine;
 using DataMorph.Engine.Models;
 
@@ -37,7 +38,7 @@ internal static class RecordProcessor
                 var span = transform switch
                 {
                     FillSpec fill => fill.Value.AsSpan(),
-                    TimestampFormatSpec => throw new NotImplementedException(),
+                    TimestampFormatSpec fmt => ApplyTimestampFormat(reader.GetCellSpan(i), fmt).AsSpan(),
                     _ => throw new UnreachableException($"Unhandled CellTransformSpec: {transform.GetType().Name}"),
                 };
                 writer.WriteCellSpan(i, span);
@@ -52,6 +53,11 @@ internal static class RecordProcessor
 
     private static string ApplyTimestampFormat(ReadOnlySpan<char> raw, TimestampFormatSpec fmt)
     {
-        throw new NotImplementedException();
+        if (!DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+        {
+            throw new FormatException($"Could not parse timestamp value '{raw}'.");
+        }
+
+        return parsed.ToString(fmt.TargetFormat, CultureInfo.InvariantCulture);
     }
 }

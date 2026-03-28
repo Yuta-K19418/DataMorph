@@ -129,6 +129,25 @@ internal sealed class MorphActionParser
 
     private static Result<MorphAction> ParseFormatTimestampAction(Dictionary<string, string> fields)
     {
-        throw new NotImplementedException();
+        if (!fields.TryGetValue("columnName", out var columnName))
+        {
+            return Results.Failure<MorphAction>("Missing required field 'columnName' for format_timestamp action");
+        }
+
+        if (!fields.TryGetValue("targetFormat", out var targetFormat))
+        {
+            return Results.Failure<MorphAction>("Missing required field 'targetFormat' for format_timestamp action");
+        }
+
+        if (string.IsNullOrWhiteSpace(targetFormat))
+        {
+            return Results.Failure<MorphAction>("Field 'targetFormat' must not be empty for format_timestamp action");
+        }
+
+        return Results.Success<MorphAction>(new FormatTimestampAction
+        {
+            ColumnName = columnName,
+            TargetFormat = targetFormat,
+        });
     }
 }

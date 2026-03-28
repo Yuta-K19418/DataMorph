@@ -3,24 +3,31 @@
 ## Scope
 
 Three related problems are addressed together in this document because they share
-the same code paths in `RowIndexer`, `FileLoader`, and `MainWindow`.
+the same code paths in `RowIndexer`, `DataRowIndexer`, `FileLoader`, and `MainWindow`.
+Both the JSON Lines indexer (`RowIndexer`) and the CSV indexer (`DataRowIndexer`)
+are affected equally; all fixes are applied to both.
 
 **Problem A — Empty initial display:** `FileLoader` constructs `JsonLinesTreeView`
 before any rows have been indexed, so the tree is always empty on first render.
+(CSV table view is not affected because it waits for `InitialScanAsync` before
+constructing the view, but the CSV indexer gains the same readiness signal for
+consistency.)
 
-**Problem B — No progress feedback:** While `RowIndexer.BuildIndex` runs in the
-background there is no visual indication of how much of the file has been
-processed, producing a frozen-looking UI for large files.
+**Problem B — No progress feedback:** While `BuildIndex` runs in the background
+there is no visual indication of how much of the file has been processed,
+producing a frozen-looking UI for large files. This applies to both `.jsonl` and
+`.csv` files.
 
 **Problem C — Uncontrolled background task:** `BuildIndex` runs as a
 fire-and-forget `Task.Run` with no `CancellationToken`. Opening a new file while
 indexing is in progress, or quitting the application, leaves the previous
 indexing task running to completion silently. This wastes CPU and I/O, and can
 cause late-arriving `Application.Invoke` callbacks to race against a new load
-cycle.
+cycle. Both `RowIndexer` and `DataRowIndexer` are affected.
 
 Solving all three together avoids multiple churn cycles on the same files and
-produces a coherent, safe lifecycle for background indexing.
+produces a coherent, safe lifecycle for background indexing across both file
+formats.
 
 ---
 
@@ -28,20 +35,23 @@ produces a coherent, safe lifecycle for background indexing.
 
 ### Functional Requirements
 
-- `RowIndexer.BuildIndex` must accept a `CancellationToken` and exit
-  cooperatively when cancellation is requested.
-- `RowIndexer` must expose a `FirstCheckpointReached` event that fires exactly
+- `RowIndexer.BuildIndex` and `DataRowIndexer.BuildIndex` must each accept a
+  `CancellationToken` and exit cooperatively when cancellation is requested.
+- Both indexers must expose a `FirstCheckpointReached` event that fires exactly
   once when the first 1,000-row checkpoint is indexed.
-- `RowIndexer` must expose `FileSize` and `BytesRead` properties so callers can
+- Both indexers must expose `FileSize` and `BytesRead` properties so callers can
   compute a progress percentage without a lock.
-- `RowIndexer` must raise `ProgressChanged` on every checkpoint boundary and
+- Both indexers must raise `ProgressChanged` on every checkpoint boundary and
   `BuildIndexCompleted` when scanning ends (including on cancellation and error).
 - `FileLoader.LoadJsonLinesAsync` must cancel any in-flight `BuildIndex` before
   starting a new one, and must await `FirstCheckpointReached` before setting
   `AppState.CurrentMode`.
-- `FileLoader.Dispose` must cancel any in-flight `BuildIndex`.
+- `FileLoader.LoadCsvAsync` must cancel any in-flight `BuildIndex` before
+  starting a new one.
+- `FileLoader.Dispose` must cancel any in-flight `BuildIndex` (both JSON Lines
+  and CSV).
 - `MainWindow` must display a progress bar while `BuildIndex` is running and
-  dismiss it when indexing completes or is cancelled.
+  dismiss it when indexing completes or is cancelled, for both file formats.
 - The progress display must show: percentage complete, bytes read, and total
   file size.
 - After cancellation the progress bar must disappear cleanly with no stale
@@ -68,14 +78,16 @@ produces a coherent, safe lifecycle for background indexing.
 
 **Empty display and no progress** share the same root: `FileLoader` fires
 `Task.Run(indexer.BuildIndex)` without awaiting any readiness signal, and
-`RowIndexer` exposes no progress surface.
+neither `RowIndexer` nor `DataRowIndexer` exposes a progress surface.
 
-**Uncontrolled cancellation** has a different root: `BuildIndex` takes no
-`CancellationToken`, so `FileLoader` has no way to stop it. The existing
-`AppState.Cts` is wired only to `IncrementalSchemaScanner`; `BuildIndex` has
-always been truly fire-and-forget.
+**Uncontrolled cancellation** has a different root: `BuildIndex` on both
+indexers takes no `CancellationToken`, so `FileLoader` has no way to stop
+either. The existing `AppState.Cts` is wired only to `IncrementalSchemaScanner`;
+both `BuildIndex` calls have always been truly fire-and-forget.
 
 ### 2.2 Lifecycle Model (After Fix)
+
+**JSON Lines path:**
 
 ```
 FileLoader.LoadJsonLinesAsync(path)
@@ -92,6 +104,26 @@ FileLoader.LoadJsonLinesAsync(path)
   └─ update AppState, switch view
 ```
 
+**CSV path:**
+
+```
+FileLoader.LoadCsvAsync(path)
+  │
+  ├─ CancelPreviousBuildIndexAsync()   ← cancel old CTS, await old task
+  ├─ _buildIndexCts = new CTS
+  ├─ new DataRowIndexer(path)
+  ├─ subscribe ProgressChanged        → Application.Invoke(UpdateProgressBar)
+  ├─ subscribe BuildIndexCompleted    → Application.Invoke(DismissProgressBar)
+  ├─ _buildIndexTask = Task.Run(() => indexer.BuildIndex(_buildIndexCts.Token))
+  ├─ ShowProgressBar()
+  ├─ await schemaScanner.InitialScanAsync()   ← existing wait
+  └─ update AppState, switch view
+```
+
+Note: `LoadCsvAsync` does not await `FirstCheckpointReached` because the view
+is already gated on `InitialScanAsync`. The event is still implemented on
+`DataRowIndexer` for interface symmetry with `RowIndexer`.
+
 On new file open or `Dispose`:
 
 ```
@@ -100,9 +132,11 @@ CancelPreviousBuildIndexAsync()
   └─ await _buildIndexTask (silently swallows OperationCanceledException)
 ```
 
-### 2.3 `RowIndexer.cs` — Changes
+### 2.3 `RowIndexer.cs` and `DataRowIndexer.cs` — Changes
 
 #### New Signature for `BuildIndex`
+
+The same signature change is applied to both `RowIndexer` and `DataRowIndexer`:
 
 ```csharp
 /// <summary>
@@ -116,9 +150,9 @@ public void BuildIndex(CancellationToken ct = default)
 ```
 
 The default value keeps all existing call sites that pass no token unchanged
-(the CSV indexer, tests, and the CLI pipeline are unaffected).
+(tests and the CLI pipeline are unaffected).
 
-#### New Properties
+#### New Properties (both indexers)
 
 ```csharp
 /// <summary>Total file size in bytes. Set once before scanning begins.</summary>
@@ -133,7 +167,7 @@ public long BytesRead => Interlocked.Read(ref _bytesRead);
 private long _bytesRead;
 ```
 
-#### New Events
+#### New Events (both indexers)
 
 ```csharp
 /// <summary>
@@ -159,7 +193,7 @@ public event Action? BuildIndexCompleted;
 private bool _firstCheckpointReached;
 ```
 
-#### Updated `BuildIndex` Body
+#### Updated `BuildIndex` Body (same pattern for both indexers)
 
 ```csharp
 public void BuildIndex(CancellationToken ct = default)
@@ -244,6 +278,10 @@ finally
 
 #### Updated `ProcessBuffer` — Checkpoint Block
 
+The same additions are made to both `RowIndexer.ProcessBuffer` and
+`DataRowIndexer.ProcessBuffer` inside the existing
+`if (rowCount % CheckPointInterval == 0)` guard:
+
 ```csharp
 if (rowCount % CheckPointInterval == 0)
 {
@@ -267,8 +305,9 @@ if (rowCount % CheckPointInterval == 0)
 
 ### 2.4 `FileLoader.cs` — Cancellation + Await
 
-`FileLoader` owns a `CancellationTokenSource` and `Task` for the current
-`BuildIndex` operation. Both are replaced on every `LoadJsonLinesAsync` call.
+`FileLoader` owns a single `CancellationTokenSource` and `Task` that cover the
+current `BuildIndex` operation for whichever file format is loading. Both are
+replaced on every `LoadJsonLinesAsync` or `LoadCsvAsync` call.
 
 ```csharp
 private CancellationTokenSource? _buildIndexCts;
@@ -286,7 +325,11 @@ private async Task CancelPreviousBuildIndexAsync()
         // Expected; swallow.
     }
 }
+```
 
+**JSON Lines path** (awaits `FirstCheckpointReached` before switching view):
+
+```csharp
 private async Task<Result> LoadJsonLinesAsync(string filePath)
 {
     await CancelPreviousBuildIndexAsync();
@@ -327,7 +370,73 @@ private async Task<Result> LoadJsonLinesAsync(string filePath)
 
     return Results.Success();
 }
+```
 
+**CSV path** (view is already gated on `InitialScanAsync`; no additional await):
+
+```csharp
+private async ValueTask<Result> LoadCsvAsync(string filePath)
+{
+    await CancelPreviousBuildIndexAsync();
+
+    _buildIndexCts?.Dispose();
+    _buildIndexCts = new CancellationTokenSource();
+    var ct = _buildIndexCts.Token;
+
+    var indexer = new DataRowIndexer(filePath);
+    var schemaScanner = new IncrementalSchemaScanner(filePath);
+
+    _buildIndexTask = Task.Run(() => indexer.BuildIndex(ct));
+
+    try
+    {
+        var schema = await schemaScanner.InitialScanAsync();
+
+        if (schema.Columns.Count == 0)
+        {
+            return Results.Failure("File contains no data");
+        }
+
+        _state.Schema = schema;
+        _state.CsvIndexer = indexer;
+        _state.CsvSchemaScanner = schemaScanner;
+        _state.CurrentMode = ViewMode.CsvTable;
+
+        _ = schemaScanner
+            .StartBackgroundScanAsync(schema, _state.Cts.Token)
+            .ContinueWith(
+                t =>
+                {
+                    if (!t.IsCompletedSuccessfully)
+                    {
+                        return;
+                    }
+
+                    _state.Schema = t.Result;
+                },
+                TaskScheduler.Default
+            );
+
+        return Results.Success();
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.Failure(ex.Message);
+    }
+    catch (IOException ex)
+    {
+        return Results.Failure($"Error reading CSV file: {ex.Message}");
+    }
+    catch (InvalidDataException ex)
+    {
+        return Results.Failure($"Invalid CSV format: {ex.Message}");
+    }
+}
+```
+
+**Dispose** cancels whichever `BuildIndex` is currently running:
+
+```csharp
 public void Dispose()
 {
     if (_disposed)
@@ -377,8 +486,9 @@ a cancelled indexer never reach the new file's UI: `DismissProgressBar` is
 called via `Application.Invoke`, but the dismissed bar belongs to the previous
 load cycle and the new bar is shown for the new indexer.
 
+**JSON Lines** (wired after `SwitchToJsonLinesTree`):
+
 ```csharp
-// In MainWindow, after SwitchToJsonLinesTree:
 if (_state.JsonLinesIndexer is { } indexer)
 {
     ShowIndexingProgress();
@@ -387,6 +497,21 @@ if (_state.JsonLinesIndexer is { } indexer)
         Application.Invoke(() => UpdateIndexingProgress(bytesRead, fileSize));
 
     indexer.BuildIndexCompleted +=
+        () => Application.Invoke(DismissIndexingProgress);
+}
+```
+
+**CSV** (wired after `SwitchToCsvTable`):
+
+```csharp
+if (_state.CsvIndexer is { } csvIndexer)
+{
+    ShowIndexingProgress();
+
+    csvIndexer.ProgressChanged += (bytesRead, fileSize) =>
+        Application.Invoke(() => UpdateIndexingProgress(bytesRead, fileSize));
+
+    csvIndexer.BuildIndexCompleted +=
         () => Application.Invoke(DismissIndexingProgress);
 }
 ```
@@ -416,9 +541,10 @@ private void UpdateIndexingProgress(long bytesRead, long fileSize)
 | File | Change |
 |---|---|
 | `src/Engine/IO/JsonLines/RowIndexer.cs` | Add `CancellationToken` to `BuildIndex`; add `FileSize`, `BytesRead`, three events; update `ProcessBuffer` |
-| `src/App/IO/FileLoader.cs` | Add `_buildIndexCts` / `_buildIndexTask`; cancel previous task on new load; await `FirstCheckpointReached` |
+| `src/Engine/IO/Csv/DataRowIndexer.cs` | Add `CancellationToken` to `BuildIndex`; add `FileSize`, `BytesRead`, three events; update `ProcessBuffer` |
+| `src/App/FileLoader.cs` | Add `_buildIndexCts` / `_buildIndexTask`; cancel previous task on new load (both JSON Lines and CSV); await `FirstCheckpointReached` for JSON Lines |
 | `src/App/Views/JsonLinesTreeView.cs` | Make `LoadInitialRootNodes` synchronous |
-| `src/App/MainWindow.cs` | Subscribe to `ProgressChanged` / `BuildIndexCompleted`; show/dismiss progress bar |
+| `src/App/MainWindow.cs` | Subscribe to `ProgressChanged` / `BuildIndexCompleted` for both indexers; show/dismiss progress bar |
 
 ---
 
@@ -440,12 +566,32 @@ private void UpdateIndexingProgress(long bytesRead, long fileSize)
 | `BytesRead_IncreasesMonotonically_DuringBuildIndex` | Observed from a concurrent reader thread |
 | `FileSize_MatchesActualFileLength` | `FileSize == new FileInfo(path).Length` |
 
+### `DataRowIndexerTests` (extend existing file)
+
+The same 11 test scenarios as `RowIndexerTests` apply to `DataRowIndexer`.
+Test files use CSV content (with a header row) instead of JSON Lines content.
+
+| Test method | Scenario |
+|---|---|
+| `BuildIndex_RaisesFirstCheckpointReached_OnFirstThousandRows` | Event fires after 1,000 data rows |
+| `BuildIndex_FirstCheckpointReached_FiresOnlyOnce` | Fires exactly once for a 3,000-row CSV |
+| `BuildIndex_RaisesFirstCheckpointReached_WhenFileIsEmpty` | Fires for a header-only file |
+| `BuildIndex_RaisesFirstCheckpointReached_WhenCancelledBeforeFirstCheckpoint` | Fires even when cancelled before 1,000 rows |
+| `BuildIndex_RaisesProgressChanged_OnEachCheckpoint` | Fires N times for N × 1,000 data rows |
+| `BuildIndex_RaisesBuildIndexCompleted_AfterCompletion` | Fires after full scan |
+| `BuildIndex_RaisesBuildIndexCompleted_WhenCancelled` | Fires even when cancelled mid-scan |
+| `BuildIndex_RaisesBuildIndexCompleted_WhenFileIsEmpty` | Fires for a header-only file |
+| `BuildIndex_WhenCancelled_ThrowsOperationCanceledException` | Task wrapping `BuildIndex` faults with OCE |
+| `BytesRead_IncreasesMonotonically_DuringBuildIndex` | Observed from a concurrent reader thread |
+| `FileSize_MatchesActualFileLength` | `FileSize == new FileInfo(path).Length` |
+
 ### `FileLoaderTests` (extend existing file)
 
 | Test method | Scenario |
 |---|---|
-| `LoadAsync_WhenCalledTwice_CancelsPreviousBuildIndex` | Second call cancels first; no hang |
-| `Dispose_CancelsBuildIndex` | `Dispose` while indexing; task completes without hang |
+| `LoadAsync_JsonLines_WhenCalledTwice_CancelsPreviousBuildIndex` | Second JSON Lines call cancels first; no hang |
+| `LoadAsync_Csv_WhenCalledTwice_CancelsPreviousBuildIndex` | Second CSV call cancels first; no hang |
+| `Dispose_CancelsBuildIndex` | `Dispose` while indexing (either format); task completes without hang |
 
 Progress-bar UI wiring is verified by manual testing.
 
@@ -455,15 +601,17 @@ Progress-bar UI wiring is verified by manual testing.
 
 ### Rationale
 
-**`CancellationToken` as a default parameter on `BuildIndex`** allows the
-existing call sites (`DataRowIndexer`, CLI pipeline, all tests) to remain
-unchanged. The token is only meaningful for the TUI path where a background
-scan can be interrupted.
+**`CancellationToken` as a default parameter on `BuildIndex`** (applied to both
+`RowIndexer` and `DataRowIndexer`) allows the existing call sites (CLI pipeline,
+all tests) to remain unchanged. The token is only meaningful for the TUI path
+where a background scan can be interrupted.
 
 **`CancelPreviousBuildIndexAsync` in `FileLoader`** is the single
-authoritative cancellation point. Placing it in `FileLoader` keeps
-`RowIndexer` unaware of the UI lifecycle, preserving the Engine/App separation
-already established in the codebase.
+authoritative cancellation point for both formats. A single shared
+`_buildIndexCts` / `_buildIndexTask` pair is sufficient because only one file
+can be loading at a time. Placing this logic in `FileLoader` keeps both
+`RowIndexer` and `DataRowIndexer` unaware of the UI lifecycle, preserving the
+Engine/App separation already established in the codebase.
 
 **`FirstCheckpointReached` in the `finally` block** (not only in the `try`
 block) guarantees the `TaskCompletionSource` resolves even when `BuildIndex`
@@ -520,60 +668,66 @@ single coherent change.
 
 ### Consequences
 
-- `BuildIndex` now has a `CancellationToken` parameter. The existing default
-  value (`= default`) means all current callers compile without change.
+- `BuildIndex` on both `RowIndexer` and `DataRowIndexer` now has a
+  `CancellationToken` parameter. The existing default value (`= default`) means
+  all current callers compile without change.
 - `JsonLinesTreeView` can no longer be constructed before `FileLoader` has
   completed `await tcs.Task`. This is a strengthened precondition, not a
   regression.
 - Files with fewer than 1,000 rows use the `finally`-block guard path: all
-  events fire at end-of-file. The tree populates correctly because `TotalRows`
-  is finalised before `FirstCheckpointReached` fires in that path.
-- `RowIndexer` carries two additional `long` fields and three `event` delegate
+  events fire at end-of-file. The tree / table populates correctly because
+  `TotalRows` is finalised before `FirstCheckpointReached` fires in that path.
+- Each indexer carries two additional `long` fields and three `event` delegate
   fields (~50 bytes per instance); overhead is negligible.
 - The progress bar is currently wired in `MainWindow`. If `ViewManager` later
   takes over full view lifecycle responsibility, the progress bar wiring should
-  migrate to `ViewManager.SwitchToJsonLinesTree`.
-- `DataRowIndexer` (CSV) is **not** changed by this document. If the same
-  progress and cancellation improvements are desired for CSV files, a follow-up
-  design document should address that separately.
+  migrate to `ViewManager.SwitchToJsonLinesTree` and `ViewManager.SwitchToCsvTable`.
 
 ---
 
 ## 5. Implementation Steps
 
-### Step 1 — `RowIndexer`: Add properties and events (declarations only)
+### Step 1 — `RowIndexer`: Add field and property declarations
 
-Add the following to `RowIndexer.cs`:
+Add the following members to `RowIndexer.cs` without changing any logic:
 
 - `public long FileSize { get; private set; }`
 - `private long _bytesRead;`
 - `public long BytesRead => Interlocked.Read(ref _bytesRead);`
-- `public event Action? FirstCheckpointReached;`
-- `public event Action<long, long>? ProgressChanged;`
-- `public event Action? BuildIndexCompleted;`
 - `private bool _firstCheckpointReached;`
-
-No logic changes yet. Build must pass.
-
----
-
-### Step 2 — `RowIndexer`: Update `BuildIndex` signature and body
-
-1. Add `CancellationToken ct = default` parameter to `BuildIndex`.
-2. Set `FileSize = new FileInfo(_filePath).Length;` at the start.
-3. Add `ct.ThrowIfCancellationRequested();` at the top of the read loop.
-4. Add `Interlocked.Add(ref _bytesRead, bytesRead);` after each `RandomAccess.Read`.
-5. Move the `ArrayPool<byte>.Shared.Return(buffer)` call into a `finally` block.
-6. Add the `FirstCheckpointReached` guard to the `finally` block (fires if not yet fired).
-7. Add `BuildIndexCompleted?.Invoke();` at the end of the `finally` block.
 
 Build must pass.
 
 ---
 
-### Step 3 — `RowIndexer`: Update `ProcessBuffer` checkpoint block
+### Step 2 — `RowIndexer`: Add event declarations
 
-Inside the existing `if (rowCount % CheckPointInterval == 0)` block:
+Add the three event fields to `RowIndexer.cs`:
+
+- `public event Action? FirstCheckpointReached;`
+- `public event Action<long, long>? ProgressChanged;`
+- `public event Action? BuildIndexCompleted;`
+
+Build must pass.
+
+---
+
+### Step 3 — `RowIndexer`: Update `BuildIndex` — signature, cancellation, and `finally`
+
+1. Add `CancellationToken ct = default` parameter to `BuildIndex`.
+2. Set `FileSize = new FileInfo(_filePath).Length;` at the start.
+3. Add `ct.ThrowIfCancellationRequested();` at the top of the read loop.
+4. Add `Interlocked.Add(ref _bytesRead, bytesRead);` after each `RandomAccess.Read`.
+5. Wrap the existing body in a `try/finally`.
+6. In the `finally` block: add `FirstCheckpointReached` guard (fires if not yet fired), then `ArrayPool<byte>.Shared.Return(buffer)`, then `BuildIndexCompleted?.Invoke()`.
+
+Build must pass.
+
+---
+
+### Step 4 — `RowIndexer`: Update `ProcessBuffer` checkpoint block
+
+Inside the existing `if (rowCount % CheckPointInterval == 0)` block in `ProcessBuffer`:
 
 1. Add the `FirstCheckpointReached` guard (fires once on first checkpoint).
 2. Add `ProgressChanged?.Invoke(Interlocked.Read(ref _bytesRead), FileSize);`.
@@ -582,77 +736,174 @@ Build must pass.
 
 ---
 
-### Step 4 — `RowIndexerTests`: Add new test methods
+### Step 5 — `DataRowIndexer`: Add field and property declarations
 
-Extend the existing test file with all 11 test methods listed in Section 4.
-Bodies are `// Arrange / // Act / // Assert` stubs only.
+Mirror Step 1 for `DataRowIndexer.cs`:
+
+- `public long FileSize { get; private set; }`
+- `private long _bytesRead;`
+- `public long BytesRead => Interlocked.Read(ref _bytesRead);`
+- `private bool _firstCheckpointReached;`
 
 Build must pass.
 
 ---
 
-### Step 5 — `FileLoader`: Add cancellation fields and `CancelPreviousBuildIndexAsync`
+### Step 6 — `DataRowIndexer`: Add event declarations
+
+Mirror Step 2 for `DataRowIndexer.cs`:
+
+- `public event Action? FirstCheckpointReached;`
+- `public event Action<long, long>? ProgressChanged;`
+- `public event Action? BuildIndexCompleted;`
+
+Build must pass.
+
+---
+
+### Step 7 — `DataRowIndexer`: Update `BuildIndex` — signature, cancellation, and `finally`
+
+Mirror Step 3 for `DataRowIndexer.cs`:
+
+1. Add `CancellationToken ct = default` parameter to `BuildIndex`.
+2. Set `FileSize = new FileInfo(_filePath).Length;` at the start.
+3. Add `ct.ThrowIfCancellationRequested();` at the top of the read loop.
+4. Add `Interlocked.Add(ref _bytesRead, bytesRead);` after each `RandomAccess.Read`.
+5. Extend the existing `try/finally` block: add the `FirstCheckpointReached` guard and `BuildIndexCompleted?.Invoke()` to the `finally`.
+
+Build must pass.
+
+---
+
+### Step 8 — `DataRowIndexer`: Update `ProcessBuffer` checkpoint block
+
+Inside the existing `if (rowCount % CheckPointInterval != 0)` / checkpoint logic in `ProcessBuffer`:
+
+1. Add the `FirstCheckpointReached` guard (fires once on first checkpoint).
+2. Add `ProgressChanged?.Invoke(Interlocked.Read(ref _bytesRead), FileSize);`.
+
+Build must pass.
+
+---
+
+### Step 9 — `RowIndexerTests`: Add skeleton test methods
+
+Extend the existing test file with all 11 test methods listed in Section 4.
+Bodies contain only `// Arrange`, `// Act`, `// Assert` comment stubs.
+
+Build must pass.
+
+---
+
+### Step 10 — `DataRowIndexerTests`: Add skeleton test methods
+
+Extend the existing test file with all 11 test methods listed in Section 4
+(CSV variant). Bodies contain only `// Arrange`, `// Act`, `// Assert` stubs.
+
+Build must pass.
+
+---
+
+### Step 11 — `FileLoader`: Add cancellation fields and `CancelPreviousBuildIndexAsync`
 
 1. Add `private CancellationTokenSource? _buildIndexCts;` field.
 2. Add `private Task _buildIndexTask = Task.CompletedTask;` field.
-3. Add `private async Task CancelPreviousBuildIndexAsync()` method (body: cancel + await + swallow OCE).
+3. Add `private async Task CancelPreviousBuildIndexAsync()` (cancel + await + swallow OCE).
 4. Update `Dispose` to call `_buildIndexCts?.Cancel()` and `_buildIndexCts?.Dispose()`.
 
 Build must pass.
 
 ---
 
-### Step 6 — `FileLoader`: Update `LoadJsonLinesAsync`
+### Step 12 — `FileLoader`: Update `LoadJsonLinesAsync`
 
 1. Call `await CancelPreviousBuildIndexAsync()` at the top.
-2. Dispose and recreate `_buildIndexCts`.
+2. Dispose and recreate `_buildIndexCts`; capture `ct`.
 3. Create `TaskCompletionSource` with `RunContinuationsAsynchronously`.
 4. Subscribe `indexer.FirstCheckpointReached += () => tcs.SetResult()`.
 5. Assign `_buildIndexTask = Task.Run(() => indexer.BuildIndex(ct))`.
-6. `await tcs.Task`.
-7. Guard: if `ct.IsCancellationRequested`, return failure.
+6. `await tcs.Task.ConfigureAwait(false)`.
+7. Guard: if `ct.IsCancellationRequested`, return `Results.Failure("Load cancelled.")`.
 8. Move the `AppState` updates to after the await.
 
 Build must pass.
 
 ---
 
-### Step 7 — `FileLoaderTests`: Add new test methods
+### Step 13 — `FileLoader`: Update `LoadCsvAsync`
 
-Extend the existing test file with the 2 test methods listed in Section 4.
-Bodies are `// Arrange / // Act / // Assert` stubs only.
+1. Call `await CancelPreviousBuildIndexAsync()` at the top.
+2. Dispose and recreate `_buildIndexCts`; capture `ct`.
+3. Assign `_buildIndexTask = Task.Run(() => indexer.BuildIndex(ct))` before awaiting `InitialScanAsync`.
+4. Remove the old fire-and-forget `_ = Task.Run(indexer.BuildIndex)` line.
 
 Build must pass.
 
 ---
 
-### Step 8 — `JsonLinesTreeView`: Make `LoadInitialRootNodes` synchronous
+### Step 14 — `FileLoaderTests`: Add skeleton test methods
+
+Extend the existing test file with the 3 test methods listed in Section 4.
+Bodies contain only `// Arrange`, `// Act`, `// Assert` stubs.
+
+Build must pass.
+
+---
+
+### Step 15 — `JsonLinesTreeView`: Make `LoadInitialRootNodes` synchronous
 
 1. Replace `_ = LoadInitialRootNodesAsync()` with `LoadInitialRootNodes()` in the constructor.
-2. Remove `async` and `await Task.Delay(100)` from `LoadInitialRootNodes`.
-3. Rename the method to `LoadInitialRootNodes`.
+2. Remove `async` from `LoadInitialRootNodes`; remove `await Task.Delay(100)`.
+3. Rename to `LoadInitialRootNodes` (drop the `Async` suffix).
 
 Build must pass.
 
 ---
 
-### Step 9 — `MainWindow`: Add progress bar UI and wiring
+### Step 16 — `MainWindow`: Add progress bar fields and helper methods
 
 1. Add `_progressBar` (`ProgressBar`) and `_progressLabel` (`Label`) fields.
 2. Implement `ShowIndexingProgress()` — adds bar and label to the layout.
-3. Implement `UpdateIndexingProgress(long bytesRead, long fileSize)` — updates fraction and label text.
+3. Implement `UpdateIndexingProgress(long bytesRead, long fileSize)` — updates `Fraction` and label text.
 4. Implement `DismissIndexingProgress()` — removes bar and label from the layout (idempotent).
-5. Implement `FormatBytes(long bytes)` — formats as KB / MB / GB string.
-6. After `SwitchToJsonLinesTree`, wire up `ProgressChanged` and `BuildIndexCompleted` on the new indexer, then call `ShowIndexingProgress()`.
-7. Initialize the progress bar with the current `BytesRead / FileSize` immediately after subscribing (to account for the already-fired first `ProgressChanged`).
+5. Implement `FormatBytes(long bytes)` — formats raw byte count as a KB / MB / GB string.
 
 Build must pass.
 
 ---
 
-### Step 10 — Implement all test bodies
+### Step 17 — `MainWindow`: Wire JSON Lines indexer to progress bar
 
-Fill in the `// Arrange / // Act / // Assert` stubs for all 13 test methods
-(11 in `RowIndexerTests`, 2 in `FileLoaderTests`).
+After `SwitchToJsonLinesTree`:
+
+1. Subscribe `indexer.ProgressChanged` → `Application.Invoke(UpdateIndexingProgress)`.
+2. Subscribe `indexer.BuildIndexCompleted` → `Application.Invoke(DismissIndexingProgress)`.
+3. Call `ShowIndexingProgress()`.
+4. Immediately initialise the bar with the current `BytesRead / FileSize` to account for checkpoints already fired before subscription.
+
+Build must pass.
+
+---
+
+### Step 18 — `MainWindow`: Wire CSV indexer to progress bar
+
+After `SwitchToCsvTable`:
+
+1. Subscribe `csvIndexer.ProgressChanged` → `Application.Invoke(UpdateIndexingProgress)`.
+2. Subscribe `csvIndexer.BuildIndexCompleted` → `Application.Invoke(DismissIndexingProgress)`.
+3. Call `ShowIndexingProgress()`.
+4. Immediately initialise the bar with the current `BytesRead / FileSize`.
+
+Build must pass.
+
+---
+
+### Step 19 — Implement all test bodies
+
+Fill in the `// Arrange / // Act / // Assert` stubs for all 25 test methods:
+
+- 11 in `RowIndexerTests`
+- 11 in `DataRowIndexerTests`
+- 3 in `FileLoaderTests`
 
 Run `dotnet test` — all tests must pass.

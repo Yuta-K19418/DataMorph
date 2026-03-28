@@ -238,4 +238,23 @@ public sealed class RecipeYamlSerializerTests
         descIdx.Should().BeLessThan(lastModIdx);
         lastModIdx.Should().BeLessThan(actionsIdx);
     }
+
+    [Fact]
+    public void Serialize_WithFormatTimestampAction_ProducesCorrectYaml()
+    {
+        // Arrange
+        var recipe = new Recipe
+        {
+            Name = "test",
+            Actions = [new FormatTimestampAction { ColumnName = "CreatedAt", TargetFormat = "yyyy/MM/dd" }],
+        };
+
+        // Act
+        var yaml = RecipeYamlSerializer.Serialize(recipe);
+
+        // Assert
+        yaml.Should().Contain("  - type: format_timestamp");
+        yaml.Should().Contain("    columnName: \"CreatedAt\"");
+        yaml.Should().Contain("    targetFormat: \"yyyy/MM/dd\"");
+    }
 }

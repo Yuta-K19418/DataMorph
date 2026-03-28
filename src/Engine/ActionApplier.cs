@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DataMorph.Engine.Filtering;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
+using DataMorph.Engine.Types;
 
 namespace DataMorph.Engine;
 
@@ -13,16 +14,17 @@ namespace DataMorph.Engine;
 public static class ActionApplier
 {
     /// <summary>
-    /// Builds a <see cref="BatchOutputSchema"/> by applying the given actions
+    /// Builds a <see cref="BatchOutputSchema"/> by applying given actions
     /// to the input schema in order.
     /// </summary>
     /// <param name="schema">The inferred input schema.</param>
     /// <param name="actions">The ordered list of actions from the recipe.</param>
     /// <returns>
-    /// A <see cref="BatchOutputSchema"/> describing which columns to include
+    /// A <see cref="Result{BatchOutputSchema}"/> describing which columns to include
     /// (with their output names) and which filter specs to evaluate.
+    /// Returns failure if any action is invalid.
     /// </returns>
-    public static BatchOutputSchema BuildOutputSchema(
+    public static Result<BatchOutputSchema> BuildOutputSchema(
         TableSchema schema,
         IReadOnlyList<MorphAction> actions
     )
@@ -113,6 +115,24 @@ public static class ActionApplier
                 continue;
             }
 
+            if (action is FormatTimestampAction formatTimestamp)
+            {
+                if (!nameToWorkingIndex.TryGetValue(formatTimestamp.ColumnName, out var idx))
+                {
+                    continue;
+                }
+
+                var (_, type, _, _) = workingColumns[idx];
+                if (type != ColumnType.Timestamp)
+                {
+                    return Results.Failure<BatchOutputSchema>(
+                        $"FormatTimestampAction requires column '{formatTimestamp.ColumnName}' to be of type Timestamp, but it is {type}.");
+                }
+
+                transformsByWorkingIndex[idx] = new TimestampFormatSpec(formatTimestamp.TargetFormat);
+                continue;
+            }
+
             throw new UnreachableException($"Unhandled action type: {action.GetType().Name}");
         }
 
@@ -125,6 +145,6 @@ public static class ActionApplier
             outputColumns.Add(new BatchOutputColumn(SourceName: name, OutputName: outputName, Transform: transform));
         }
 
-        return new BatchOutputSchema(outputColumns, filterSpecs);
+        return Results.Success(new BatchOutputSchema(outputColumns, filterSpecs));
     }
 }

@@ -8,3 +8,8 @@ public abstract record CellTransformSpec;
 
 /// <summary>Replace every cell value with a fixed constant string.</summary>
 public sealed record FillSpec(string Value) : CellTransformSpec;
+
+/// <summary>
+/// Reformats a Timestamp cell value to the specified target format string.
+/// </summary>
+public sealed record TimestampFormatSpec(string TargetFormat) : CellTransformSpec;

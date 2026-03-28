@@ -5,11 +5,10 @@ using DataMorph.Engine.Filtering;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
-using CliFilterEvaluator = DataMorph.App.Cli.FilterEvaluator;
 
 namespace DataMorph.Tests.App.Cli;
 
-public sealed class RecordProcessorTests
+public sealed partial class RecordProcessorTests
 {
     private static readonly IReadOnlyList<BatchOutputColumn> _oneColumn = [
         new BatchOutputColumn("col0", "col0"),
@@ -562,139 +561,149 @@ public sealed class RecordProcessorTests
     }
 
     // -------------------------------------------------------------------------
-    // Test helpers
+    // ProcessAsync — TimestampFormatSpec transform
     // -------------------------------------------------------------------------
 
-    private struct TestRecordReader : IRecordReader
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_ISO8601_ToCustomFormat_ReformatsCorrectly()
     {
-        public string[][] Records;
-        public IReadOnlyList<FilterSpec> Filters;
-        public CancellationTokenSource? CancellationTokenSource;
-        public int CancelAfter;
-        private int _currentIndex;
-        private int _recordsProcessed;
+        // Arrange
+        var writtenRecords = new List<string[]>();
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new TimestampFormatSpec("yyyy/MM/dd")),
+        ];
 
-        public TestRecordReader(
-            string[][] records,
-            IReadOnlyList<FilterSpec> filters,
-            CancellationTokenSource? cancellationTokenSource = null,
-            int cancelAfter = -1)
-        {
-            Records = records;
-            Filters = filters;
-            CancellationTokenSource = cancellationTokenSource;
-            CancelAfter = cancelAfter;
-            _currentIndex = -1;
-            _recordsProcessed = 0;
-        }
+        var reader = new TestRecordReader(
+            [
+                ["2024-03-15T10:30:00"],
+                ["2023-12-25T00:00:00"],
+            ],
+            []
+        );
 
-        public void Dispose() { }
+        var writer = new TestRecordWriter(
+            null,
+            (record) => writtenRecords.Add([.. record])
+        );
 
-        public ValueTask<bool> MoveNextAsync(CancellationToken ct)
-        {
-            _recordsProcessed++;
+        // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
 
-            if (CancelAfter >= 0 && _recordsProcessed > CancelAfter && CancellationTokenSource != null)
-            {
-                CancellationTokenSource.Cancel();
-            }
-
-            _currentIndex++;
-
-            var hasNext = _currentIndex < Records.Length;
-
-            return ValueTask.FromResult(hasNext);
-        }
-
-        public bool EvaluateFilters()
-        {
-            if (Filters.Count == 0)
-            {
-                return true;
-            }
-
-            var currentRecord = Records[_currentIndex];
-
-            foreach (var filter in Filters)
-            {
-                if (filter.SourceColumnIndex >= currentRecord.Length)
-                {
-                    return false;
-                }
-
-                var valueSpan = currentRecord[filter.SourceColumnIndex].AsSpan();
-
-                if (!CliFilterEvaluator.EvaluateFilter(valueSpan, filter))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
-        {
-            if (_currentIndex < 0 || _currentIndex >= Records.Length)
-            {
-                return [];
-            }
-
-            var currentRecord = Records[_currentIndex];
-
-            if (outputColumnIndex >= currentRecord.Length)
-            {
-                return [];
-            }
-
-            return currentRecord[outputColumnIndex].AsSpan();
-        }
+        // Assert
+        result.Should().Be(0);
+        writtenRecords.Should().HaveCount(2);
+        writtenRecords[0].Should().BeEquivalentTo(["2024/03/15"]);
+        writtenRecords[1].Should().BeEquivalentTo(["2023/12/25"]);
     }
 
-    private struct TestRecordWriter : IRecordWriter
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_DifferentSourceFormat_ReformatsCorrectly()
     {
-        public Action? WriteHeaderCallback;
-        public Action<string[]>? WriteCellCallback;
-        private readonly List<string> _cells;
+        // Arrange
+        var writtenRecords = new List<string[]>();
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new TimestampFormatSpec("yyyy-MM-dd")),
+        ];
 
-        public TestRecordWriter(
-            Action? writeHeaderCallback = null,
-            Action<string[]>? writeCellCallback = null)
-        {
-            WriteHeaderCallback = writeHeaderCallback;
-            WriteCellCallback = writeCellCallback;
-            _cells = [];
-        }
+        var reader = new TestRecordReader(
+            [["03/15/2024"]],
+            []
+        );
 
-        public void Dispose() { }
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        var writer = new TestRecordWriter(
+            null,
+            (record) => writtenRecords.Add([.. record])
+        );
 
-        public ValueTask WriteHeaderAsync(CancellationToken ct)
-        {
-            WriteHeaderCallback?.Invoke();
-            return ValueTask.CompletedTask;
-        }
+        // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
 
-        public ValueTask WriteStartRecordAsync(CancellationToken ct)
-        {
-            _cells.Clear();
-            return ValueTask.CompletedTask;
-        }
+        // Assert
+        result.Should().Be(0);
+        writtenRecords.Should().HaveCount(1);
+        writtenRecords[0].Should().BeEquivalentTo(["2024-03-15"]);
+    }
 
-        public void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
-        {
-            _cells.Add(value.ToString());
-        }
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_UnparseableCell_ThrowsFormatException()
+    {
+        // Arrange
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new TimestampFormatSpec("yyyy/MM/dd")),
+        ];
 
-        public ValueTask WriteEndRecordAsync(CancellationToken ct)
-        {
-            WriteCellCallback?.Invoke([.. _cells]);
-            return ValueTask.CompletedTask;
-        }
+        var reader = new TestRecordReader(
+            [["not-a-date"]],
+            []
+        );
 
-        public ValueTask FlushAsync(CancellationToken ct)
-        {
-            return ValueTask.CompletedTask;
-        }
+        var writer = new TestRecordWriter(null, null);
+
+        // Act
+        var act = async () => await RecordProcessor.ProcessAsync(reader, writer, columns, default);
+
+        // Assert
+        await act.Should().ThrowAsync<FormatException>();
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_EmptyDataset_WritesOnlyHeader()
+    {
+        // Arrange
+        var writtenHeader = false;
+        var writtenRecords = new List<string[]>();
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0", new TimestampFormatSpec("yyyy/MM/dd")),
+        ];
+
+        var reader = new TestRecordReader([], []);
+
+        var writer = new TestRecordWriter(
+            () => writtenHeader = true,
+            (record) => writtenRecords.Add([.. record])
+        );
+
+        // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
+
+        // Assert
+        result.Should().Be(0);
+        writtenHeader.Should().BeTrue();
+        writtenRecords.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_MultiColumnRecipe_OtherColumnsPassThrough()
+    {
+        // Arrange
+        var writtenRecords = new List<string[]>();
+        IReadOnlyList<BatchOutputColumn> columns =
+        [
+            new BatchOutputColumn("col0", "col0"),
+            new BatchOutputColumn("col1", "col1", new TimestampFormatSpec("yyyy/MM/dd")),
+            new BatchOutputColumn("col2", "col2"),
+        ];
+
+        var reader = new TestRecordReader(
+            [["Alice", "2024-03-15T10:30:00", "NY"]],
+            []
+        );
+
+        var writer = new TestRecordWriter(
+            null,
+            (record) => writtenRecords.Add([.. record])
+        );
+
+        // Act
+        var result = await RecordProcessor.ProcessAsync(reader, writer, columns, default);
+
+        // Assert
+        result.Should().Be(0);
+        writtenRecords.Should().HaveCount(1);
+        writtenRecords[0].Should().BeEquivalentTo(["Alice", "2024/03/15", "NY"]);
     }
 }

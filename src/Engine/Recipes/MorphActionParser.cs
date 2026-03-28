@@ -23,6 +23,7 @@ internal sealed class MorphActionParser
                 "cast" => ParseCastAction(fields),
                 "filter" => ParseFilterAction(fields),
                 "fill" => ParseFillAction(fields),
+                "format_timestamp" => ParseFormatTimestampAction(fields),
                 _ => Results.Failure<MorphAction>($"Unknown action type: '{type}'"),
             }
             : Results.Failure<MorphAction>("Missing action type");
@@ -123,6 +124,30 @@ internal sealed class MorphActionParser
             ColumnName = columnName,
             Operator = filterOperator,
             Value = filterValue,
+        });
+    }
+
+    private static Result<MorphAction> ParseFormatTimestampAction(Dictionary<string, string> fields)
+    {
+        if (!fields.TryGetValue("columnName", out var columnName))
+        {
+            return Results.Failure<MorphAction>("Missing required field 'columnName' for format_timestamp action");
+        }
+
+        if (!fields.TryGetValue("targetFormat", out var targetFormat))
+        {
+            return Results.Failure<MorphAction>("Missing required field 'targetFormat' for format_timestamp action");
+        }
+
+        if (string.IsNullOrWhiteSpace(targetFormat))
+        {
+            return Results.Failure<MorphAction>("Field 'targetFormat' must not be empty for format_timestamp action");
+        }
+
+        return Results.Success<MorphAction>(new FormatTimestampAction
+        {
+            ColumnName = columnName,
+            TargetFormat = targetFormat,
         });
     }
 }

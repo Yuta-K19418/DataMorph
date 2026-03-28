@@ -89,6 +89,11 @@ internal sealed class JsonLinesTableView : TableView
             return HandleFillColumn();
         }
 
+        if (key.KeyCode == (KeyCode.T | KeyCode.ShiftMask))
+        {
+            return HandleFormatTimestamp();
+        }
+
         var action = _vimKeys.Translate(key.KeyCode);
 
         return action switch
@@ -251,6 +256,32 @@ internal sealed class JsonLinesTableView : TableView
         }
 
         _onMorphAction(new FillColumnAction { ColumnName = rawName, Value = dialog.Value });
+        return true;
+    }
+
+    private bool HandleFormatTimestamp()
+    {
+        if (App is null || _onMorphAction is null || _getRawColumnName is null
+            || Table is null || SelectedColumn < 0)
+        {
+            return true;
+        }
+
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = _getRawColumnName(SelectedColumn);
+        using var dialog = new FormatTimestampDialog(displayName);
+        App.Run(dialog);
+
+        if (!dialog.Confirmed || string.IsNullOrEmpty(dialog.TargetFormat))
+        {
+            return true;
+        }
+
+        _onMorphAction(new FormatTimestampAction
+        {
+            ColumnName = rawName,
+            TargetFormat = dialog.TargetFormat,
+        });
         return true;
     }
 }

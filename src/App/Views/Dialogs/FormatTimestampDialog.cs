@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views.Dialogs;
@@ -30,6 +31,52 @@ internal sealed class FormatTimestampDialog : Dialog
     )]
     internal FormatTimestampDialog(string columnName)
     {
-        throw new NotImplementedException();
+        Title = "Format Timestamp";
+
+        var columnLabel = new Label
+        {
+            Text = $"Column: {columnName}",
+            X = 0,
+            Y = 0,
+        };
+        var formatLabel = new Label
+        {
+            Text = "Target format:",
+            X = 0,
+            Y = 2,
+        };
+        var textField = new TextField
+        {
+            Text = string.Empty,
+            X = Pos.Right(formatLabel) + 1,
+            Y = 2,
+            Width = Dim.Fill(),
+        };
+        Add(columnLabel, formatLabel, textField);
+
+        var okButton = new Button { Text = "OK" };
+        var cancelButton = new Button { Text = "Cancel" };
+
+        void Confirm()
+        {
+            TargetFormat = textField.Text;
+            Confirmed = true;
+            App?.RequestStop();
+        }
+
+        okButton.Accepting += (sender, e) =>
+        {
+            e.Handled = true;
+            Confirm();
+        };
+
+        textField.Accepting += (sender, e) =>
+        {
+            e.Handled = true;
+            Confirm();
+        };
+
+        AddButton(okButton);
+        AddButton(cancelButton);
     }
 }

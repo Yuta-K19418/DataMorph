@@ -224,7 +224,13 @@ internal sealed class LazyTransformer : ITableSource
 
             if (action is FormatTimestampAction formatTs)
             {
-                throw new NotImplementedException();
+                if (!nameToIndex.TryGetValue(formatTs.ColumnName, out var fmtIdx))
+                {
+                    continue;
+                }
+
+                working[fmtIdx] = working[fmtIdx] with { FormatString = formatTs.TargetFormat };
+                continue;
             }
         }
 
@@ -271,7 +277,7 @@ internal sealed class LazyTransformer : ITableSource
                 ? (b ? "true" : "false")
                 : "<invalid>",
             ColumnType.Timestamp => DateTime.TryParse(rawValue, out var dt)
-                ? dt.ToString(formatString ?? "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                ? dt.ToString(string.IsNullOrEmpty(formatString) ? "yyyy-MM-dd HH:mm:ss" : formatString, CultureInfo.InvariantCulture)
                 : "<invalid>",
             _ => rawValue,
         };

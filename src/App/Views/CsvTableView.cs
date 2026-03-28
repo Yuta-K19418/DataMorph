@@ -239,6 +239,27 @@ internal sealed class CsvTableView : TableView
 
     private bool HandleFormatTimestamp()
     {
-        throw new NotImplementedException();
+        if (App is null || OnMorphAction is null || GetRawColumnName is null
+            || Table is null || SelectedColumn < 0)
+        {
+            return true;
+        }
+
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = GetRawColumnName(SelectedColumn);
+        using var dialog = new FormatTimestampDialog(displayName);
+        App.Run(dialog);
+
+        if (!dialog.Confirmed || string.IsNullOrEmpty(dialog.TargetFormat))
+        {
+            return true;
+        }
+
+        OnMorphAction(new FormatTimestampAction
+        {
+            ColumnName = rawName,
+            TargetFormat = dialog.TargetFormat,
+        });
+        return true;
     }
 }

@@ -1301,7 +1301,7 @@ public sealed class LazyTransformerTests
         var result = transformer[0, 0];
 
         // Assert
-        throw new NotImplementedException();
+        result.Should().Be("2024/01/15");
     }
 
     [Fact]
@@ -1328,7 +1328,7 @@ public sealed class LazyTransformerTests
         var transformer = new LazyTransformer(source, schema, actions);
 
         // Assert
-        throw new NotImplementedException();
+        transformer[0, 0].Should().Be("hello");
     }
 
     [Fact]
@@ -1356,7 +1356,7 @@ public sealed class LazyTransformerTests
         var transformer = new LazyTransformer(source, schema, actions);
 
         // Assert
-        throw new NotImplementedException();
+        transformer[0, 0].Should().Be("2024/01/15");
     }
 
     [Fact]
@@ -1388,7 +1388,7 @@ public sealed class LazyTransformerTests
         var transformer = new LazyTransformer(source, schema, actions);
 
         // Assert
-        throw new NotImplementedException();
+        transformer[0, 0].Should().Be("01/15/2024");
     }
 
     [Fact]
@@ -1415,15 +1415,34 @@ public sealed class LazyTransformerTests
         var transformer = new LazyTransformer(source, schema, actions);
 
         // Assert
-        throw new NotImplementedException();
+        transformer[0, 0].Should().Be("<invalid>");
     }
 
     [Fact]
     public void FormatTimestampAction_WithEmptyTargetFormat_UsesDefaultFormat()
     {
         // Arrange
+        var source = new FakeTableSource(
+            [
+                ["2024-01-15T09:30:00"],
+            ],
+            ["created_at"]
+        );
+        var schema = MakeSchema(("created_at", ColumnType.Timestamp));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FormatTimestampAction
+            {
+                ColumnName = "created_at",
+                TargetFormat = string.Empty,
+            },
+        ];
+        var transformer = new LazyTransformer(source, schema, actions);
+
         // Act
+        var result = transformer[0, 0];
+
         // Assert
-        throw new NotImplementedException();
+        result.Should().Be("2024-01-15 09:30:00");
     }
 }

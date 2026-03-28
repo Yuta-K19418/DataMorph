@@ -1,3 +1,4 @@
+using AwesomeAssertions;
 using DataMorph.App.Views.Dialogs;
 
 namespace DataMorph.Tests.App.Views.Dialogs;
@@ -14,7 +15,7 @@ public sealed class FormatTimestampDialogTests
         using var dialog = new FormatTimestampDialog(columnName);
 
         // Assert
-        throw new NotImplementedException();
+        dialog.Title.Should().Be("Format Timestamp");
     }
 
     [Fact]
@@ -27,7 +28,7 @@ public sealed class FormatTimestampDialogTests
         using var dialog = new FormatTimestampDialog(columnName);
 
         // Assert
-        throw new NotImplementedException();
+        dialog.TargetFormat.Should().Be(string.Empty);
     }
 
     [Fact]
@@ -40,6 +41,6 @@ public sealed class FormatTimestampDialogTests
         using var dialog = new FormatTimestampDialog(columnName);
 
         // Assert
-        throw new NotImplementedException();
+        dialog.Confirmed.Should().BeFalse();
     }
 }

@@ -261,6 +261,27 @@ internal sealed class JsonLinesTableView : TableView
 
     private bool HandleFormatTimestamp()
     {
-        throw new NotImplementedException();
+        if (App is null || _onMorphAction is null || _getRawColumnName is null
+            || Table is null || SelectedColumn < 0)
+        {
+            return true;
+        }
+
+        var displayName = Table.ColumnNames[SelectedColumn];
+        var rawName = _getRawColumnName(SelectedColumn);
+        using var dialog = new FormatTimestampDialog(displayName);
+        App.Run(dialog);
+
+        if (!dialog.Confirmed || string.IsNullOrEmpty(dialog.TargetFormat))
+        {
+            return true;
+        }
+
+        _onMorphAction(new FormatTimestampAction
+        {
+            ColumnName = rawName,
+            TargetFormat = dialog.TargetFormat,
+        });
+        return true;
     }
 }

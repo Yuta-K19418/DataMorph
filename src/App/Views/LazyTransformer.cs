@@ -25,6 +25,7 @@ internal sealed class LazyTransformer : ITableSource
     private readonly string[] _rawColumnNames;
     private readonly IReadOnlyList<ColumnType> _columnTypes;
     private readonly IReadOnlyList<string?> _fillValues;
+    private readonly IReadOnlyList<string?> _formatStrings;
     private readonly IFilterRowIndexer? _filterRowIndexer;
 
     /// <summary>
@@ -52,7 +53,7 @@ internal sealed class LazyTransformer : ITableSource
         ArgumentNullException.ThrowIfNull(actions);
 
         _source = source;
-        (_columnNames, _rawColumnNames, _columnTypes, _sourceColumnIndices, _fillValues, var filterSpecs) =
+        (_columnNames, _rawColumnNames, _columnTypes, _sourceColumnIndices, _fillValues, _formatStrings, var filterSpecs) =
             BuildTransformedSchema(originalSchema, actions);
 
         if (filterSpecs.Count > 0 && filterRowIndexerFactory is not null)
@@ -123,14 +124,15 @@ internal sealed class LazyTransformer : ITableSource
 
             var sourceCol = _sourceColumnIndices[col];
             var rawValue = _source[sourceRow, sourceCol]?.ToString() ?? string.Empty;
-            return FormatCellValue(rawValue, _columnTypes[col]);
+            return FormatCellValue(rawValue, _columnTypes[col], _formatStrings[col]);
         }
     }
 
     /// <summary>
     /// Applies the action stack sequentially to build the output column names, types,
-    /// a mapping array from output column index to source column index, and a list of
-    /// resolved <see cref="FilterSpec"/>s for any <see cref="FilterAction"/>s encountered.
+    /// a mapping array from output column index to source column index, a list of
+    /// resolved <see cref="FilterSpec"/>s for any <see cref="FilterAction"/>s encountered,
+    /// and a list of format strings for any <see cref="FormatTimestampAction"/>s encountered.
     /// A <see cref="Dictionary{TKey,TValue}"/> keyed by column name provides O(1) lookups per action.
     /// Actions targeting a non-existent column name are silently skipped.
     /// </summary>
@@ -140,6 +142,7 @@ internal sealed class LazyTransformer : ITableSource
         IReadOnlyList<ColumnType> columnTypes,
         IReadOnlyList<int> sourceColumnIndices,
         IReadOnlyList<string?> fillValues,
+        IReadOnlyList<string?> formatStrings,
         IReadOnlyList<FilterSpec> filterSpecs
     ) BuildTransformedSchema(TableSchema originalSchema, IReadOnlyList<MorphAction> actions)
     {
@@ -218,6 +221,11 @@ internal sealed class LazyTransformer : ITableSource
                 working[fillIdx] = working[fillIdx] with { FillValue = fill.Value, Type = inferredType };
                 continue;
             }
+
+            if (action is FormatTimestampAction formatTs)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         // Pre-size to avoid reallocation; collection expressions do not support capacity hints.
@@ -235,6 +243,7 @@ internal sealed class LazyTransformer : ITableSource
             remaining.ConvertAll(workingColumn => workingColumn.Type),
             remaining.ConvertAll(workingColumn => workingColumn.SourceIndex),
             remaining.ConvertAll(workingColumn => workingColumn.FillValue),
+            remaining.ConvertAll(workingColumn => workingColumn.FormatString),
             filterSpecs
         );
     }
@@ -244,7 +253,7 @@ internal sealed class LazyTransformer : ITableSource
     /// Returns the raw value for <see cref="ColumnType.Text"/>, <see cref="ColumnType.JsonObject"/>,
     /// and <see cref="ColumnType.JsonArray"/>. Returns <c>"&lt;invalid&gt;"</c> if parsing fails.
     /// </summary>
-    private static string FormatCellValue(string rawValue, ColumnType targetType) =>
+    private static string FormatCellValue(string rawValue, ColumnType targetType, string? formatString) =>
         targetType switch
         {
             ColumnType.WholeNumber => long.TryParse(rawValue, out var l)
@@ -262,19 +271,20 @@ internal sealed class LazyTransformer : ITableSource
                 ? (b ? "true" : "false")
                 : "<invalid>",
             ColumnType.Timestamp => DateTime.TryParse(rawValue, out var dt)
-                ? dt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                ? dt.ToString(formatString ?? "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
                 : "<invalid>",
             _ => rawValue,
         };
 
     /// <summary>
     /// Internal working representation of a column during schema transformation.
-    /// Tracks source column index, current name, type, and optional fill value.
+    /// Tracks source column index, current name, type, optional fill value, and optional format string.
     /// </summary>
     private sealed record WorkingColumn(
         int SourceIndex,
         string Name,
         ColumnType Type,
-        string? FillValue = null
+        string? FillValue = null,
+        string? FormatString = null
     );
 }

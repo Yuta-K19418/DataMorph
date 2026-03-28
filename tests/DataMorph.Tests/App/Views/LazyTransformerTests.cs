@@ -1271,4 +1271,159 @@ public sealed class LazyTransformerTests
         transformer.ColumnNames[0].Should().Be("Value (number)");
         transformer[0, 0].Should().Be("42");
     }
+
+    // -------------------------------------------------------------------------
+    // Schema transformation — FormatTimestamp
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void FormatTimestampAction_OnTimestampColumn_FormatsValueWithTargetFormat()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["2024-01-15T09:30:00"],
+            ],
+            ["created_at"]
+        );
+        var schema = MakeSchema(("created_at", ColumnType.Timestamp));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FormatTimestampAction
+            {
+                ColumnName = "created_at",
+                TargetFormat = "yyyy/MM/dd",
+            },
+        ];
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Act
+        var result = transformer[0, 0];
+
+        // Assert
+        throw new NotImplementedException();
+    }
+
+    [Fact]
+    public void FormatTimestampAction_OnNonExistentColumn_IsSkipped()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["hello"],
+            ],
+            ["A"]
+        );
+        var schema = MakeSchema(("A", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FormatTimestampAction
+            {
+                ColumnName = "DoesNotExist",
+                TargetFormat = "yyyy/MM/dd",
+            },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        throw new NotImplementedException();
+    }
+
+    [Fact]
+    public void FormatTimestampAction_AfterCastToTimestamp_FormatsCorrectly()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["2024-01-15"],
+            ],
+            ["created_at"]
+        );
+        var schema = MakeSchema(("created_at", ColumnType.Text));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new CastColumnAction { ColumnName = "created_at", TargetType = ColumnType.Timestamp },
+            new FormatTimestampAction
+            {
+                ColumnName = "created_at",
+                TargetFormat = "yyyy/MM/dd",
+            },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        throw new NotImplementedException();
+    }
+
+    [Fact]
+    public void MultipleFormatTimestampActions_LastOneWins()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["2024-01-15T09:30:00"],
+            ],
+            ["created_at"]
+        );
+        var schema = MakeSchema(("created_at", ColumnType.Timestamp));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FormatTimestampAction
+            {
+                ColumnName = "created_at",
+                TargetFormat = "yyyy/MM/dd",
+            },
+            new FormatTimestampAction
+            {
+                ColumnName = "created_at",
+                TargetFormat = "MM/dd/yyyy",
+            },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        throw new NotImplementedException();
+    }
+
+    [Fact]
+    public void FormatTimestampAction_WithInvalidTimestampValue_ReturnsInvalidMarker()
+    {
+        // Arrange
+        var source = new FakeTableSource(
+            [
+                ["not-a-date"],
+            ],
+            ["created_at"]
+        );
+        var schema = MakeSchema(("created_at", ColumnType.Timestamp));
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FormatTimestampAction
+            {
+                ColumnName = "created_at",
+                TargetFormat = "yyyy/MM/dd",
+            },
+        ];
+
+        // Act
+        var transformer = new LazyTransformer(source, schema, actions);
+
+        // Assert
+        throw new NotImplementedException();
+    }
+
+    [Fact]
+    public void FormatTimestampAction_WithEmptyTargetFormat_UsesDefaultFormat()
+    {
+        // Arrange
+        // Act
+        // Assert
+        throw new NotImplementedException();
+    }
 }

@@ -67,6 +67,11 @@ internal sealed class CsvTableView : TableView
             return HandleFillColumn();
         }
 
+        if (key.KeyCode == (KeyCode.T | KeyCode.ShiftMask))
+        {
+            return HandleFormatTimestamp();
+        }
+
         var action = _vimKeys.Translate(key.KeyCode);
 
         return action switch
@@ -230,5 +235,10 @@ internal sealed class CsvTableView : TableView
 
         OnMorphAction(new FillColumnAction { ColumnName = rawName, Value = dialog.Value });
         return true;
+    }
+
+    private bool HandleFormatTimestamp()
+    {
+        throw new NotImplementedException();
     }
 }

@@ -23,6 +23,7 @@ internal sealed class MorphActionParser
                 "cast" => ParseCastAction(fields),
                 "filter" => ParseFilterAction(fields),
                 "fill" => ParseFillAction(fields),
+                "format_timestamp" => ParseFormatTimestampAction(fields),
                 _ => Results.Failure<MorphAction>($"Unknown action type: '{type}'"),
             }
             : Results.Failure<MorphAction>("Missing action type");
@@ -124,5 +125,10 @@ internal sealed class MorphActionParser
             Operator = filterOperator,
             Value = filterValue,
         });
+    }
+
+    private static Result<MorphAction> ParseFormatTimestampAction(Dictionary<string, string> fields)
+    {
+        throw new NotImplementedException();
     }
 }

@@ -7,14 +7,14 @@ using DataMorph.Engine.Types;
 namespace DataMorph.App.Cli;
 
 /// <summary>
-/// Orchestrates the CLI headless batch processing pipeline:
+/// Orchestrates CLI headless batch processing pipeline:
 /// recipe load → schema detection → output schema build → transform → write.
 /// Supports CSV and JSON Lines for both input and output (cross-format conversion included).
 /// </summary>
 internal static class Runner
 {
     /// <summary>
-    /// Runs the CLI headless batch processing pipeline.
+    /// Runs CLI headless batch processing pipeline.
     /// </summary>
     /// <param name="args">The validated CLI arguments.</param>
     /// <param name="logger">The app logger for logging messages.</param>
@@ -44,7 +44,13 @@ internal static class Runner
             var inputSchema = await ScanInputSchemaAsync(args.InputFile, inputFormat).ConfigureAwait(false);
 
             // Build output schema
-            var outputSchema = ActionApplier.BuildOutputSchema(inputSchema, recipe.Actions);
+            var outputSchemaResult = ActionApplier.BuildOutputSchema(inputSchema, recipe.Actions);
+            if (outputSchemaResult.IsFailure)
+            {
+                await logger.WriteErrorAsync($"Error building output schema: {outputSchemaResult.Error}");
+                return ExitCode.Failure;
+            }
+            var outputSchema = outputSchemaResult.Value;
 
             // Dispatch to generated static monomorphization logic
             return await Generated.FormatDispatcher.DispatchAsync(
@@ -92,5 +98,4 @@ internal static class Runner
             _ => throw new NotSupportedException($"Unsupported file extension: {extension}"),
         };
     }
-
 }

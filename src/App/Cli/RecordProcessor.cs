@@ -37,6 +37,7 @@ internal static class RecordProcessor
                 var span = transform switch
                 {
                     FillSpec fill => fill.Value.AsSpan(),
+                    TimestampFormatSpec => throw new NotImplementedException(),
                     _ => throw new UnreachableException($"Unhandled CellTransformSpec: {transform.GetType().Name}"),
                 };
                 writer.WriteCellSpan(i, span);
@@ -47,5 +48,10 @@ internal static class RecordProcessor
 
         await writer.FlushAsync(ct).ConfigureAwait(false);
         return ExitCode.Success;
+    }
+
+    private static string ApplyTimestampFormat(ReadOnlySpan<char> raw, TimestampFormatSpec fmt)
+    {
+        throw new NotImplementedException();
     }
 }

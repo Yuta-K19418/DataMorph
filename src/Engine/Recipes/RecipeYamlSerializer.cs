@@ -74,6 +74,8 @@ internal sealed class RecipeYamlSerializer
                 sb.Append("    columnName: ").AppendLine(QuoteString(fill.ColumnName));
                 sb.Append("    value: ").AppendLine(QuoteString(fill.Value));
                 break;
+            case FormatTimestampAction:
+                throw new NotImplementedException();
             default:
                 throw new UnreachableException($"Unhandled MorphAction subtype in serializer");
         }

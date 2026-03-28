@@ -5,11 +5,10 @@ using DataMorph.Engine.Filtering;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
-using CliFilterEvaluator = DataMorph.App.Cli.FilterEvaluator;
 
 namespace DataMorph.Tests.App.Cli;
 
-public sealed class RecordProcessorTests
+public sealed partial class RecordProcessorTests
 {
     private static readonly IReadOnlyList<BatchOutputColumn> _oneColumn = [
         new BatchOutputColumn("col0", "col0"),
@@ -562,139 +561,46 @@ public sealed class RecordProcessorTests
     }
 
     // -------------------------------------------------------------------------
-    // Test helpers
+    // ProcessAsync — TimestampFormatSpec transform
     // -------------------------------------------------------------------------
 
-    private struct TestRecordReader : IRecordReader
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_ISO8601_ToCustomFormat_ReformatsCorrectly()
     {
-        public string[][] Records;
-        public IReadOnlyList<FilterSpec> Filters;
-        public CancellationTokenSource? CancellationTokenSource;
-        public int CancelAfter;
-        private int _currentIndex;
-        private int _recordsProcessed;
-
-        public TestRecordReader(
-            string[][] records,
-            IReadOnlyList<FilterSpec> filters,
-            CancellationTokenSource? cancellationTokenSource = null,
-            int cancelAfter = -1)
-        {
-            Records = records;
-            Filters = filters;
-            CancellationTokenSource = cancellationTokenSource;
-            CancelAfter = cancelAfter;
-            _currentIndex = -1;
-            _recordsProcessed = 0;
-        }
-
-        public void Dispose() { }
-
-        public ValueTask<bool> MoveNextAsync(CancellationToken ct)
-        {
-            _recordsProcessed++;
-
-            if (CancelAfter >= 0 && _recordsProcessed > CancelAfter && CancellationTokenSource != null)
-            {
-                CancellationTokenSource.Cancel();
-            }
-
-            _currentIndex++;
-
-            var hasNext = _currentIndex < Records.Length;
-
-            return ValueTask.FromResult(hasNext);
-        }
-
-        public bool EvaluateFilters()
-        {
-            if (Filters.Count == 0)
-            {
-                return true;
-            }
-
-            var currentRecord = Records[_currentIndex];
-
-            foreach (var filter in Filters)
-            {
-                if (filter.SourceColumnIndex >= currentRecord.Length)
-                {
-                    return false;
-                }
-
-                var valueSpan = currentRecord[filter.SourceColumnIndex].AsSpan();
-
-                if (!CliFilterEvaluator.EvaluateFilter(valueSpan, filter))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        public ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
-        {
-            if (_currentIndex < 0 || _currentIndex >= Records.Length)
-            {
-                return [];
-            }
-
-            var currentRecord = Records[_currentIndex];
-
-            if (outputColumnIndex >= currentRecord.Length)
-            {
-                return [];
-            }
-
-            return currentRecord[outputColumnIndex].AsSpan();
-        }
+        // Arrange
+        // Act
+        // Assert
     }
 
-    private struct TestRecordWriter : IRecordWriter
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_DifferentSourceFormat_ReformatsCorrectly()
     {
-        public Action? WriteHeaderCallback;
-        public Action<string[]>? WriteCellCallback;
-        private readonly List<string> _cells;
+        // Arrange
+        // Act
+        // Assert
+    }
 
-        public TestRecordWriter(
-            Action? writeHeaderCallback = null,
-            Action<string[]>? writeCellCallback = null)
-        {
-            WriteHeaderCallback = writeHeaderCallback;
-            WriteCellCallback = writeCellCallback;
-            _cells = [];
-        }
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_UnparseableCell_ThrowsFormatException()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
 
-        public void Dispose() { }
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_EmptyDataset_WritesOnlyHeader()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
 
-        public ValueTask WriteHeaderAsync(CancellationToken ct)
-        {
-            WriteHeaderCallback?.Invoke();
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask WriteStartRecordAsync(CancellationToken ct)
-        {
-            _cells.Clear();
-            return ValueTask.CompletedTask;
-        }
-
-        public void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
-        {
-            _cells.Add(value.ToString());
-        }
-
-        public ValueTask WriteEndRecordAsync(CancellationToken ct)
-        {
-            WriteCellCallback?.Invoke([.. _cells]);
-            return ValueTask.CompletedTask;
-        }
-
-        public ValueTask FlushAsync(CancellationToken ct)
-        {
-            return ValueTask.CompletedTask;
-        }
+    [Fact]
+    public async Task ProcessAsync_WithTimestampFormatSpec_MultiColumnRecipe_OtherColumnsPassThrough()
+    {
+        // Arrange
+        // Act
+        // Assert
     }
 }

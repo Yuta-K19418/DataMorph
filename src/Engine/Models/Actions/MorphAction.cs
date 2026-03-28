@@ -12,6 +12,7 @@ namespace DataMorph.Engine.Models.Actions;
 [JsonDerivedType(typeof(CastColumnAction), typeDiscriminator: "cast")]
 [JsonDerivedType(typeof(FilterAction), typeDiscriminator: "filter")]
 [JsonDerivedType(typeof(FillColumnAction), typeDiscriminator: "fill")]
+[JsonDerivedType(typeof(FormatTimestampAction), typeDiscriminator: "format_timestamp")]
 public abstract record MorphAction
 {
     /// <summary>

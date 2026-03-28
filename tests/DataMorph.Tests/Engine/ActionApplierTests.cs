@@ -19,7 +19,7 @@ public sealed class ActionApplierTests
         };
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, []);
+        var result = ActionApplier.BuildOutputSchema(schema, []).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -44,7 +44,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new RenameColumnAction { OldName = "A", NewName = "RenamedA" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(2);
@@ -67,7 +67,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new RenameColumnAction { OldName = "NonExistent", NewName = "NewName" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -91,7 +91,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new DeleteColumnAction { ColumnName = "A" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -116,7 +116,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new DeleteColumnAction { ColumnName = "NonExistent" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(2);
@@ -134,7 +134,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new FilterAction { ColumnName = "A", Operator = FilterOperator.Equals, Value = "test" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -157,7 +157,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new FilterAction { ColumnName = "NonExistent", Operator = FilterOperator.Equals, Value = "test" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Filters.Should().BeEmpty();
@@ -183,7 +183,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -202,7 +202,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new CastColumnAction { ColumnName = "A", TargetType = ColumnType.WholeNumber }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -227,7 +227,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Filters.Should().HaveCount(1);
@@ -252,7 +252,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new DeleteColumnAction { ColumnName = "B" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(2);
@@ -272,7 +272,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new CastColumnAction { ColumnName = "NonExistent", TargetType = ColumnType.WholeNumber }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -299,7 +299,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Filters.Should().HaveCount(2);
@@ -323,7 +323,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -373,7 +373,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new DeleteColumnAction { ColumnName = "A" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().BeEmpty();
@@ -401,7 +401,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(2);
@@ -427,7 +427,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new FillColumnAction { ColumnName = "Email", Value = "REDACTED" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -449,7 +449,7 @@ public sealed class ActionApplierTests
         MorphAction[] actions = [new FillColumnAction { ColumnName = "NonExistent", Value = "FILL" }];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -478,7 +478,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(2);
@@ -505,7 +505,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -530,7 +530,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().HaveCount(1);
@@ -553,7 +553,7 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().BeEmpty();
@@ -576,10 +576,46 @@ public sealed class ActionApplierTests
         ];
 
         // Act
-        var result = ActionApplier.BuildOutputSchema(schema, actions);
+        var result = ActionApplier.BuildOutputSchema(schema, actions).Value;
 
         // Assert
         result.Columns.Should().BeEmpty();
         result.Filters.Should().BeEmpty();
+    }
+
+    // -------------------------------------------------------------------------
+    // FormatTimestampAction
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void BuildOutputSchema_WithFormatTimestampAction_OnTimestampColumn_AttachesTransformToColumn()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFormatTimestampAction_OnTextColumn_ReturnsFailure()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithFormatTimestampAction_OnNonExistentColumn_SkipsSilently()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
+
+    [Fact]
+    public void BuildOutputSchema_WithCastToTimestampThenFormat_AppliesCorrectly()
+    {
+        // Arrange
+        // Act
+        // Assert
     }
 }

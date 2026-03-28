@@ -259,28 +259,54 @@ internal sealed class LazyTransformer : ITableSource
     /// Returns the raw value for <see cref="ColumnType.Text"/>, <see cref="ColumnType.JsonObject"/>,
     /// and <see cref="ColumnType.JsonArray"/>. Returns <c>"&lt;invalid&gt;"</c> if parsing fails.
     /// </summary>
-    private static string FormatCellValue(string rawValue, ColumnType targetType, string? formatString) =>
-        targetType switch
+    private static string FormatCellValue(string rawValue, ColumnType targetType, string? formatString)
+    {
+        const string parseFailureLabel = "<invalid>";
+        switch (targetType)
         {
-            ColumnType.WholeNumber => long.TryParse(rawValue, out var l)
-                ? l.ToString(CultureInfo.InvariantCulture)
-                : "<invalid>",
-            ColumnType.FloatingPoint => double.TryParse(
-                rawValue,
-                NumberStyles.Any,
-                CultureInfo.InvariantCulture,
-                out var d
-            )
-                ? d.ToString(CultureInfo.InvariantCulture)
-                : "<invalid>",
-            ColumnType.Boolean => bool.TryParse(rawValue, out var b)
-                ? (b ? "true" : "false")
-                : "<invalid>",
-            ColumnType.Timestamp => DateTime.TryParse(rawValue, out var dt)
-                ? dt.ToString(string.IsNullOrEmpty(formatString) ? "yyyy-MM-dd HH:mm:ss" : formatString, CultureInfo.InvariantCulture)
-                : "<invalid>",
-            _ => rawValue,
-        };
+            case ColumnType.WholeNumber:
+            {
+                if (!long.TryParse(rawValue, out var l))
+                {
+                    return parseFailureLabel;
+                }
+
+                return l.ToString(CultureInfo.InvariantCulture);
+            }
+            case ColumnType.FloatingPoint:
+            {
+                if (!double.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
+                {
+                    return parseFailureLabel;
+                }
+
+                return d.ToString(CultureInfo.InvariantCulture);
+            }
+            case ColumnType.Boolean:
+            {
+                if (!bool.TryParse(rawValue, out var b))
+                {
+                    return parseFailureLabel;
+                }
+
+                return b ? "true" : "false";
+            }
+            case ColumnType.Timestamp:
+            {
+                if (!DateTime.TryParse(rawValue, out var dt))
+                {
+                    return parseFailureLabel;
+                }
+
+                var format = string.IsNullOrEmpty(formatString) ? "yyyy-MM-dd HH:mm:ss" : formatString;
+                return dt.ToString(format, CultureInfo.InvariantCulture);
+            }
+            default:
+            {
+                return rawValue;
+            }
+        }
+    }
 
     /// <summary>
     /// Internal working representation of a column during schema transformation.

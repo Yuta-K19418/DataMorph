@@ -66,7 +66,7 @@ internal sealed class FileLoader : IDisposable
     private async ValueTask<Result> LoadCsvAsync(string filePath)
     {
         var indexer = new DataRowIndexer(filePath);
-        _ = Task.Run(indexer.BuildIndex);
+        _ = Task.Run(() => indexer.BuildIndex());
         var schemaScanner = new IncrementalSchemaScanner(filePath);
 
         try
@@ -117,7 +117,7 @@ internal sealed class FileLoader : IDisposable
     private Task LoadJsonLinesAsync(string filePath)
     {
         var indexer = new RowIndexer(filePath);
-        _ = Task.Run(indexer.BuildIndex);
+        _ = Task.Run(() => indexer.BuildIndex());
 
         _state.JsonLinesIndexer = indexer;
         _state.JsonLinesSchemaScanner = null;

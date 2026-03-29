@@ -6,6 +6,46 @@ namespace DataMorph.Engine.IO.JsonLines;
 /// Indexes JSON Lines files by row position for efficient random access.
 /// Each line in a JSON Lines file contains a complete, independent JSON object.
 /// </summary>
+/// <remarks>
+/// <para><b>Event Design: Action vs EventHandler</b></para>
+/// <para>This class uses Action delegates for events instead of the .NET-recommended EventHandler pattern.
+/// This is an intentional design decision justified below:</para>
+///
+/// <para><b>Action<c>&lt;T&gt;</c> / Action Pros</b></para>
+/// <list type="bullet">
+///   <item>Simple: no unnecessary 'this' (sender) argument</item>
+///   <item>Zero-allocation: no EventArgs instance to allocate</item>
+/// </list>
+///
+/// <para><b>Action<c>&lt;T&gt;</c> / Action Cons</b></para>
+/// <list type="bullet">
+///   <item>Non-standard: .NET recommends EventHandler<c>&lt;T&gt;</c></item>
+///   <item>CA1003 warning: requires suppression</item>
+///   <item>No sender info (if needed in future, signature must change)</item>
+/// </list>
+///
+/// <para><b>EventHandler<c>&lt;T&gt;</c> Pros</b></para>
+/// <list type="bullet">
+///   <item>.NET standard pattern</item>
+///   <item>Provides sender (this) automatically</item>
+///   <item>Extensible via EventArgs without breaking change</item>
+///   <item>No suppression needed</item>
+/// </list>
+///
+/// <para><b>EventHandler<c>&lt;T&gt;</c> Cons</b></para>
+/// <list type="bullet">
+///   <item>Extra 'this' argument even when unused</item>
+///   <item>EventArgs allocation (performance cost in hot path)</item>
+/// </list>
+///
+/// <para><b>Why Action Here?</b></para>
+/// <list type="bullet">
+///   <item>Internal callback only (not a public API)</item>
+///   <item>Hot path: invoked frequently during indexing</item>
+///   <item>Sender not needed (notification is the only concern)</item>
+///   <item>Simplicity and zero-allocation preferred</item>
+/// </list>
+/// </remarks>
 public sealed class RowIndexer
 {
     private readonly Lock _lock = new();
@@ -13,6 +53,9 @@ public sealed class RowIndexer
     private readonly List<long> _checkpoints = [0];
 
     private long _totalRows;
+    private long _bytesRead;
+
+    private bool _firstCheckpointReached;
 
     private const int BufferSize = 1024 * 1024; // 1MB
     private const int CheckPointInterval = 1000;
@@ -40,32 +83,72 @@ public sealed class RowIndexer
     /// </summary>
     public long TotalRows => Interlocked.Read(ref _totalRows);
 
+    /// <summary>Total file size in bytes. Set once before scanning begins.</summary>
+    public long FileSize { get; private set; }
+
     /// <summary>
-    /// Builds the row index by scanning the entire JSON Lines file.
-    /// This method is NOT thread-safe and must be called once from a single thread.
-    /// <see cref="TotalRows"/> is updated periodically during execution for progress tracking.
-    /// <see cref="GetCheckPoint"/> can be safely called from other threads while this method is running.
+    /// Bytes read so far. Updated atomically after each buffer read.
+    /// Safe to read from any thread.
     /// </summary>
-    public void BuildIndex()
+    public long BytesRead => Interlocked.Read(ref _bytesRead);
+
+    /// <summary>
+    /// Raised once when the first checkpoint (CheckPointInterval rows) has been
+    /// indexed. Fired from the indexing thread; subscribers must not block.
+    /// </summary>
+#pragma warning disable CA1003 // See class <remarks> for rationale
+    public event Action? FirstCheckpointReached;
+#pragma warning restore CA1003
+
+    /// <summary>
+    /// Raised on every checkpoint boundary.
+    /// Arguments: (bytesRead, fileSize).
+    /// Fired from the indexing thread; subscribers must not block.
+    /// </summary>
+#pragma warning disable CA1003 // See class <remarks> for rationale
+    public event Action<long, long>? ProgressChanged;
+#pragma warning restore CA1003
+
+    /// <summary>
+    /// Raised once when BuildIndex returns — whether it completed normally,
+    /// was cancelled, or threw an exception.
+    /// Fired from the indexing thread (inside the finally block).
+    /// </summary>
+#pragma warning disable CA1003 // See class <remarks> for rationale
+    public event Action? BuildIndexCompleted;
+#pragma warning restore CA1003
+
+    /// <summary>
+    /// Builds the row index by scanning the entire file.
+    /// Exits cooperatively when <paramref name="ct"/> is cancelled.
+    /// NOT thread-safe — call once from a single background thread.
+    /// <see cref="BuildIndexCompleted"/> fires unconditionally when this method
+    /// returns, regardless of whether it completed, was cancelled, or threw.
+    /// </summary>
+    public void BuildIndex(CancellationToken ct = default)
     {
-        using var handle = File.OpenHandle(
-            _filePath,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.Read
-        );
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
-        var scanner = new RowScanner();
 
         try
         {
+            FileSize = new FileInfo(_filePath).Length;
+
+            using var handle = File.OpenHandle(
+                _filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read
+            );
+            var scanner = new RowScanner();
+
             var fileOffset = 0L;
             var rowCount = 0L;
             var lastByteRead = (byte)0;
-            var totalBytesRead = 0L;
 
             while (true)
             {
+                ct.ThrowIfCancellationRequested();
+
                 var bytesRead = RandomAccess.Read(handle, buffer.AsSpan(0, BufferSize), fileOffset);
 
                 if (bytesRead <= 0)
@@ -73,7 +156,7 @@ public sealed class RowIndexer
                     break;
                 }
 
-                totalBytesRead += bytesRead;
+                Interlocked.Add(ref _bytesRead, bytesRead);
                 lastByteRead = buffer[bytesRead - 1];
 
                 var span = buffer.AsSpan(0, bytesRead);
@@ -82,16 +165,34 @@ public sealed class RowIndexer
             }
 
             // If file doesn't end with newline, count the last line
-            if (totalBytesRead > 0 && lastByteRead != (byte)'\n')
+            if (Interlocked.Read(ref _bytesRead) > 0 && lastByteRead != (byte)'\n')
             {
                 rowCount++;
             }
 
             Interlocked.Exchange(ref _totalRows, rowCount);
+
+            // Empty-file / sub-checkpoint guard: FirstCheckpointReached must
+            // always fire so that the TaskCompletionSource in FileLoader does
+            // not hang. Must fire AFTER TotalRows is finalised.
+            if (!_firstCheckpointReached)
+            {
+                _firstCheckpointReached = true;
+                FirstCheckpointReached?.Invoke();
+            }
         }
         finally
         {
+            // Guarantee FirstCheckpointReached fires even on cancellation or error,
+            // so the TaskCompletionSource in FileLoader never hangs.
+            if (!_firstCheckpointReached)
+            {
+                _firstCheckpointReached = true;
+                FirstCheckpointReached?.Invoke();
+            }
+
             ArrayPool<byte>.Shared.Return(buffer);
+            BuildIndexCompleted?.Invoke();
         }
     }
 
@@ -165,6 +266,14 @@ public sealed class RowIndexer
                     {
                         _checkpoints.Add(checkpointOffset);
                     }
+
+                    if (!_firstCheckpointReached)
+                    {
+                        _firstCheckpointReached = true;
+                        FirstCheckpointReached?.Invoke();
+                    }
+
+                    ProgressChanged?.Invoke(Interlocked.Read(ref _bytesRead), FileSize);
                 }
             }
         }

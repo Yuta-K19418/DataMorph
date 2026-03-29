@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using AwesomeAssertions;
 using DataMorph.App;
 
@@ -162,7 +163,7 @@ public sealed class FileLoaderTests : IDisposable
     public async Task LoadAsync_WithCsvContainingHeaderOnly_LoadsSuccessfully()
     {
         // Arrange
-        // A CSV with a header row but no data rows is valid; the schema is inferred from column names.
+        // A CSV with a header row but no data rows is valid; schema is inferred from column names.
         await File.WriteAllTextAsync(_headerOnlyCsvFilePath, "Name,Age\n");
         var state = new AppState();
         using var loader = new FileLoader(state);
@@ -173,9 +174,11 @@ public sealed class FileLoaderTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         state.CurrentMode.Should().Be(ViewMode.CsvTable);
-        state.Schema.Should().NotBeNull();
-        state.Schema.Columns.Should().NotBeNull();
-        state.Schema.Columns.Should().HaveCount(2);
+
+        var schema = state.Schema;
+        schema.Should().NotBeNull();
+        schema.Columns.Should().NotBeNull();
+        schema.Columns.Should().HaveCount(2);
         state.CsvIndexer.Should().NotBeNull();
     }
 
@@ -183,23 +186,106 @@ public sealed class FileLoaderTests : IDisposable
     public async Task LoadAsync_JsonLines_WhenCalledTwice_CancelsPreviousBuildIndex()
     {
         // Arrange
-        // Act
-        // Assert
+        // 500,000 rows (~6.0 MB) ensures the build index takes multiple 1 MB buffer reads,
+        // providing a wide window for the UI thread to wake up and subscribe before completion.
+        var lines = Enumerable.Range(0, 500_000).Select(i => $"{{\"id\":{i}}}").ToList();
+        await File.WriteAllLinesAsync(_jsonlFilePath, lines);
+        var state = new AppState();
+        using var loader = new FileLoader(state);
+
+        await loader.LoadAsync(_jsonlFilePath);
+        state.JsonLinesIndexer.Should().NotBeNull();
+        var indexer = state.JsonLinesIndexer ?? throw new UnreachableException();
+
+        var completed = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+
+        // Act - Use a different file path for the second load to avoid I/O sharing violations
+        // while the first indexer is still reading the original file.
+        var secondPath = Path.ChangeExtension(Path.GetTempFileName(), ".jsonl");
+        try
+        {
+            var secondLines = Enumerable.Range(0, 100).Select(i => $"{{\"id\":{i}}}").ToList();
+            await File.WriteAllLinesAsync(secondPath, secondLines);
+            var result = await loader.LoadAsync(secondPath);
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            completed.Task.IsCompletedSuccessfully.Should().BeTrue();
+            state.JsonLinesIndexer.Should().NotBeNull();
+        }
+        finally
+        {
+            File.Delete(secondPath);
+        }
     }
 
     [Fact]
     public async Task LoadAsync_Csv_WhenCalledTwice_CancelsPreviousBuildIndex()
     {
         // Arrange
-        // Act
-        // Assert
+        // 500,000 rows (~7.0 MB) ensures BuildIndex requires multiple 1 MB buffer
+        // read, so cancellation is detected between iterations even after InitialScanAsync
+        // (which reads only 200 rows) returns and allows subscription to proceed.
+        var header = "id,name";
+        var rows = Enumerable.Range(0, 500_000).Select(i => $"{i},Row{i}");
+        var content = string.Join("\n", [header, .. rows]);
+        await File.WriteAllTextAsync(_csvFilePath, content);
+        var state = new AppState();
+        using var loader = new FileLoader(state);
+        await loader.LoadAsync(_csvFilePath);
+        state.CsvIndexer.Should().NotBeNull();
+        var indexer = state.CsvIndexer ?? throw new UnreachableException();
+
+        var completed = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+
+        // Act - Use a different file path for the second load to avoid I/O sharing violations.
+        var secondPath = Path.ChangeExtension(Path.GetTempFileName(), ".csv");
+        try
+        {
+            var secondRows = Enumerable.Range(0, 100).Select(i => $"{i},Row{i}");
+            var secondContent = string.Join("\n", [header, .. secondRows]);
+            await File.WriteAllTextAsync(secondPath, secondContent);
+            var result = await loader.LoadAsync(secondPath);
+
+            // Assert
+            result.IsSuccess.Should().BeTrue();
+            completed.Task.IsCompletedSuccessfully.Should().BeTrue();
+            state.CsvIndexer.Should().NotBeNull();
+        }
+        finally
+        {
+            File.Delete(secondPath);
+        }
     }
 
     [Fact]
-    public void Dispose_CancelsBuildIndex()
+    public async Task Dispose_CancelsBuildIndex()
     {
         // Arrange
+        // 500,000 rows (~6.0 MB) forces BuildIndex into multiple 1 MB buffer reads.
+        // Cancellation is checked at the start of each iteration, so disposing
+        // after the first checkpoint guarantees detection before subsequent reads.
+        var lines = Enumerable.Range(0, 500_000).Select(i => $"{{\"id\":{i}}}").ToList();
+        await File.WriteAllLinesAsync(_jsonlFilePath, lines);
+        var state = new AppState();
+        var loader = new FileLoader(state);
+        await loader.LoadAsync(_jsonlFilePath);
+        state.JsonLinesIndexer.Should().NotBeNull();
+        var indexer = state.JsonLinesIndexer ?? throw new UnreachableException();
+
+        var completed = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+
         // Act
+        loader.Dispose();
+
         // Assert
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+        completed.Task.IsCompletedSuccessfully.Should().BeTrue();
     }
 }

@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using DataMorph.Engine.IO.Csv;
+using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Recipes;
 using Terminal.Gui.App;
@@ -20,6 +22,20 @@ internal sealed class MainWindow : Window
     private readonly FileLoader _fileLoader;
     private readonly ViewManager _viewManager;
     private readonly RecipeManager _recipeManager = new();
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
+    private ProgressBar? _progressBar;
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
+    private Label? _progressLabel;
 
     public MainWindow(IApplication app, AppState state)
     {
@@ -130,13 +146,42 @@ internal sealed class MainWindow : Window
         )
         {
             _viewManager.SwitchToCsvTable(_state.CsvIndexer, _state.Schema);
+            WireCsvIndexerProgress(_state.CsvIndexer);
             return;
         }
 
         if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.JsonLinesIndexer is not null)
         {
             _viewManager.SwitchToJsonLinesTree(_state.JsonLinesIndexer);
+            WireJsonLinesIndexerProgress(_state.JsonLinesIndexer);
+            return;
         }
+    }
+
+    private void WireJsonLinesIndexerProgress(RowIndexer indexer)
+    {
+        ShowIndexingProgress();
+
+        indexer.ProgressChanged += (bytesRead, fileSize) =>
+            _app.Invoke(() => UpdateIndexingProgress(bytesRead, fileSize));
+
+        indexer.BuildIndexCompleted +=
+            () => _app.Invoke(DismissIndexingProgress);
+
+        UpdateIndexingProgress(indexer.BytesRead, indexer.FileSize);
+    }
+
+    private void WireCsvIndexerProgress(DataRowIndexer indexer)
+    {
+        ShowIndexingProgress();
+
+        indexer.ProgressChanged += (bytesRead, fileSize) =>
+            _app.Invoke(() => UpdateIndexingProgress(bytesRead, fileSize));
+
+        indexer.BuildIndexCompleted +=
+            () => _app.Invoke(DismissIndexingProgress);
+
+        UpdateIndexingProgress(indexer.BytesRead, indexer.FileSize);
     }
 
     [SuppressMessage(
@@ -248,5 +293,80 @@ internal sealed class MainWindow : Window
         {
             _viewManager.SwitchToJsonLinesTableView(_state.JsonLinesIndexer, _state.Schema);
         }
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
+    private void ShowIndexingProgress()
+    {
+        DismissIndexingProgress();
+        _progressBar = new ProgressBar
+        {
+            X = Pos.Center(),
+            Y = Pos.Center(),
+            Width = Dim.Percent(60),
+        };
+        _progressLabel = new Label
+        {
+            X = Pos.Center(),
+            Y = Pos.Bottom(_progressBar) + 1,
+            Text = "Indexing…",
+        };
+
+        Add(_progressBar, _progressLabel);
+    }
+
+    private void UpdateIndexingProgress(long bytesRead, long fileSize)
+    {
+        if (_progressBar is null || _progressLabel is null)
+        {
+            return;
+        }
+
+        if (fileSize <= 0)
+        {
+            return;
+        }
+
+        var fraction = (float)bytesRead / fileSize;
+        _progressBar.Fraction = fraction;
+        _progressLabel.Text =
+            $"Indexing… {fraction * 100:F0}%  " +
+            $"({FormatBytes(bytesRead)} / {FormatBytes(fileSize)})";
+    }
+
+    private void DismissIndexingProgress()
+    {
+        if (_progressBar is not null)
+        {
+            Remove(_progressBar);
+            _progressBar.Dispose();
+            _progressBar = null;
+        }
+
+        if (_progressLabel is not null)
+        {
+            Remove(_progressLabel);
+            _progressLabel.Dispose();
+            _progressLabel = null;
+        }
+    }
+
+    private static string FormatBytes(long bytes)
+    {
+        const long KB = 1024;
+        const long MB = KB * 1024;
+        const long GB = MB * 1024;
+
+        return bytes switch
+        {
+            >= GB => $"{bytes / (double)GB:F2} GB",
+            >= MB => $"{bytes / (double)MB:F2} MB",
+            >= KB => $"{bytes / (double)KB:F2} KB",
+            _ => $"{bytes} B",
+        };
     }
 }

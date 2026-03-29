@@ -15,6 +15,8 @@ internal sealed class FileLoader : IDisposable
 {
     private readonly AppState _state;
     private bool _disposed;
+    private CancellationTokenSource? _buildIndexCts;
+    private Task _buildIndexTask = Task.CompletedTask;
 
     internal FileLoader(AppState state)
     {
@@ -56,18 +58,42 @@ internal sealed class FileLoader : IDisposable
 
         if (filePath.EndsWith(".jsonl", StringComparison.OrdinalIgnoreCase))
         {
-            await LoadJsonLinesAsync(filePath);
-            return Results.Success();
+            return await LoadJsonLinesAsync(filePath);
         }
 
         return Results.Failure($"Unsupported file format: {Path.GetExtension(filePath)}");
     }
 
+    private async ValueTask CancelPreviousBuildIndexAsync()
+    {
+        if (_buildIndexCts is not null)
+        {
+            await _buildIndexCts.CancelAsync().ConfigureAwait(false);
+        }
+        try
+        {
+            await _buildIndexTask.ConfigureAwait(false);
+        }
+#pragma warning disable CA1031 // Swallowing old task exceptions is intentional to avoid cascading failures.
+        catch (Exception)
+        {
+            // Expected (e.g., OperationCanceledException, IOException); swallow.
+        }
+#pragma warning restore CA1031
+    }
+
     private async ValueTask<Result> LoadCsvAsync(string filePath)
     {
+        await CancelPreviousBuildIndexAsync();
+
+        _buildIndexCts?.Dispose();
+        _buildIndexCts = new CancellationTokenSource();
+        var ct = _buildIndexCts.Token;
+
         var indexer = new DataRowIndexer(filePath);
-        _ = Task.Run(() => indexer.BuildIndex());
         var schemaScanner = new IncrementalSchemaScanner(filePath);
+
+        _buildIndexTask = Task.Run(() => indexer.BuildIndex(ct));
 
         try
         {
@@ -114,10 +140,39 @@ internal sealed class FileLoader : IDisposable
         }
     }
 
-    private Task LoadJsonLinesAsync(string filePath)
+    private async ValueTask<Result> LoadJsonLinesAsync(string filePath)
     {
-        var indexer = new RowIndexer(filePath);
-        _ = Task.Run(() => indexer.BuildIndex());
+        await CancelPreviousBuildIndexAsync();
+
+        _buildIndexCts?.Dispose();
+        _buildIndexCts = new CancellationTokenSource();
+        var ct = _buildIndexCts.Token;
+
+        RowIndexer indexer;
+        try
+        {
+            indexer = new RowIndexer(filePath);
+        }
+        catch (Exception ex) when (ex is IOException or ArgumentException)
+        {
+            return Results.Failure(ex.Message);
+        }
+
+        var tcs = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        indexer.FirstCheckpointReached += () => tcs.TrySetResult();
+
+        _buildIndexTask = Task.Run(() => indexer.BuildIndex(ct));
+
+        // Wait until at least 1,000 rows are indexed (or file is empty/cancelled).
+        await tcs.Task.ConfigureAwait(false);
+
+        // If cancelled before the view is set up, abort silently.
+        if (ct.IsCancellationRequested)
+        {
+            return Results.Failure("Load cancelled.");
+        }
 
         _state.JsonLinesIndexer = indexer;
         _state.JsonLinesSchemaScanner = null;
@@ -125,7 +180,7 @@ internal sealed class FileLoader : IDisposable
         _state.OnSchemaRefined = null;
         _state.CurrentMode = ViewMode.JsonLinesTree;
 
-        return Task.CompletedTask;
+        return Results.Success();
     }
 
     /// <summary>
@@ -209,6 +264,8 @@ internal sealed class FileLoader : IDisposable
             return;
         }
 
+        _buildIndexCts?.Cancel();
+        _buildIndexCts?.Dispose();
         _disposed = true;
         _state.Cts.Cancel();
     }

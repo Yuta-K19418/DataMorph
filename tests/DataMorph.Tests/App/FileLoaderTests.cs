@@ -178,4 +178,28 @@ public sealed class FileLoaderTests : IDisposable
         state.Schema.Columns.Should().HaveCount(2);
         state.CsvIndexer.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task LoadAsync_JsonLines_WhenCalledTwice_CancelsPreviousBuildIndex()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
+
+    [Fact]
+    public async Task LoadAsync_Csv_WhenCalledTwice_CancelsPreviousBuildIndex()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
+
+    [Fact]
+    public void Dispose_CancelsBuildIndex()
+    {
+        // Arrange
+        // Act
+        // Assert
+    }
 }

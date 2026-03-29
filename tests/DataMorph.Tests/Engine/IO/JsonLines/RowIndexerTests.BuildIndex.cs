@@ -215,4 +215,204 @@ public sealed partial class RowIndexerTests
         // Assert
         indexer.TotalRows.Should().Be(10_000);
     }
+
+    [Fact]
+    public void BuildIndex_RaisesFirstCheckpointReached_OnFirstThousandRows()
+    {
+        // Arrange
+        var lines = Enumerable.Range(0, 1_500).Select(i => $"{{\"id\": {i}}}");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new RowIndexer(_testFilePath);
+        var firstCheckpointFired = false;
+        indexer.FirstCheckpointReached += () => firstCheckpointFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        firstCheckpointFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildIndex_FirstCheckpointReached_FiresOnlyOnce()
+    {
+        // Arrange
+        var lines = Enumerable.Range(0, 3_000).Select(i => $"{{\"id\": {i}}}");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new RowIndexer(_testFilePath);
+        var fireCount = 0;
+        indexer.FirstCheckpointReached += () => Interlocked.Increment(ref fireCount);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        fireCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesFirstCheckpointReached_WhenFileIsEmpty()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, string.Empty);
+        var indexer = new RowIndexer(_testFilePath);
+        var firstCheckpointFired = false;
+        indexer.FirstCheckpointReached += () => firstCheckpointFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        firstCheckpointFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BuildIndex_RaisesFirstCheckpointReached_WhenCancelledBeforeFirstCheckpoint()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        // Just enough data to start, but we will cancel immediately
+        var lines = Enumerable.Range(0, 10).Select(i => $"{{\"id\": {i}}}");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new RowIndexer(_testFilePath);
+        var firstCheckpointFired = false;
+        indexer.FirstCheckpointReached += () => firstCheckpointFired = true;
+
+        // Act: Cancel before even starting the loop to ensure it hits the cancellation check early
+        cts.Cancel();
+        var task = Task.Run(() => indexer.BuildIndex(cts.Token));
+
+        // Assert
+        Func<Task> act = () => task;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        firstCheckpointFired.Should().BeTrue(); // Should fire from finally block
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesProgressChanged_OnEachCheckpoint()
+    {
+        // Arrange
+        var lines = Enumerable.Range(0, 2_500).Select(i => $"{{\"id\": {i}}}");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new RowIndexer(_testFilePath);
+        var progressCount = 0;
+        indexer.ProgressChanged += (_, _) => Interlocked.Increment(ref progressCount);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        progressCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesBuildIndexCompleted_AfterCompletion()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, "{\"id\": 1}\n{\"id\": 2}");
+        var indexer = new RowIndexer(_testFilePath);
+        var buildIndexCompletedFired = false;
+        indexer.BuildIndexCompleted += () => buildIndexCompletedFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        buildIndexCompletedFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BuildIndex_RaisesBuildIndexCompleted_WhenCancelled()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        // 2000 rows ensures at least one ProgressChanged event at 1000 rows
+        var lines = Enumerable.Range(0, 2_000).Select(i => $"{{\"id\": {i}}}");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new RowIndexer(_testFilePath);
+        var buildIndexCompletedFired = false;
+        indexer.BuildIndexCompleted += () => buildIndexCompletedFired = true;
+
+        // Cancel when the first progress event is reached
+        indexer.ProgressChanged += (_, _) => cts.Cancel();
+
+        // Act
+        var task = Task.Run(() => indexer.BuildIndex(cts.Token));
+
+        // Assert
+        Func<Task> act = () => task;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        buildIndexCompletedFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesBuildIndexCompleted_WhenFileIsEmpty()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, string.Empty);
+        var indexer = new RowIndexer(_testFilePath);
+        var buildIndexCompletedFired = false;
+        indexer.BuildIndexCompleted += () => buildIndexCompletedFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        buildIndexCompletedFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BuildIndex_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var lines = Enumerable.Range(0, 2_000).Select(i => $"{{\"id\": {i}}}");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new RowIndexer(_testFilePath);
+
+        // Cancel when progress is made
+        indexer.ProgressChanged += (_, _) => cts.Cancel();
+
+        // Act
+        var task = Task.Run(() => indexer.BuildIndex(cts.Token));
+
+        // Assert
+        Func<Task> act = () => task;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public void BytesRead_IncreasesMonotonically_DuringBuildIndex()
+    {
+        // Arrange
+        var lines = Enumerable.Range(0, 2_000).Select(i => $"{{\"id\": {i}}}");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new RowIndexer(_testFilePath);
+        List<long> progressEvents = [];
+        indexer.ProgressChanged += (bytesRead, _) => progressEvents.Add(bytesRead);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        progressEvents.Should().HaveCount(2);
+        progressEvents[1].Should().BeGreaterThanOrEqualTo(progressEvents[0]);
+        indexer.BytesRead.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void FileSize_MatchesActualFileLength()
+    {
+        // Arrange
+        var content = "{\"id\":1}\n{\"id\":2}\n{\"id\":3}";
+        File.WriteAllText(_testFilePath, content);
+        var expectedFileSize = new FileInfo(_testFilePath).Length;
+        var indexer = new RowIndexer(_testFilePath);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        indexer.FileSize.Should().Be(expectedFileSize);
+    }
 }

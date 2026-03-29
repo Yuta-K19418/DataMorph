@@ -207,8 +207,7 @@ public sealed partial class DataRowIndexerTests
     public void BuildIndex_WithVeryLargeFile_HandlesCorrectly()
     {
         // Arrange: Create file with exactly 1001 rows to test checkpoint boundary
-        var lines = new List<string> { "col1,col2" };
-        lines.AddRange(Enumerable.Range(1, 1001).Select(i => $"value{i:D4},data{i:D4}"));
+        var lines = Enumerable.Range(1, 1001).Select(i => $"value{i:D4},data{i:D4}").Prepend("col1,col2");
         File.WriteAllText(_testFilePath, string.Join("\n", lines));
 
         var indexer = new DataRowIndexer(_testFilePath);
@@ -235,5 +234,206 @@ public sealed partial class DataRowIndexerTests
 
         // Assert
         indexer.TotalRows.Should().Be(1);
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesFirstCheckpointReached_OnFirstThousandRows()
+    {
+        // Arrange
+        var lines = Enumerable.Range(1, 1_500).Select(i => $"value{i:D4},data{i:D4}").Prepend("col1,col2");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+        var firstCheckpointFired = false;
+        indexer.FirstCheckpointReached += () => firstCheckpointFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        firstCheckpointFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildIndex_FirstCheckpointReached_FiresOnlyOnce()
+    {
+        // Arrange
+        var lines = Enumerable.Range(1, 3_000).Select(i => $"value{i:D4},data{i:D4}").Prepend("col1,col2");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+        var fireCount = 0;
+        indexer.FirstCheckpointReached += () => Interlocked.Increment(ref fireCount);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        fireCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesFirstCheckpointReached_WhenFileIsEmpty()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, "col1,col2");
+        var indexer = new DataRowIndexer(_testFilePath);
+        var firstCheckpointFired = false;
+        indexer.FirstCheckpointReached += () => firstCheckpointFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        firstCheckpointFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BuildIndex_RaisesFirstCheckpointReached_WhenCancelledBeforeFirstCheckpoint()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        // Just enough data to start, but we will cancel immediately
+        var lines = Enumerable.Range(1, 10).Select(i => $"v,d").Prepend("c1,c2");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+        var firstCheckpointFired = false;
+        indexer.FirstCheckpointReached += () => firstCheckpointFired = true;
+
+        // Act: Cancel before even starting the loop to ensure it hits the cancellation check early
+        cts.Cancel();
+        var task = Task.Run(() => indexer.BuildIndex(cts.Token));
+
+        // Assert
+        Func<Task> act = () => task;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        firstCheckpointFired.Should().BeTrue(); // Should fire from finally block
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesProgressChanged_OnEachCheckpoint()
+    {
+        // Arrange
+        var lines = Enumerable.Range(1, 2_500).Select(i => $"value{i:D4},data{i:D4}").Prepend("col1,col2");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+        var progressCount = 0;
+        indexer.ProgressChanged += (_, _) => Interlocked.Increment(ref progressCount);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        progressCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesBuildIndexCompleted_AfterCompletion()
+    {
+        // Arrange
+        string[] lines = ["col1,col2", "value1,data1", "value2,data2"];
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+        var buildIndexCompletedFired = false;
+        indexer.BuildIndexCompleted += () => buildIndexCompletedFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        buildIndexCompletedFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BuildIndex_RaisesBuildIndexCompleted_WhenCancelled()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        // 2000 rows ensures at least one ProgressChanged event at 1000 rows
+        var lines = Enumerable.Range(1, 2_000).Select(i => $"v,d").Prepend("c1,c2");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+        var buildIndexCompletedFired = false;
+        indexer.BuildIndexCompleted += () => buildIndexCompletedFired = true;
+
+        // Cancel when the first progress event is reached
+        indexer.ProgressChanged += (_, _) => cts.Cancel();
+
+        // Act
+        var task = Task.Run(() => indexer.BuildIndex(cts.Token));
+
+        // Assert
+        Func<Task> act = () => task;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+        buildIndexCompletedFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildIndex_RaisesBuildIndexCompleted_WhenFileIsEmpty()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, "col1,col2");
+        var indexer = new DataRowIndexer(_testFilePath);
+        var buildIndexCompletedFired = false;
+        indexer.BuildIndexCompleted += () => buildIndexCompletedFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        buildIndexCompletedFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task BuildIndex_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var lines = Enumerable.Range(1, 2_000).Select(i => $"v,d").Prepend("c1,c2");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+
+        // Cancel when progress is made
+        indexer.ProgressChanged += (_, _) => cts.Cancel();
+
+        // Act
+        var task = Task.Run(() => indexer.BuildIndex(cts.Token));
+
+        // Assert
+        Func<Task> act = () => task;
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public void BytesRead_IncreasesMonotonically_DuringBuildIndex()
+    {
+        // Arrange
+        var lines = Enumerable.Range(1, 2_000).Select(i => $"value{i:D4},data{i:D4}").Prepend("col1,col2");
+        File.WriteAllLines(_testFilePath, lines);
+        var indexer = new DataRowIndexer(_testFilePath);
+        List<long> progressEvents = [];
+        indexer.ProgressChanged += (bytesRead, _) => progressEvents.Add(bytesRead);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        progressEvents.Should().HaveCount(2);
+        progressEvents[1].Should().BeGreaterThanOrEqualTo(progressEvents[0]);
+        indexer.BytesRead.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void FileSize_MatchesActualFileLength()
+    {
+        // Arrange
+        string[] lines = ["col1,col2", "value1,data1", "value2,data2", "value3,data3"];
+        File.WriteAllLines(_testFilePath, lines);
+        var expectedFileSize = new FileInfo(_testFilePath).Length;
+        var indexer = new DataRowIndexer(_testFilePath);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        indexer.FileSize.Should().Be(expectedFileSize);
     }
 }

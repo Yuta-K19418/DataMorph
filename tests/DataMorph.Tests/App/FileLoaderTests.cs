@@ -1,5 +1,5 @@
-using AwesomeAssertions;
 using DataMorph.App;
+using Xunit;
 
 namespace DataMorph.Tests.App;
 
@@ -45,10 +45,10 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.LoadAsync(_csvFilePath);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        state.CurrentMode.Should().Be(ViewMode.CsvTable);
-        state.Schema.Should().NotBeNull();
-        state.CsvIndexer.Should().NotBeNull();
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ViewMode.CsvTable, state.CurrentMode);
+        Assert.NotNull(state.Schema);
+        Assert.NotNull(state.CsvIndexer);
     }
 
     [Fact]
@@ -63,9 +63,9 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.LoadAsync(_jsonlFilePath);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        state.CurrentMode.Should().Be(ViewMode.JsonLinesTree);
-        state.JsonLinesIndexer.Should().NotBeNull();
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ViewMode.JsonLinesTree, state.CurrentMode);
+        Assert.NotNull(state.JsonLinesIndexer);
     }
 
     [Fact]
@@ -81,10 +81,10 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.ToggleJsonLinesModeAsync();
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        state.CurrentMode.Should().Be(ViewMode.JsonLinesTable);
-        state.Schema.Should().NotBeNull();
-        state.JsonLinesSchemaScanner.Should().NotBeNull();
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ViewMode.JsonLinesTable, state.CurrentMode);
+        Assert.NotNull(state.Schema);
+        Assert.NotNull(state.JsonLinesSchemaScanner);
     }
 
     [Fact]
@@ -101,8 +101,8 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.ToggleJsonLinesModeAsync();
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        state.CurrentMode.Should().Be(ViewMode.JsonLinesTree);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ViewMode.JsonLinesTree, state.CurrentMode);
     }
 
     [Fact]
@@ -117,10 +117,10 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.LoadAsync(_unsupportedFilePath);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain(".json");
-        state.CsvIndexer.Should().BeNull();
-        state.JsonLinesIndexer.Should().BeNull();
+        Assert.True(result.IsFailure);
+        Assert.Contains(".json", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(state.CsvIndexer);
+        Assert.Null(state.JsonLinesIndexer);
     }
 
     [Fact]
@@ -134,10 +134,10 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.LoadAsync(_nonExistentFilePath);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("does not exist");
-        state.CsvIndexer.Should().BeNull();
-        state.JsonLinesIndexer.Should().BeNull();
+        Assert.True(result.IsFailure);
+        Assert.Contains("does not exist", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(state.CsvIndexer);
+        Assert.Null(state.JsonLinesIndexer);
     }
 
     [Fact]
@@ -152,17 +152,17 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.LoadAsync(_emptyCsvFilePath);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("empty");
-        state.CsvIndexer.Should().BeNull();
-        state.JsonLinesIndexer.Should().BeNull();
+        Assert.True(result.IsFailure);
+        Assert.Contains("empty", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(state.CsvIndexer);
+        Assert.Null(state.JsonLinesIndexer);
     }
 
     [Fact]
     public async Task LoadAsync_WithCsvContainingHeaderOnly_LoadsSuccessfully()
     {
         // Arrange
-        // A CSV with a header row but no data rows is valid; the schema is inferred from column names.
+        // A CSV with a header row but no data rows is valid; schema is inferred from column names.
         await File.WriteAllTextAsync(_headerOnlyCsvFilePath, "Name,Age\n");
         var state = new AppState();
         using var loader = new FileLoader(state);
@@ -171,35 +171,98 @@ public sealed class FileLoaderTests : IDisposable
         var result = await loader.LoadAsync(_headerOnlyCsvFilePath);
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        state.CurrentMode.Should().Be(ViewMode.CsvTable);
-        state.Schema.Should().NotBeNull();
-        state.Schema.Columns.Should().NotBeNull();
-        state.Schema.Columns.Should().HaveCount(2);
-        state.CsvIndexer.Should().NotBeNull();
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ViewMode.CsvTable, state.CurrentMode);
+        Assert.NotNull(state.Schema);
+        Assert.NotNull(state.Schema.Columns);
+        Assert.Equal(2, state.Schema.Columns.Count);
+        Assert.NotNull(state.CsvIndexer);
     }
 
     [Fact]
     public async Task LoadAsync_JsonLines_WhenCalledTwice_CancelsPreviousBuildIndex()
     {
         // Arrange
+        var lines = Enumerable.Range(0, 800).Select(i => $"{{\"id\":{i}}}").ToList();
+        await File.WriteAllLinesAsync(_jsonlFilePath, lines);
+        var state = new AppState();
+        using var loader = new FileLoader(state);
+        var firstIndexerCompleted = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        await loader.LoadAsync(_jsonlFilePath);
+        Assert.NotNull(state.JsonLinesIndexer);
+        var completed = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        state.JsonLinesIndexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+
         // Act
+        var secondLines = Enumerable.Range(0, 100).Select(i => $"{{\"id\":{i}}}").ToList();
+        await File.WriteAllLinesAsync(_jsonlFilePath, secondLines);
+        var result = await loader.LoadAsync(_jsonlFilePath);
+
         // Assert
+        Assert.True(result.IsSuccess);
+
+        await Task.WhenAny(
+            completed.Task,
+            Task.Delay(TimeSpan.FromSeconds(5))
+        ).ConfigureAwait(true);
+        Assert.True(completed.Task.Result);
+        Assert.NotNull(state.JsonLinesIndexer);
     }
 
     [Fact]
     public async Task LoadAsync_Csv_WhenCalledTwice_CancelsPreviousBuildIndex()
     {
         // Arrange
+        var header = "id,name";
+        var rows = Enumerable.Range(0, 800).Select(i => $"{i},Row{i}");
+        var content = string.Join("\n", [header, .. rows]);
+        await File.WriteAllTextAsync(_csvFilePath, content);
+        var state = new AppState();
+        using var loader = new FileLoader(state);
+        var completed = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        state.CsvIndexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+
         // Act
+        var secondRows = Enumerable.Range(0, 100).Select(i => $"{i},Row{i}");
+        var secondContent = string.Join("\n", [header, .. secondRows]);
+        await File.WriteAllTextAsync(_csvFilePath, secondContent);
+        var result = await loader.LoadAsync(_csvFilePath);
+
         // Assert
+        Assert.True(result.IsSuccess);
+
+        await Task.WhenAny(
+            completed.Task,
+            Task.Delay(TimeSpan.FromSeconds(5))
+        ).ConfigureAwait(true);
+        Assert.True(completed.Task.Result);
+        Assert.NotNull(state.CsvIndexer);
     }
 
     [Fact]
-    public void Dispose_CancelsBuildIndex()
+    public async Task Dispose_CancelsBuildIndex()
     {
         // Arrange
+        var lines = Enumerable.Range(0, 1200).Select(i => $"{{\"id\":{i}}}").ToList();
+        await File.WriteAllLinesAsync(_jsonlFilePath, lines);
+        var state = new AppState();
+        var loader = new FileLoader(state);
+        var completed = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        state.JsonLinesIndexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+
         // Act
+        loader.Dispose();
+
         // Assert
+        await Task.WhenAny(
+            completed.Task,
+            Task.Delay(TimeSpan.FromSeconds(5))
+        ).ConfigureAwait(true);
+        Assert.True(completed.Task.Result);
     }
 }

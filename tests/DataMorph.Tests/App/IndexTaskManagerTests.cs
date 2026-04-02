@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using DataMorph.App;
+using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 
 namespace DataMorph.Tests.App;
@@ -81,19 +82,35 @@ public sealed class IndexTaskManagerTests : IDisposable
     }
 
     [Fact]
+    public void Dispose_WithoutPriorStart_DoesNotThrow()
+    {
+        // Arrange
+        // CA2000: manager is disposed via act() below; suppress false positive.
+#pragma warning disable CA2000
+        var manager = new IndexTaskManager();
+#pragma warning restore CA2000
+
+        // Act
+        var act = () => manager.Dispose();
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [Fact]
     public async Task Start_CalledTwice_CancelsPreviousTask()
     {
         // Arrange
-        // 500k lines should be enough to ensure it doesn't finish instantly
-        // and gives enough time for cancellation to be processed.
-        var lines = Enumerable.Range(0, 500_000).Select(i => $"{{\"id\":{i}}}").ToList();
-        await File.WriteAllLinesAsync(_testFilePath, lines);
-
-        var indexer1 = new RowIndexer(_testFilePath);
+        // Use BlockingIndexer for indexer1 to guarantee it is still running when
+        // indexer2 starts, making the cancellation behaviour deterministic.
+        var indexer1 = new BlockingIndexer();
         var firstCheckpoint1 = new TaskCompletionSource<bool>();
         var completed1 = new TaskCompletionSource<bool>();
         indexer1.FirstCheckpointReached += () => firstCheckpoint1.TrySetResult(true);
         indexer1.BuildIndexCompleted += () => completed1.TrySetResult(true);
+
+        var lines = Enumerable.Range(0, 500_000).Select(i => $"{{\"id\":{i}}}").ToList();
+        await File.WriteAllLinesAsync(_testFilePath, lines);
 
         var indexer2 = new RowIndexer(_testFilePath);
         var completed2 = new TaskCompletionSource<bool>();
@@ -104,11 +121,9 @@ public sealed class IndexTaskManagerTests : IDisposable
         // Act
         manager.Start(indexer1);
 
-        // Wait for it to actually start working and reach first checkpoint (1000 rows)
+        // Wait until indexer1 is blocked inside BuildIndex (WaitOne), ensuring it
+        // is still running when we start indexer2.
         await firstCheckpoint1.Task.WaitAsync(TimeSpan.FromSeconds(5));
-
-        // Give it a tiny bit more time to process a few more checkpoints
-        await Task.Delay(10);
 
         manager.Start(indexer2);
 
@@ -116,8 +131,7 @@ public sealed class IndexTaskManagerTests : IDisposable
         await completed1.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await completed2.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-        // indexer1 should have been cancelled before finishing all 500k rows
-        indexer1.TotalRows.Should().BeLessThan(500_000);
+        indexer1.WasCancelled.Should().BeTrue();
         indexer2.TotalRows.Should().Be(500_000);
     }
 
@@ -125,10 +139,9 @@ public sealed class IndexTaskManagerTests : IDisposable
     public async Task Dispose_CancelsIndexing()
     {
         // Arrange
-        var lines = Enumerable.Range(0, 500_000).Select(i => $"{{\"id\":{i}}}").ToList();
-        await File.WriteAllLinesAsync(_testFilePath, lines);
-
-        var indexer = new RowIndexer(_testFilePath);
+        // Use a controllable fake that blocks until cancelled, making the test
+        // deterministic regardless of machine speed.
+        var indexer = new BlockingIndexer();
         var firstCheckpoint = new TaskCompletionSource<bool>();
         var completed = new TaskCompletionSource<bool>();
         indexer.FirstCheckpointReached += () => firstCheckpoint.TrySetResult(true);
@@ -139,18 +152,49 @@ public sealed class IndexTaskManagerTests : IDisposable
         // Act
         manager.Start(indexer);
 
-        // Wait for it to start working
+        // Wait until the indexer is blocked inside BuildIndex (WaitOne)
         await firstCheckpoint.Task.WaitAsync(TimeSpan.FromSeconds(5));
-
-        // Give it a tiny bit more time
-        await Task.Delay(10);
 
         manager.Dispose();
 
         // Assert
         await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        indexer.WasCancelled.Should().BeTrue();
+    }
 
-        // indexer should have been cancelled before finishing all 500k rows
-        indexer.TotalRows.Should().BeLessThan(500_000);
+    /// <summary>
+    /// A fake indexer that fires FirstCheckpointReached immediately, then blocks
+    /// until the CancellationToken is cancelled. This makes cancellation tests fully
+    /// deterministic regardless of machine speed.
+    /// </summary>
+    private sealed class BlockingIndexer : IRowIndexer
+    {
+        public bool WasCancelled { get; private set; }
+
+#pragma warning disable CA1003
+        public event Action? FirstCheckpointReached;
+#pragma warning disable CS0067
+        public event Action<long, long>? ProgressChanged;
+#pragma warning restore CS0067
+        public event Action? BuildIndexCompleted;
+#pragma warning restore CA1003
+
+        public long BytesRead => 0;
+        public long FileSize => 0;
+        public long TotalRows => 0;
+        public string FilePath => string.Empty;
+
+        public void BuildIndex(CancellationToken ct = default)
+        {
+            FirstCheckpointReached?.Invoke();
+            while (!ct.IsCancellationRequested)
+            {
+                Thread.Sleep(1);
+            }
+            WasCancelled = true;
+            BuildIndexCompleted?.Invoke();
+        }
+
+        public (long byteOffset, int rowOffset) GetCheckPoint(long targetRow) => (0, 0);
     }
 }

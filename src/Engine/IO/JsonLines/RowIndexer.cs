@@ -6,47 +6,7 @@ namespace DataMorph.Engine.IO.JsonLines;
 /// Indexes JSON Lines files by row position for efficient random access.
 /// Each line in a JSON Lines file contains a complete, independent JSON object.
 /// </summary>
-/// <remarks>
-/// <para><b>Event Design: Action vs EventHandler</b></para>
-/// <para>This class uses Action delegates for events instead of the .NET-recommended EventHandler pattern.
-/// This is an intentional design decision justified below:</para>
-///
-/// <para><b>Action<c>&lt;T&gt;</c> / Action Pros</b></para>
-/// <list type="bullet">
-///   <item>Simple: no unnecessary 'this' (sender) argument</item>
-///   <item>Zero-allocation: no EventArgs instance to allocate</item>
-/// </list>
-///
-/// <para><b>Action<c>&lt;T&gt;</c> / Action Cons</b></para>
-/// <list type="bullet">
-///   <item>Non-standard: .NET recommends EventHandler<c>&lt;T&gt;</c></item>
-///   <item>CA1003 warning: requires suppression</item>
-///   <item>No sender info (if needed in future, signature must change)</item>
-/// </list>
-///
-/// <para><b>EventHandler<c>&lt;T&gt;</c> Pros</b></para>
-/// <list type="bullet">
-///   <item>.NET standard pattern</item>
-///   <item>Provides sender (this) automatically</item>
-///   <item>Extensible via EventArgs without breaking change</item>
-///   <item>No suppression needed</item>
-/// </list>
-///
-/// <para><b>EventHandler<c>&lt;T&gt;</c> Cons</b></para>
-/// <list type="bullet">
-///   <item>Extra 'this' argument even when unused</item>
-///   <item>EventArgs allocation (performance cost in hot path)</item>
-/// </list>
-///
-/// <para><b>Why Action Here?</b></para>
-/// <list type="bullet">
-///   <item>Internal callback only (not a public API)</item>
-///   <item>Hot path: invoked frequently during indexing</item>
-///   <item>Sender not needed (notification is the only concern)</item>
-///   <item>Simplicity and zero-allocation preferred</item>
-/// </list>
-/// </remarks>
-public sealed class RowIndexer
+public sealed class RowIndexer : RowIndexerBase
 {
     private readonly Lock _lock = new();
     private readonly string _filePath;
@@ -55,7 +15,6 @@ public sealed class RowIndexer
     private long _totalRows;
     private long _bytesRead;
 
-    private bool _firstCheckpointReached;
 
     private const int BufferSize = 1024 * 1024; // 1MB
     private const int CheckPointInterval = 1000;
@@ -74,58 +33,29 @@ public sealed class RowIndexer
     /// <summary>
     /// Gets the path to the JSON Lines file being indexed.
     /// </summary>
-    public string FilePath => _filePath;
+    public override string FilePath => _filePath;
 
     /// <summary>
     /// Gets the total number of rows indexed.
     /// Updated periodically during <see cref="BuildIndex"/> (every 1000 rows) and finalized upon completion.
     /// Thread-safe via Interlocked operations.
     /// </summary>
-    public long TotalRows => Interlocked.Read(ref _totalRows);
-
-    /// <summary>Total file size in bytes. Set once before scanning begins.</summary>
-    public long FileSize { get; private set; }
+    public override long TotalRows => Interlocked.Read(ref _totalRows);
 
     /// <summary>
     /// Bytes read so far. Updated atomically after each buffer read.
     /// Safe to read from any thread.
     /// </summary>
-    public long BytesRead => Interlocked.Read(ref _bytesRead);
-
-    /// <summary>
-    /// Raised once when the first checkpoint (CheckPointInterval rows) has been
-    /// indexed. Fired from the indexing thread; subscribers must not block.
-    /// </summary>
-#pragma warning disable CA1003 // See class <remarks> for rationale
-    public event Action? FirstCheckpointReached;
-#pragma warning restore CA1003
-
-    /// <summary>
-    /// Raised on every checkpoint boundary.
-    /// Arguments: (bytesRead, fileSize).
-    /// Fired from the indexing thread; subscribers must not block.
-    /// </summary>
-#pragma warning disable CA1003 // See class <remarks> for rationale
-    public event Action<long, long>? ProgressChanged;
-#pragma warning restore CA1003
-
-    /// <summary>
-    /// Raised once when BuildIndex returns — whether it completed normally,
-    /// was cancelled, or threw an exception.
-    /// Fired from the indexing thread (inside the finally block).
-    /// </summary>
-#pragma warning disable CA1003 // See class <remarks> for rationale
-    public event Action? BuildIndexCompleted;
-#pragma warning restore CA1003
+    public override long BytesRead => Interlocked.Read(ref _bytesRead);
 
     /// <summary>
     /// Builds the row index by scanning the entire file.
     /// Exits cooperatively when <paramref name="ct"/> is cancelled.
     /// NOT thread-safe — call once from a single background thread.
-    /// <see cref="BuildIndexCompleted"/> fires unconditionally when this method
+    /// <see cref="RowIndexerBase.BuildIndexCompleted"/> fires unconditionally when this method
     /// returns, regardless of whether it completed, was cancelled, or threw.
     /// </summary>
-    public void BuildIndex(CancellationToken ct = default)
+    public override void BuildIndex(CancellationToken ct = default)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
 
@@ -173,26 +103,18 @@ public sealed class RowIndexer
             Interlocked.Exchange(ref _totalRows, rowCount);
 
             // Empty-file / sub-checkpoint guard: FirstCheckpointReached must
-            // always fire so that the TaskCompletionSource in FileLoader does
+            // always fire so that the TaskCompletionSource in the caller does
             // not hang. Must fire AFTER TotalRows is finalised.
-            if (!_firstCheckpointReached)
-            {
-                _firstCheckpointReached = true;
-                FirstCheckpointReached?.Invoke();
-            }
+            OnFirstCheckpointReached();
         }
         finally
         {
             // Guarantee FirstCheckpointReached fires even on cancellation or error,
-            // so the TaskCompletionSource in FileLoader never hangs.
-            if (!_firstCheckpointReached)
-            {
-                _firstCheckpointReached = true;
-                FirstCheckpointReached?.Invoke();
-            }
+            // so the TaskCompletionSource in the caller never hangs.
+            OnFirstCheckpointReached();
 
             ArrayPool<byte>.Shared.Return(buffer);
-            BuildIndexCompleted?.Invoke();
+            OnBuildIndexCompleted();
         }
     }
 
@@ -206,7 +128,7 @@ public sealed class RowIndexer
     /// A tuple of (byteOffset, rowOffset) where byteOffset is the file position in bytes
     /// and rowOffset is the number of rows to advance from the checkpoint.
     /// </returns>
-    public (long byteOffset, int rowOffset) GetCheckPoint(long targetRow)
+    public override (long byteOffset, int rowOffset) GetCheckPoint(long targetRow)
     {
         lock (_lock)
         {
@@ -267,13 +189,9 @@ public sealed class RowIndexer
                         _checkpoints.Add(checkpointOffset);
                     }
 
-                    if (!_firstCheckpointReached)
-                    {
-                        _firstCheckpointReached = true;
-                        FirstCheckpointReached?.Invoke();
-                    }
+                    OnFirstCheckpointReached();
 
-                    ProgressChanged?.Invoke(Interlocked.Read(ref _bytesRead), FileSize);
+                    OnProgressChanged(Interlocked.Read(ref _bytesRead), FileSize);
                 }
             }
         }

@@ -7,7 +7,7 @@ namespace DataMorph.Engine.IO.Csv;
 public sealed class DataRowCache
 {
     private const int DefaultCacheSize = 200;
-    private readonly DataRowIndexer _indexer;
+    private readonly IRowIndexer _indexer;
     private readonly DataRowReader _reader;
     private readonly int _columnCount;
     private readonly int _cacheSize;
@@ -21,7 +21,7 @@ public sealed class DataRowCache
     /// <param name="columnCount">The number of columns in the CSV.</param>
     /// <param name="cacheSize">The size of the sliding window cache (default: 200).</param>
     public DataRowCache(
-        DataRowIndexer indexer,
+        IRowIndexer indexer,
         int columnCount,
         int cacheSize = DefaultCacheSize
     )

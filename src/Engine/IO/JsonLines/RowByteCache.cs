@@ -7,7 +7,7 @@ namespace DataMorph.Engine.IO.JsonLines;
 public sealed class RowByteCache : IDisposable
 {
     private const int DefaultCacheSize = 200;
-    private readonly RowIndexer _indexer;
+    private readonly IRowIndexer _indexer;
     private readonly RowReader _reader;
     private readonly int _cacheSize;
     private readonly Dictionary<int, ReadOnlyMemory<byte>> _cache = [];
@@ -19,7 +19,7 @@ public sealed class RowByteCache : IDisposable
     /// </summary>
     /// <param name="indexer">The row indexer for obtaining byte offsets.</param>
     /// <param name="cacheSize">The size of the sliding window cache (default: 200).</param>
-    public RowByteCache(RowIndexer indexer, int cacheSize = DefaultCacheSize)
+    public RowByteCache(IRowIndexer indexer, int cacheSize = DefaultCacheSize)
     {
         ArgumentNullException.ThrowIfNull(indexer);
         _indexer = indexer;

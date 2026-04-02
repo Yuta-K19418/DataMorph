@@ -1,8 +1,7 @@
 using DataMorph.App.Schema.Csv;
-using DataMorph.Engine.IO.Csv;
+using DataMorph.Engine.IO;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
-using JsonLinesIO = DataMorph.Engine.IO.JsonLines;
 using JsonLinesSchema = DataMorph.App.Schema.JsonLines;
 
 namespace DataMorph.App;
@@ -10,8 +9,10 @@ namespace DataMorph.App;
 /// <summary>
 /// Represents the application's global state.
 /// </summary>
-internal sealed class AppState
+internal sealed class AppState : IDisposable
 {
+    private bool _disposed;
+
     /// <summary>
     /// Gets or sets the current file path being processed.
     /// </summary>
@@ -29,10 +30,10 @@ internal sealed class AppState
     public TableSchema? Schema { get; set; }
 
     /// <summary>
-    /// Gets or sets the CSV row indexer for the current file.
-    /// Null if no CSV file is loaded.
+    /// Gets or sets the row indexer for the current file.
+    /// Stored on load so it can be reused when switching modes.
     /// </summary>
-    public DataRowIndexer? CsvIndexer { get; set; }
+    public IRowIndexer? RowIndexer { get; set; }
 
     /// <summary>
     /// Gets or sets the incremental schema scanner for background schema refinement.
@@ -46,12 +47,6 @@ internal sealed class AppState
     public CancellationTokenSource Cts { get; set; } = new();
 
     /// <summary>
-    /// Gets or sets the JSON Lines row indexer for the current file.
-    /// Stored on load so it can be reused when switching between Tree and Table modes.
-    /// </summary>
-    public JsonLinesIO.RowIndexer? JsonLinesIndexer { get; set; }
-
-    /// <summary>
     /// Gets or sets the JSON Lines schema scanner for the current file.
     /// Null until the user switches to Table mode for the first time (lazy initialization).
     /// </summary>
@@ -60,7 +55,7 @@ internal sealed class AppState
     /// <summary>
     /// Gets or sets the callback invoked when the background schema scan completes.
     /// Set by <c>ViewManager</c> when creating a table source that supports schema updates;
-    /// invoked by <c>FileLoader</c> after background refinement finishes.
+    /// invoked after background refinement finishes.
     /// </summary>
     public Action<TableSchema>? OnSchemaRefined { get; set; }
 
@@ -78,5 +73,18 @@ internal sealed class AppState
     internal void AddMorphAction(MorphAction action)
     {
         ActionStack = [.. ActionStack, action];
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Cts.Cancel();
+        Cts.Dispose();
+        _disposed = true;
     }
 }

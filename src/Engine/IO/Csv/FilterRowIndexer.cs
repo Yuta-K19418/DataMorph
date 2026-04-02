@@ -10,7 +10,7 @@ namespace DataMorph.Engine.IO.Csv;
 /// </summary>
 public sealed class FilterRowIndexer : IFilterRowIndexer
 {
-    private readonly DataRowIndexer _indexer;
+    private readonly IRowIndexer _indexer;
     private readonly int _sourceColumnCount;
     private readonly IReadOnlyList<FilterSpec> _filterSpecs;
     private readonly Lock _lock = new();
@@ -24,7 +24,7 @@ public sealed class FilterRowIndexer : IFilterRowIndexer
     /// <param name="sourceColumnCount">Number of columns in the source schema.</param>
     /// <param name="filterSpecs">Resolved filter specifications to apply.</param>
     public FilterRowIndexer(
-        DataRowIndexer indexer,
+        IRowIndexer indexer,
         int sourceColumnCount,
         IReadOnlyList<FilterSpec> filterSpecs
     )

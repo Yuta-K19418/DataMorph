@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using AwesomeAssertions;
 using DataMorph.App;
 
@@ -39,7 +38,7 @@ public sealed class FileLoaderTests : IDisposable
     {
         // Arrange
         await File.WriteAllTextAsync(_csvFilePath, "Name,Age\nAlice,30\nBob,25");
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
 
         // Act
@@ -49,7 +48,7 @@ public sealed class FileLoaderTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         state.CurrentMode.Should().Be(ViewMode.CsvTable);
         state.Schema.Should().NotBeNull();
-        state.CsvIndexer.Should().NotBeNull();
+        state.RowIndexer.Should().NotBeNull();
     }
 
     [Fact]
@@ -57,7 +56,7 @@ public sealed class FileLoaderTests : IDisposable
     {
         // Arrange
         await File.WriteAllTextAsync(_jsonlFilePath, "{\"name\":\"Alice\"}\n{\"name\":\"Bob\"}");
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
 
         // Act
@@ -66,7 +65,7 @@ public sealed class FileLoaderTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         state.CurrentMode.Should().Be(ViewMode.JsonLinesTree);
-        state.JsonLinesIndexer.Should().NotBeNull();
+        state.RowIndexer.Should().NotBeNull();
     }
 
     [Fact]
@@ -74,7 +73,7 @@ public sealed class FileLoaderTests : IDisposable
     {
         // Arrange
         await File.WriteAllTextAsync(_jsonlFilePath, "{\"name\":\"Alice\"}\n{\"name\":\"Bob\"}");
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
         await loader.LoadAsync(_jsonlFilePath);
 
@@ -93,7 +92,7 @@ public sealed class FileLoaderTests : IDisposable
     {
         // Arrange
         await File.WriteAllTextAsync(_jsonlFilePath, "{\"name\":\"Alice\"}");
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
         await loader.LoadAsync(_jsonlFilePath);
         await loader.ToggleJsonLinesModeAsync();
@@ -111,7 +110,7 @@ public sealed class FileLoaderTests : IDisposable
     {
         // Arrange
         await File.WriteAllTextAsync(_unsupportedFilePath, "{\"key\":\"value\"}");
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
 
         // Act
@@ -120,15 +119,14 @@ public sealed class FileLoaderTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain(".json");
-        state.CsvIndexer.Should().BeNull();
-        state.JsonLinesIndexer.Should().BeNull();
+        state.RowIndexer.Should().BeNull();
     }
 
     [Fact]
     public async Task LoadAsync_WithNonExistentFile_ReturnsFailure()
     {
         // Arrange
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
 
         // Act
@@ -137,8 +135,7 @@ public sealed class FileLoaderTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("does not exist");
-        state.CsvIndexer.Should().BeNull();
-        state.JsonLinesIndexer.Should().BeNull();
+        state.RowIndexer.Should().BeNull();
     }
 
     [Fact]
@@ -146,7 +143,7 @@ public sealed class FileLoaderTests : IDisposable
     {
         // Arrange
         await File.WriteAllBytesAsync(_emptyCsvFilePath, []);
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
 
         // Act
@@ -155,8 +152,7 @@ public sealed class FileLoaderTests : IDisposable
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("empty");
-        state.CsvIndexer.Should().BeNull();
-        state.JsonLinesIndexer.Should().BeNull();
+        state.RowIndexer.Should().BeNull();
     }
 
     [Fact]
@@ -165,7 +161,7 @@ public sealed class FileLoaderTests : IDisposable
         // Arrange
         // A CSV with a header row but no data rows is valid; schema is inferred from column names.
         await File.WriteAllTextAsync(_headerOnlyCsvFilePath, "Name,Age\n");
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
 
         // Act
@@ -179,7 +175,7 @@ public sealed class FileLoaderTests : IDisposable
         schema.Should().NotBeNull();
         schema.Columns.Should().NotBeNull();
         schema.Columns.Should().HaveCount(2);
-        state.CsvIndexer.Should().NotBeNull();
+        state.RowIndexer.Should().NotBeNull();
     }
 
     [Fact]
@@ -190,15 +186,13 @@ public sealed class FileLoaderTests : IDisposable
         // providing a wide window for the UI thread to wake up and subscribe before completion.
         var lines = Enumerable.Range(0, 500_000).Select(i => $"{{\"id\":{i}}}").ToList();
         await File.WriteAllLinesAsync(_jsonlFilePath, lines);
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
 
         await loader.LoadAsync(_jsonlFilePath);
-        state.JsonLinesIndexer.Should().NotBeNull();
-        var indexer = state.JsonLinesIndexer ?? throw new UnreachableException();
-
-        var completed = new TaskCompletionSource<bool>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+        state.RowIndexer.Should().NotBeNull();
+        var indexer = state.RowIndexer;
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
 
         // Act - Use a different file path for the second load to avoid I/O sharing violations
@@ -213,7 +207,7 @@ public sealed class FileLoaderTests : IDisposable
             // Assert
             result.IsSuccess.Should().BeTrue();
             completed.Task.IsCompletedSuccessfully.Should().BeTrue();
-            state.JsonLinesIndexer.Should().NotBeNull();
+            state.RowIndexer.Should().NotBeNull();
         }
         finally
         {
@@ -232,14 +226,12 @@ public sealed class FileLoaderTests : IDisposable
         var rows = Enumerable.Range(0, 500_000).Select(i => $"{i},Row{i}");
         var content = string.Join("\n", [header, .. rows]);
         await File.WriteAllTextAsync(_csvFilePath, content);
-        var state = new AppState();
+        using var state = new AppState();
         using var loader = new FileLoader(state);
         await loader.LoadAsync(_csvFilePath);
-        state.CsvIndexer.Should().NotBeNull();
-        var indexer = state.CsvIndexer ?? throw new UnreachableException();
-
-        var completed = new TaskCompletionSource<bool>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
+        state.RowIndexer.Should().NotBeNull();
+        var indexer = state.RowIndexer;
+        var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
 
         // Act - Use a different file path for the second load to avoid I/O sharing violations.
@@ -254,7 +246,7 @@ public sealed class FileLoaderTests : IDisposable
             // Assert
             result.IsSuccess.Should().BeTrue();
             completed.Task.IsCompletedSuccessfully.Should().BeTrue();
-            state.CsvIndexer.Should().NotBeNull();
+            state.RowIndexer.Should().NotBeNull();
         }
         finally
         {
@@ -271,21 +263,26 @@ public sealed class FileLoaderTests : IDisposable
         // after the first checkpoint guarantees detection before subsequent reads.
         var lines = Enumerable.Range(0, 500_000).Select(i => $"{{\"id\":{i}}}").ToList();
         await File.WriteAllLinesAsync(_jsonlFilePath, lines);
-        var state = new AppState();
+        using var state = new AppState();
         var loader = new FileLoader(state);
-        await loader.LoadAsync(_jsonlFilePath);
-        state.JsonLinesIndexer.Should().NotBeNull();
-        var indexer = state.JsonLinesIndexer ?? throw new UnreachableException();
+        try
+        {
+            await loader.LoadAsync(_jsonlFilePath);
+            state.RowIndexer.Should().NotBeNull();
+            var indexer = state.RowIndexer;
+            var completed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
 
-        var completed = new TaskCompletionSource<bool>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+            // Act
+            loader.Dispose();
 
-        // Act
-        loader.Dispose();
-
-        // Assert
-        await completed.Task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
-        completed.Task.IsCompletedSuccessfully.Should().BeTrue();
+            // Assert
+            await completed.Task.WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(true);
+            completed.Task.IsCompletedSuccessfully.Should().BeTrue();
+        }
+        finally
+        {
+            loader.Dispose();
+        }
     }
 }

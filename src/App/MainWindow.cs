@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.IO.JsonLines;
+using DataMorph.Engine.IO;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Recipes;
 using Terminal.Gui.App;
@@ -141,37 +140,24 @@ internal sealed class MainWindow : Window
 
         if (
             _state.CurrentMode == ViewMode.CsvTable
-            && _state.CsvIndexer is not null
+            && _state.RowIndexer is not null
             && _state.Schema is not null
         )
         {
-            _viewManager.SwitchToCsvTable(_state.CsvIndexer, _state.Schema);
-            WireCsvIndexerProgress(_state.CsvIndexer);
+            _viewManager.SwitchToCsvTable(_state.RowIndexer, _state.Schema);
+            WireIndexerProgress(_state.RowIndexer);
             return;
         }
 
-        if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.JsonLinesIndexer is not null)
+        if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.RowIndexer is not null)
         {
-            _viewManager.SwitchToJsonLinesTree(_state.JsonLinesIndexer);
-            WireJsonLinesIndexerProgress(_state.JsonLinesIndexer);
+            _viewManager.SwitchToJsonLinesTree(_state.RowIndexer);
+            WireIndexerProgress(_state.RowIndexer);
             return;
         }
     }
 
-    private void WireJsonLinesIndexerProgress(RowIndexer indexer)
-    {
-        ShowIndexingProgress();
-
-        indexer.ProgressChanged += (bytesRead, fileSize) =>
-            _app.Invoke(() => UpdateIndexingProgress(bytesRead, fileSize));
-
-        indexer.BuildIndexCompleted +=
-            () => _app.Invoke(DismissIndexingProgress);
-
-        UpdateIndexingProgress(indexer.BytesRead, indexer.FileSize);
-    }
-
-    private void WireCsvIndexerProgress(DataRowIndexer indexer)
+    private void WireIndexerProgress(IRowIndexer indexer)
     {
         ShowIndexingProgress();
 
@@ -279,19 +265,19 @@ internal sealed class MainWindow : Window
             return;
         }
 
-        if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.JsonLinesIndexer is not null)
+        if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.RowIndexer is not null)
         {
-            _viewManager.SwitchToJsonLinesTree(_state.JsonLinesIndexer);
+            _viewManager.SwitchToJsonLinesTree(_state.RowIndexer);
             return;
         }
 
         if (
             _state.CurrentMode == ViewMode.JsonLinesTable
-            && _state.JsonLinesIndexer is not null
+            && _state.RowIndexer is not null
             && _state.Schema is not null
         )
         {
-            _viewManager.SwitchToJsonLinesTableView(_state.JsonLinesIndexer, _state.Schema);
+            _viewManager.SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
         }
     }
 

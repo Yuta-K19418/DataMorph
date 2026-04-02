@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using DataMorph.Engine.IO.Csv;
+using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
@@ -53,7 +53,7 @@ internal sealed class ViewManager : IDisposable
         "CA2000:Dispose objects before losing scope",
         Justification = "Child views are owned by the container and disposed via SwapView."
     )]
-    internal void SwitchToCsvTable(DataRowIndexer indexer, TableSchema schema)
+    internal void SwitchToCsvTable(IRowIndexer indexer, TableSchema schema)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
@@ -108,7 +108,7 @@ internal sealed class ViewManager : IDisposable
         "CA2000:Dispose objects before losing scope",
         Justification = "Child views are owned by the container and disposed via SwapView."
     )]
-    internal void SwitchToJsonLinesTree(RowIndexer indexer)
+    internal void SwitchToJsonLinesTree(IRowIndexer indexer)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
@@ -135,7 +135,7 @@ internal sealed class ViewManager : IDisposable
         "CA2000:Dispose objects before losing scope",
         Justification = "Child views are owned by the container and disposed via SwapView."
     )]
-    internal void SwitchToJsonLinesTableView(RowIndexer indexer, TableSchema schema)
+    internal void SwitchToJsonLinesTableView(IRowIndexer indexer, TableSchema schema)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
@@ -196,13 +196,13 @@ internal sealed class ViewManager : IDisposable
     {
         switch (_state.CurrentMode)
         {
-            case ViewMode.CsvTable when _state.CsvIndexer is not null && _state.Schema is not null:
-                SwitchToCsvTable(_state.CsvIndexer, _state.Schema);
+            case ViewMode.CsvTable when _state.RowIndexer is not null && _state.Schema is not null:
+                SwitchToCsvTable(_state.RowIndexer, _state.Schema);
                 break;
 
             case ViewMode.JsonLinesTable
-                when _state.JsonLinesIndexer is not null && _state.Schema is not null:
-                SwitchToJsonLinesTableView(_state.JsonLinesIndexer, _state.Schema);
+                when _state.RowIndexer is not null && _state.Schema is not null:
+                SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
                 break;
         }
     }

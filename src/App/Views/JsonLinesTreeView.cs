@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
@@ -25,7 +26,7 @@ internal sealed class JsonLinesTreeView : TreeView
     /// </summary>
     /// <param name="indexer">The row indexer for the JSON Lines file.</param>
     /// <param name="onTableModeToggle">Callback invoked when the user presses 't'.</param>
-    public JsonLinesTreeView(RowIndexer indexer, Action onTableModeToggle)
+    public JsonLinesTreeView(IRowIndexer indexer, Action onTableModeToggle)
     {
         _cache = new RowByteCache(indexer);
         _onTableModeToggle = onTableModeToggle;

@@ -105,7 +105,7 @@ internal sealed class FileLoader : IDisposable
             }
 
             _state.Schema = schema;
-            _state.CsvIndexer = indexer;
+            _state.RowIndexer = indexer;
             _state.CsvSchemaScanner = schemaScanner;
             _state.CurrentMode = ViewMode.CsvTable;
 
@@ -174,7 +174,7 @@ internal sealed class FileLoader : IDisposable
             return Results.Failure("Load cancelled.");
         }
 
-        _state.JsonLinesIndexer = indexer;
+        _state.RowIndexer = indexer;
         _state.JsonLinesSchemaScanner = null;
         _state.Schema = null;
         _state.OnSchemaRefined = null;
@@ -206,7 +206,7 @@ internal sealed class FileLoader : IDisposable
             return Results.Success();
         }
 
-        if (_state.JsonLinesIndexer is null)
+        if (_state.RowIndexer is null)
         {
             return Results.Success();
         }

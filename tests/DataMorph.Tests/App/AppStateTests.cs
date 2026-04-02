@@ -11,7 +11,7 @@ public sealed class AppStateTests
     public void AddMorphAction_SingleAction_AddsToStack()
     {
         // Arrange
-        var state = new AppState();
+        using var state = new AppState();
         var action = new RenameColumnAction { OldName = "foo", NewName = "bar" };
 
         // Act
@@ -26,7 +26,7 @@ public sealed class AppStateTests
     public void AddMorphAction_MultipleActions_PreservesOrder()
     {
         // Arrange
-        var state = new AppState();
+        using var state = new AppState();
         var action1 = new RenameColumnAction { OldName = "a", NewName = "b" };
         var action2 = new DeleteColumnAction { ColumnName = "c" };
         var action3 = new CastColumnAction { ColumnName = "d", TargetType = ColumnType.WholeNumber };
@@ -47,7 +47,7 @@ public sealed class AppStateTests
     public void AddMorphAction_DoesNotMutateOriginalList()
     {
         // Arrange
-        var state = new AppState();
+        using var state = new AppState();
         state.AddMorphAction(new RenameColumnAction { OldName = "a", NewName = "b" });
         var originalList = state.ActionStack;
 

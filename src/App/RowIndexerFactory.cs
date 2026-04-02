@@ -8,7 +8,7 @@ namespace DataMorph.App;
 /// <summary>
 /// A factory for creating the appropriate <see cref="IRowIndexer"/> based on the data format.
 /// </summary>
-internal sealed class RowIndexerFactory
+internal static class RowIndexerFactory
 {
     /// <summary>
     /// Creates a row indexer for the specified format and file path.

@@ -1,7 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using DataMorph.App.Schema.Csv;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Recipes;
+using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.ViewBase;
@@ -11,16 +13,20 @@ namespace DataMorph.App;
 
 /// <summary>
 /// Main application window for DataMorph TUI.
-/// Owns the menu and status bar; delegates file loading to <see cref="FileLoader"/>
-/// and content view management to <see cref="ViewManager"/>.
+/// Owns the menu and status bar; orchestrates file loading
+/// and content view management via <see cref="ViewManager"/>.
 /// </summary>
 internal sealed class MainWindow : Window
 {
     private readonly IApplication _app;
     private readonly AppState _state;
-    private readonly FileLoader _fileLoader;
+    private readonly IndexTaskManager _indexTaskManager = new();
+    private readonly ModeController _modeController;
     private readonly ViewManager _viewManager;
     private readonly RecipeManager _recipeManager = new();
+
+    private Action? _onBuildIndexCompleted;
+    private Action<long, long>? _onProgressChanged;
 
     [SuppressMessage(
         "Reliability",
@@ -40,7 +46,7 @@ internal sealed class MainWindow : Window
     {
         _app = app;
         _state = state;
-        _fileLoader = new FileLoader(state);
+        _modeController = new ModeController(state);
 
         X = 0;
         Y = 0;
@@ -105,7 +111,8 @@ internal sealed class MainWindow : Window
     {
         if (disposing)
         {
-            _fileLoader.Dispose();
+            _indexTaskManager.Dispose();
+            _state.Dispose();
             _viewManager.Dispose();
         }
         base.Dispose(disposing);
@@ -130,42 +137,110 @@ internal sealed class MainWindow : Window
             return;
         }
 
-        var result = await _fileLoader.LoadAsync(dialog.Path);
-
-        if (result.IsFailure)
+        var detectionResult = FormatDetector.Detect(dialog.Path);
+        if (detectionResult.IsFailure)
         {
-            _viewManager.ShowError(result.Error);
+            _viewManager.ShowError(detectionResult.Error);
             return;
         }
 
-        if (
-            _state.CurrentMode == ViewMode.CsvTable
-            && _state.RowIndexer is not null
-            && _state.Schema is not null
-        )
+        var format = detectionResult.Value;
+        var path = dialog.Path;
+
+        // Reset state for new file
+        _state.CurrentFilePath = path;
+        _state.ActionStack = [];
+
+        // Create indexer from factory
+        var indexer = RowIndexerFactory.Create(format, path);
+
+        // Wire events on new indexer (before Start)
+        WireIndexerProgress(indexer);
+
+        // SwitchToView(format)
+        if (format == DataFormat.Csv)
         {
-            _viewManager.SwitchToCsvTable(_state.RowIndexer, _state.Schema);
-            WireIndexerProgress(_state.RowIndexer);
-            return;
+            var schemaScanner = new IncrementalSchemaScanner(path);
+            try
+            {
+                var schema = await schemaScanner.InitialScanAsync();
+                if (schema.Columns.Count == 0)
+                {
+                    _viewManager.ShowError("File contains no data");
+                    return;
+                }
+
+                _state.Schema = schema;
+                _state.RowIndexer = indexer;
+                _state.CsvSchemaScanner = schemaScanner;
+                _state.CurrentMode = ViewMode.CsvTable;
+
+                _viewManager.SwitchToCsvTable(indexer, schema);
+
+                _ = schemaScanner
+                    .StartBackgroundScanAsync(schema, _state.Cts.Token)
+                    .ContinueWith(
+                        t =>
+                        {
+                            if (!t.IsCompletedSuccessfully)
+                            {
+                                return;
+                            }
+
+                            _state.Schema = t.Result;
+                            _state.OnSchemaRefined?.Invoke(t.Result);
+                        },
+                        TaskScheduler.Default
+                    );
+            }
+#pragma warning disable CA1031 // UI top-level handler
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                _viewManager.ShowError($"Error scanning CSV: {ex.Message}");
+                return;
+            }
+        }
+        else if (format == DataFormat.JsonLines)
+        {
+            _state.RowIndexer = indexer;
+            _state.JsonLinesSchemaScanner = null;
+            _state.Schema = null;
+            _state.OnSchemaRefined = null;
+            _state.CurrentMode = ViewMode.JsonLinesTree;
+
+            _viewManager.SwitchToJsonLinesTree(indexer);
         }
 
-        if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.RowIndexer is not null)
-        {
-            _viewManager.SwitchToJsonLinesTree(_state.RowIndexer);
-            WireIndexerProgress(_state.RowIndexer);
-            return;
-        }
+        // Start the background indexing task
+        _indexTaskManager.Start(indexer);
     }
 
     private void WireIndexerProgress(IRowIndexer indexer)
     {
+        // Unsubscribe old handlers from previous indexer if they exist
+        if (_state.RowIndexer is not null)
+        {
+            if (_onProgressChanged is not null)
+            {
+                _state.RowIndexer.ProgressChanged -= _onProgressChanged;
+            }
+
+            if (_onBuildIndexCompleted is not null)
+            {
+                _state.RowIndexer.BuildIndexCompleted -= _onBuildIndexCompleted;
+            }
+        }
+
         ShowIndexingProgress();
 
-        indexer.ProgressChanged += (bytesRead, fileSize) =>
+        _onProgressChanged = (bytesRead, fileSize) =>
             _app.Invoke(() => UpdateIndexingProgress(bytesRead, fileSize));
 
-        indexer.BuildIndexCompleted +=
-            () => _app.Invoke(DismissIndexingProgress);
+        _onBuildIndexCompleted = () => _app.Invoke(DismissIndexingProgress);
+
+        indexer.ProgressChanged += _onProgressChanged;
+        indexer.BuildIndexCompleted += _onBuildIndexCompleted;
 
         UpdateIndexingProgress(indexer.BytesRead, indexer.FileSize);
     }
@@ -257,7 +332,7 @@ internal sealed class MainWindow : Window
 
     private async Task HandleToggleAsync()
     {
-        var result = await _fileLoader.ToggleJsonLinesModeAsync();
+        var result = await _modeController.ToggleJsonLinesModeAsync();
 
         if (result.IsFailure)
         {

@@ -55,7 +55,7 @@ internal sealed class AppState : IDisposable
     /// <summary>
     /// Gets or sets the callback invoked when the background schema scan completes.
     /// Set by <c>ViewManager</c> when creating a table source that supports schema updates;
-    /// invoked by <c>FileLoader</c> after background refinement finishes.
+    /// invoked after background refinement finishes.
     /// </summary>
     public Action<TableSchema>? OnSchemaRefined { get; set; }
 

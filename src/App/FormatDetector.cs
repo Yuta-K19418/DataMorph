@@ -6,7 +6,7 @@ namespace DataMorph.App;
 /// <summary>
 /// Detects the data format of a file based on its extension.
 /// </summary>
-internal sealed class FormatDetector
+internal static class FormatDetector
 {
     /// <summary>
     /// Detects the format of the file at the specified path.

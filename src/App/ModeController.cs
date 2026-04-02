@@ -47,6 +47,11 @@ internal sealed class ModeController
         }
 
         // First switch: scan schema lazily
+        if (string.IsNullOrEmpty(_state.CurrentFilePath))
+        {
+            return Results.Failure("No file is currently open");
+        }
+
         var scanner = new JsonLinesSchema.IncrementalSchemaScanner(_state.CurrentFilePath);
 
         try

@@ -103,14 +103,14 @@ public sealed class RowIndexer : RowIndexerBase
             Interlocked.Exchange(ref _totalRows, rowCount);
 
             // Empty-file / sub-checkpoint guard: FirstCheckpointReached must
-            // always fire so that the TaskCompletionSource in FileLoader does
+            // always fire so that the TaskCompletionSource in the caller does
             // not hang. Must fire AFTER TotalRows is finalised.
             OnFirstCheckpointReached();
         }
         finally
         {
             // Guarantee FirstCheckpointReached fires even on cancellation or error,
-            // so the TaskCompletionSource in FileLoader never hangs.
+            // so the TaskCompletionSource in the caller never hangs.
             OnFirstCheckpointReached();
 
             ArrayPool<byte>.Shared.Return(buffer);

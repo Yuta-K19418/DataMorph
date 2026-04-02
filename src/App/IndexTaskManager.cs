@@ -8,6 +8,7 @@ namespace DataMorph.App;
 /// </summary>
 internal sealed class IndexTaskManager : IDisposable
 {
+    private readonly object _lock = new();
     private CancellationTokenSource? _cts;
     private bool _disposed;
 
@@ -18,33 +19,40 @@ internal sealed class IndexTaskManager : IDisposable
     /// <param name="indexer">The indexer to start.</param>
     public void Start(IRowIndexer indexer)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        // Cancel previous task
-        _cts?.Cancel();
-        _cts?.Dispose();
+        lock (_lock)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
-        _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
+            // Cancel previous task
+            _cts?.Cancel();
+            _cts?.Dispose();
 
-        // Start indexing in the background. No await needed as progress/completion
-        // are handled via the indexer's events.
-        _ = Task.Run(() => indexer.BuildIndex(ct), ct);
+            _cts = new CancellationTokenSource();
+            var ct = _cts.Token;
+
+            // Start indexing in the background. No await needed as progress/completion
+            // are handled via the indexer's events.
+            _ = Task.Run(() => indexer.BuildIndex(ct), ct);
+        }
     }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_disposed)
+        lock (_lock)
         {
-            return;
-        }
+            if (_disposed)
+            {
+                return;
+            }
 
-        // Only cancel, don't await. Background threads check CancellationToken
-        // periodically and exit cooperatively.
-        _cts?.Cancel();
-        _cts?.Dispose();
-        _disposed = true;
+            // Only cancel, don't await. Background threads check CancellationToken
+            // periodically and exit cooperatively.
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _disposed = true;
+        }
     }
 }

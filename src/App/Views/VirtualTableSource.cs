@@ -1,3 +1,4 @@
+using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.Models;
 using Terminal.Gui.Views;
@@ -15,7 +16,7 @@ internal sealed class VirtualTableSource : ITableSource
     private readonly string[] _columnNames;
     private readonly string[] _rawColumnNames;
 
-    public VirtualTableSource(DataRowIndexer indexer, TableSchema schema)
+    public VirtualTableSource(IRowIndexer indexer, TableSchema schema)
     {
         _schema = schema;
         _columnNames = [.. _schema.Columns.Select(c => $"{c.Name} ({ColumnTypeLabel.ToLabel(c.Type)})")];

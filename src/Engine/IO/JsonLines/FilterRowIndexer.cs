@@ -10,7 +10,7 @@ namespace DataMorph.Engine.IO.JsonLines;
 /// </summary>
 public sealed class FilterRowIndexer : IFilterRowIndexer
 {
-    private readonly RowIndexer _indexer;
+    private readonly IRowIndexer _indexer;
     private readonly string _filePath;
     private readonly IReadOnlyList<byte[]> _columnNamesUtf8;
     private readonly IReadOnlyList<FilterSpec> _filterSpecs;
@@ -26,7 +26,7 @@ public sealed class FilterRowIndexer : IFilterRowIndexer
     /// <param name="columnNamesUtf8">UTF-8 encoded column names for <see cref="CellExtractor"/> lookups.</param>
     /// <param name="filterSpecs">Resolved filter specifications to apply.</param>
     public FilterRowIndexer(
-        RowIndexer indexer,
+        IRowIndexer indexer,
         string filePath,
         IReadOnlyList<byte[]> columnNamesUtf8,
         IReadOnlyList<FilterSpec> filterSpecs

@@ -6,6 +6,7 @@ using DataMorph.Engine.Recipes;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
+using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -84,27 +85,7 @@ internal sealed class MainWindow : Window
     )]
     private void InitializeStatusBar()
     {
-        var openShortcut = new Shortcut
-        {
-            Key = KeyCode.O | KeyCode.CtrlMask,
-            Title = "Open",
-            Action = async () => await ShowFileDialogAsync(),
-        };
-        var saveRecipeShortcut = new Shortcut
-        {
-            Key = KeyCode.S | KeyCode.CtrlMask,
-            Title = "Save Recipe",
-            Action = async () => await HandleSaveRecipeAsync(),
-        };
-        var quitShortcut = new Shortcut
-        {
-            Key = KeyCode.X | KeyCode.CtrlMask,
-            Title = "Quit",
-            Action = () => _app.RequestStop(),
-        };
-        var statusBar = new StatusBar([openShortcut, saveRecipeShortcut, quitShortcut]);
-
-        Add(statusBar);
+        throw new NotImplementedException();
     }
 
     protected override void Dispose(bool disposing)
@@ -429,5 +410,61 @@ internal sealed class MainWindow : Window
             >= KB => $"{bytes / (double)KB:F2} KB",
             _ => $"{bytes} B",
         };
+    }
+
+    /// <inheritdoc/>
+    protected override bool OnKeyDown(Key key)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Handles single-key shortcuts for file operations (o, s, q).
+    /// </summary>
+    /// <param name="keyCode">The key code pressed.</param>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    private bool HandleSingleKeyFileOperation(KeyCode keyCode)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Handles view toggle shortcut (t).
+    /// Fires and forgets <see cref="HandleToggleAsync"/> via
+    /// <c>_ = HandleToggleAsync().ContinueWith(t => ..., TaskScheduler.Default)</c>
+    /// to avoid blocking <see cref="OnKeyDown"/> while preserving error visibility.
+    /// </summary>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    private bool HandleViewToggle()
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Handles action menu shortcut (x).
+    /// Retrieves available actions from <see cref="ViewManager"/> by querying
+    /// the currently active view, then shows <c>ActionMenuDialog</c>.
+    /// </summary>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    private bool HandleActionMenu()
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Handles help overlay shortcut (?).
+    /// </summary>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    private bool HandleHelp()
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Updates status bar hints based on current state.
+    /// </summary>
+    private void UpdateStatusBarHints()
+    {
+        throw new NotImplementedException();
     }
 }

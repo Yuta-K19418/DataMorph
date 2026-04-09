@@ -27,15 +27,13 @@ Key namespaces:
 - `Views` — `Window`, `Dialog`, `TableView`, `TreeView`, `MenuBar`, `StatusBar`, etc.
 - `Input` — `Key`, `KeyCode`, `Command`, `KeyBinding`
 
-**Upstream source (v2_develop branch):**
+**Upstream source (develop branch):**
 ```bash
 # List files in a directory
-gh api "repos/gui-cs/Terminal.Gui/contents/Terminal.Gui/<Dir>?ref=v2_develop" \
-  | python3 -c "import json,sys; [print(d['name']) for d in json.load(sys.stdin)]"
+.claude/skills/terminal-gui-v2/tgui-browse.sh list <Dir>
 
 # Read a specific file
-gh api "repos/gui-cs/Terminal.Gui/contents/Terminal.Gui/<Dir>/<File>.cs?ref=v2_develop" \
-  | python3 -c "import json,sys,base64; print(base64.b64decode(json.load(sys.stdin)['content']).decode())"
+.claude/skills/terminal-gui-v2/tgui-browse.sh read <Dir> <File>.cs
 ```
 
 ---

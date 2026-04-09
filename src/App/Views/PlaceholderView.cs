@@ -27,7 +27,7 @@ internal sealed class PlaceholderView : View
             {
                 X = Pos.Center(),
                 Y = Pos.Center() + 1,
-                Text = "Press Ctrl+X to quit or Ctrl+O to open another file",
+                Text = "Press q to quit or o to open another file",
             }
         );
     }

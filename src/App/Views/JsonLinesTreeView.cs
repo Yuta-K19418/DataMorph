@@ -146,12 +146,30 @@ internal sealed class JsonLinesTreeView : TreeView
             VimAction.MoveUp => ConsumeAction(() =>
                 AdjustSelection(offset: -1, expandSelection: false)
             ),
+            VimAction.PageDown => ConsumeAction(() =>
+                AdjustSelection(offset: Viewport.Height, expandSelection: false)
+            ),
+            VimAction.PageUp => ConsumeAction(() =>
+                AdjustSelection(offset: -Viewport.Height, expandSelection: false)
+            ),
             VimAction.MoveLeft => base.OnKeyDown(new Key(KeyCode.CursorLeft)),
             VimAction.MoveRight => base.OnKeyDown(new Key(KeyCode.CursorRight)),
             VimAction.GoToFirst => ConsumeAction(GoToFirst),
             VimAction.GoToEnd => ConsumeAction(GoToEnd),
-            _ => base.OnKeyDown(key),
+            _ => HandleNonVimKey(key),
         };
+    }
+
+    private bool HandleNonVimKey(Key key)
+    {
+        // Prevent global shortcut keys from being consumed by TreeView's incremental search.
+        // By returning false, we let these keys bubble up to AppKeyHandler.
+        if (AppKeyHandler.IsGlobalShortcut(key.KeyCode))
+        {
+            return false;
+        }
+
+        return base.OnKeyDown(key);
     }
 
     private static bool ConsumeAction(Action action)

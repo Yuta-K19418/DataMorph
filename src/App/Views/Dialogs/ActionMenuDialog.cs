@@ -20,6 +20,7 @@ internal sealed class ActionMenuDialog : Dialog
         Justification = "Child views added to Dialog will be disposed automatically when the Dialog is disposed."
     )]
     private readonly ListView _listView;
+    private readonly Action<string> _onConfirmed;
 
     /// <summary>
     /// Gets the index of the currently selected item in the list.
@@ -32,29 +33,21 @@ internal sealed class ActionMenuDialog : Dialog
     internal bool SimulateListKeyDown(Key key) => _listView.NewKeyDownEvent(key);
 
     /// <summary>
-    /// Gets the selected action from the menu.
-    /// <see langword="null"/> if the dialog was cancelled.
-    /// </summary>
-    internal string? SelectedAction { get; private set; }
-
-    /// <summary>
-    /// Gets a value indicating whether the user confirmed an action selection.
-    /// <see langword="false"/> if the dialog was cancelled.
-    /// </summary>
-    internal bool Confirmed { get; private set; }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="ActionMenuDialog"/> class.
     /// </summary>
     /// <param name="availableActions">List of actions available for the current context.</param>
+    /// <param name="onConfirmed">Callback invoked when the user confirms an action selection.</param>
     [SuppressMessage(
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "Child views are owned by Dialog and disposed when Dialog is disposed."
     )]
-    internal ActionMenuDialog(string[] availableActions)
+    internal ActionMenuDialog(string[] availableActions, Action<string> onConfirmed)
     {
         ArgumentNullException.ThrowIfNull(availableActions);
+        ArgumentNullException.ThrowIfNull(onConfirmed);
+
+        _onConfirmed = onConfirmed;
 
         Title = "Actions";
         X = Pos.Center();
@@ -100,15 +93,12 @@ internal sealed class ActionMenuDialog : Dialog
     /// </summary>
     private void ExecuteSelectedAction()
     {
-        if (_listView.SelectedItem is { } selectedIndex && selectedIndex >= 0)
+        var items = _listView.Source?.ToList();
+        if (_listView.SelectedItem is { } idx && items is not null && idx < items.Count)
         {
-            var items = _listView.Source?.ToList();
-            if (items is not null && selectedIndex < items.Count)
-            {
-                SelectedAction = items[selectedIndex]?.ToString()
-                    ?? throw new UnreachableException("List item must not be null");
-                Confirmed = true;
-            }
+            var selectedAction = items[idx]?.ToString()
+                ?? throw new UnreachableException("List item must not be null");
+            _onConfirmed(selectedAction);
         }
 
         App?.RequestStop();

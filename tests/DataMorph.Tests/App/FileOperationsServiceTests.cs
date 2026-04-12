@@ -2,7 +2,6 @@ using DataMorph.App;
 using DataMorph.App.Views;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
-using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
 namespace DataMorph.Tests.App;
@@ -73,7 +72,7 @@ public sealed class FileOperationsServiceTests
     }
 
     [Fact]
-    public void UpdateStatusBarHints_WithContextActionView_IncludesMenuHint()
+    public void UpdateStatusBarHints_WithMorphTableView_IncludesMenuHint()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -81,9 +80,13 @@ public sealed class FileOperationsServiceTests
         using var window = new Window();
         using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
 
-        // Mock a context action view
-        using var mockActionView = new MockActionView();
-        window.Add(mockActionView);
+        using var testTableView = new TestTableView
+        {
+            Table = new TestTableSource(),
+            GetRawColumnName = _ => "test",
+            OnMorphAction = _ => { }
+        };
+        window.Add(testTableView);
 
         var modeController = new ModeController(state);
         var service = new FileOperationsService(app, state, viewManager, modeController);
@@ -92,7 +95,7 @@ public sealed class FileOperationsServiceTests
         service.UpdateStatusBarHints(null);
 
         // Assert
-        // Should include "x:Menu" hint when ContextActionView is present
+        // Should include "x:Menu" hint when MorphTableView is present
     }
 
     [Fact]
@@ -134,18 +137,32 @@ public sealed class FileOperationsServiceTests
     }
 
     /// <summary>
-    /// Mock implementation of IContextActionView for testing.
+    /// Testable concrete implementation of MorphTableView.
     /// </summary>
-    private sealed class MockActionView : View, IContextActionView
+    private sealed class TestTableView : MorphTableView
     {
-        public string[] GetAvailableActions()
+        public new ITableSource? Table { get; set; }
+    }
+
+    /// <summary>
+    /// Simple TableSource implementation for testing.
+    /// </summary>
+    private sealed class TestTableSource : ITableSource
+    {
+        public int Rows => 10;
+        public int Columns => 3;
+        public string[] ColumnNames => ["Col1", "Col2", "Col3"];
+
+        public object this[int row, int col]
         {
-            return ["Rename", "Delete", "Cast"];
+            get => $"R{row}C{col}";
+            set { }
         }
 
-        public void ExecuteAction(string action)
-        {
-            // No-op for testing
-        }
+        public static void AddColumn(string name) { }
+        public static void AddRow() { }
+        public static void RemoveColumn(int index) { }
+        public static void RemoveRow(int index) { }
+        public static void Clear() { }
     }
 }

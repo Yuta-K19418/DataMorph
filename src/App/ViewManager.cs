@@ -249,13 +249,10 @@ internal sealed class ViewManager : IDisposable
     }
 
     /// <summary>
-    /// Gets the current view if it implements <see cref="Views.IContextActionView"/>.
+    /// Gets the current view.
     /// </summary>
-    /// <returns>The current view as an <see cref="Views.IContextActionView"/>, or <c>null</c>.</returns>
-    internal Views.IContextActionView? GetCurrentContextActionView()
-    {
-        return _currentView as Views.IContextActionView;
-    }
+    /// <returns>The current <see cref="View"/>, or <c>null</c>.</returns>
+    internal View? GetCurrentView() => _currentView;
 
     /// <summary>
     /// Gets the current status bar.

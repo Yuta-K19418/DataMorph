@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using DataMorph.Engine.Models.Actions;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
@@ -7,16 +6,11 @@ namespace DataMorph.App.Views;
 
 /// <summary>
 /// Base class for table views that support column morph actions.
-/// Provides common implementation for action menu handling and vim-like navigation.
+/// Provides common implementation for vim-like navigation.
 /// </summary>
-internal abstract class MorphTableView : TableView, IContextActionView
+internal abstract class MorphTableView : TableView
 {
     private readonly VimKeyTranslator _vimKeys = new();
-
-    [MemberNotNullWhen(true, nameof(OnMorphAction), nameof(GetRawColumnName))]
-    private bool IsActionReady() =>
-        App is not null && Table is not null && OnMorphAction is not null && GetRawColumnName is not null
-        && SelectedColumn >= 0;
 
     /// <summary>
     /// Callback invoked when the user confirms a column morphing action.
@@ -38,39 +32,6 @@ internal abstract class MorphTableView : TableView, IContextActionView
     internal Func<int, string>? GetRawColumnName { get; init; }
 
     /// <inheritdoc/>
-    public string[] GetAvailableActions()
-    {
-        if (OnMorphAction is null || GetRawColumnName is null || Table is null || SelectedColumn < 0)
-        {
-            return [];
-        }
-
-        return [
-            ColumnActions.Rename,
-            ColumnActions.Delete,
-            ColumnActions.Cast,
-            ColumnActions.Filter,
-            ColumnActions.Fill,
-            ColumnActions.FormatTimestamp
-        ];
-    }
-
-    /// <inheritdoc/>
-    public void ExecuteAction(string action)
-    {
-        if (!IsActionReady() || App is null || Table is null)
-        {
-            return;
-        }
-
-        var handler = new ColumnActionHandler(
-            App, Table, SelectedColumn,
-            GetRawColumnName, (Action<Engine.Models.Actions.MorphAction>)OnMorphAction, IsRowIndexComplete);
-
-        handler.ExecuteAction(action);
-    }
-
-    /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)
     {
         if (Table is null)
@@ -80,19 +41,22 @@ internal abstract class MorphTableView : TableView, IContextActionView
 
         var action = _vimKeys.Translate(key.KeyCode);
 
-        static bool Do(Action a)
-        { a(); return true; }
+        static bool execute(Action a)
+        {
+            a();
+            return true;
+        }
 
         return action switch
         {
-            VimAction.MoveDown => Do(() => ChangeSelectionByOffset(0, 1, false)),
-            VimAction.MoveUp => Do(() => ChangeSelectionByOffset(0, -1, false)),
-            VimAction.MoveLeft => Do(() => ChangeSelectionByOffset(-1, 0, false)),
-            VimAction.MoveRight => Do(() => ChangeSelectionByOffset(1, 0, false)),
-            VimAction.PageDown => Do(() => ChangeSelectionByOffset(0, Viewport.Height, false)),
-            VimAction.PageUp => Do(() => ChangeSelectionByOffset(0, -Viewport.Height, false)),
-            VimAction.GoToFirst => Do(() => ChangeSelectionByOffset(0, -SelectedRow, false)),
-            VimAction.GoToEnd => Do(() => ChangeSelectionByOffset(0, Table.Rows - 1 - SelectedRow, false)),
+            VimAction.MoveDown => execute(() => ChangeSelectionByOffset(0, 1, false)),
+            VimAction.MoveUp => execute(() => ChangeSelectionByOffset(0, -1, false)),
+            VimAction.MoveLeft => execute(() => ChangeSelectionByOffset(-1, 0, false)),
+            VimAction.MoveRight => execute(() => ChangeSelectionByOffset(1, 0, false)),
+            VimAction.PageDown => execute(() => ChangeSelectionByOffset(0, Viewport.Height, false)),
+            VimAction.PageUp => execute(() => ChangeSelectionByOffset(0, -Viewport.Height, false)),
+            VimAction.GoToFirst => execute(() => ChangeSelectionByOffset(0, -SelectedRow, false)),
+            VimAction.GoToEnd => execute(() => ChangeSelectionByOffset(0, Table.Rows - 1 - SelectedRow, false)),
             VimAction.PendingGSequence => true,
             _ => HandleNonVimKey(key),
         };

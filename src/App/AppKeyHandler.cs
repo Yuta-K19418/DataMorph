@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using DataMorph.App.Views;
 using DataMorph.App.Views.Dialogs;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.Types;
@@ -158,28 +159,25 @@ internal sealed class AppKeyHandler : IDisposable
         return false;
     }
 
-    private bool HandleActionMenu()
+    internal bool HandleActionMenu()
     {
-        var actionView = _viewManager.GetCurrentContextActionView();
-        if (actionView is null)
+        if (_viewManager.GetCurrentView() is not MorphTableView mt)
         {
             return false;
         }
 
-        var actions = actionView.GetAvailableActions();
-        if (actions.Length == 0)
+        if (mt.Table is null || mt.GetRawColumnName is null
+            || mt.OnMorphAction is null || mt.SelectedColumn < 0)
         {
             return false;
         }
 
-        using var dialog = new ActionMenuDialog(actions);
+        var handler = new ColumnActionHandler(
+            _app, mt.Table, mt.SelectedColumn,
+            mt.GetRawColumnName, mt.OnMorphAction, mt.IsRowIndexComplete);
+
+        using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
         _app.Run(dialog);
-
-        if (dialog.Confirmed && dialog.SelectedAction is not null)
-        {
-            actionView.ExecuteAction(dialog.SelectedAction);
-        }
-
         return true;
     }
 

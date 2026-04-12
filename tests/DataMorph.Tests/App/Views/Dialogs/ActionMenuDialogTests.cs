@@ -20,15 +20,15 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = ["Rename", "Cast", "Delete"];
+        string? capturedAction = null;
         using var app = CreateTestApp();
 
         // Act
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, action => capturedAction = action);
 
         // Assert
         dialog.Title.Should().Be("Actions");
-        dialog.SelectedAction.Should().BeNull();
-        dialog.Confirmed.Should().BeFalse();
+        capturedAction.Should().BeNull();
     }
 
     [Fact]
@@ -36,15 +36,15 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = [];
+        string? capturedAction = null;
         using var app = CreateTestApp();
 
         // Act
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, action => capturedAction = action);
 
         // Assert
         dialog.Title.Should().Be("Actions");
-        dialog.SelectedAction.Should().BeNull();
-        dialog.Confirmed.Should().BeFalse();
+        capturedAction.Should().BeNull();
     }
 
     [Fact]
@@ -52,15 +52,15 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = ["Rename"];
+        string? capturedAction = null;
         using var app = CreateTestApp();
 
         // Act
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, action => capturedAction = action);
 
         // Assert
         dialog.Title.Should().Be("Actions");
-        dialog.SelectedAction.Should().BeNull();
-        dialog.Confirmed.Should().BeFalse();
+        capturedAction.Should().BeNull();
     }
 
     [Fact]
@@ -68,30 +68,63 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[]? actions = null;
+        string? capturedAction = null;
         using var app = CreateTestApp();
 
         // Act
-        var exception = Assert.Throws<ArgumentNullException>(() => new ActionMenuDialog(actions!));
+        var exception = Assert.Throws<ArgumentNullException>(() => new ActionMenuDialog(actions!, action => capturedAction = action));
 
         // Assert
         exception.ParamName.Should().Be("availableActions");
     }
 
     [Fact]
-    public void SelectedAction_WhenConfirmed_ReturnsFirstAction()
+    public void Constructor_WithNullOnConfirmed_ThrowsArgumentException()
     {
         // Arrange
         string[] actions = ["Rename", "Cast", "Delete"];
         using var app = CreateTestApp();
-        using var dialog = new ActionMenuDialog(actions);
+
+        // Act
+        var exception = Assert.Throws<ArgumentNullException>(() => new ActionMenuDialog(actions, null!));
+
+        // Assert
+        exception.ParamName.Should().Be("onConfirmed");
+    }
+
+    [Fact]
+    public void Constructor_WhenUserConfirms_CallsOnConfirmedWithSelectedAction()
+    {
+        // Arrange
+        string[] actions = ["Rename", "Cast", "Delete"];
+        string? capturedAction = null;
+        using var app = CreateTestApp();
+        using var dialog = new ActionMenuDialog(actions, action => capturedAction = action);
         app.Iteration += (_, _) => app.Keyboard.RaiseKeyDownEvent(Key.Enter);
 
         // Act
         app.Run(dialog);
 
         // Assert
-        dialog.SelectedAction.Should().Be("Rename");
-        dialog.Confirmed.Should().BeTrue();
+        capturedAction.Should().Be("Rename");
+    }
+
+    [Fact]
+    public void Constructor_WhenUserCancels_DoesNotCallOnConfirmed()
+    {
+        // Arrange
+        string[] actions = ["Rename", "Cast", "Delete"];
+        var callbackCalled = false;
+        using var app = CreateTestApp();
+        using var dialog = new ActionMenuDialog(actions, _ => callbackCalled = true);
+        app.Begin(dialog);
+        dialog.NewKeyDownEvent(Key.Esc);
+
+        // Act
+        // Already cancelled by NewKeyDownEvent above
+
+        // Assert
+        callbackCalled.Should().BeFalse();
     }
 
     [Fact]
@@ -99,8 +132,9 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = ["Rename", "Cast", "Delete"];
+        var callbackCalled = false;
         using var app = CreateTestApp();
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, _ => callbackCalled = true);
 
         // Act
         app.Begin(dialog);
@@ -108,8 +142,7 @@ public sealed class ActionMenuDialogTests
 
         // Assert
         handled.Should().BeTrue();
-        dialog.SelectedAction.Should().BeNull();
-        dialog.Confirmed.Should().BeFalse();
+        callbackCalled.Should().BeFalse();
     }
 
     [Fact]
@@ -117,8 +150,9 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = ["Rename", "Cast", "Delete"];
+        var callbackCalled = false;
         using var app = CreateTestApp();
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, _ => callbackCalled = true);
 
         // Act
         app.Begin(dialog);
@@ -126,8 +160,7 @@ public sealed class ActionMenuDialogTests
 
         // Assert
         handled.Should().BeTrue();
-        dialog.SelectedAction.Should().BeNull();
-        dialog.Confirmed.Should().BeFalse();
+        callbackCalled.Should().BeFalse();
     }
 
     [Fact]
@@ -135,8 +168,9 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = ["Rename", "Cast", "Delete"];
+        var callbackCalled = false;
         using var app = CreateTestApp();
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, _ => callbackCalled = true);
 
         // Act
         app.Begin(dialog);
@@ -145,7 +179,7 @@ public sealed class ActionMenuDialogTests
         // Assert
         handled.Should().BeTrue();
         dialog.SelectedItemIndex.Should().Be(1);
-        dialog.Confirmed.Should().BeFalse();
+        callbackCalled.Should().BeFalse();
     }
 
     [Fact]
@@ -153,8 +187,9 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = ["Rename", "Cast", "Delete"];
+        var callbackCalled = false;
         using var app = CreateTestApp();
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, _ => callbackCalled = true);
         app.Begin(dialog);
         dialog.NewKeyDownEvent(Key.J);
 
@@ -164,24 +199,7 @@ public sealed class ActionMenuDialogTests
         // Assert
         handled.Should().BeTrue();
         dialog.SelectedItemIndex.Should().Be(0);
-        dialog.Confirmed.Should().BeFalse();
-    }
-
-    [Fact]
-    public void SelectedAction_WhenNotConfirmed_ReturnsNull()
-    {
-        // Arrange
-        string[] actions = ["Rename", "Cast", "Delete"];
-        using var app = CreateTestApp();
-        using var dialog = new ActionMenuDialog(actions);
-
-        // Act
-        app.Begin(dialog);
-        dialog.NewKeyDownEvent(Key.Esc);
-
-        // Assert
-        dialog.SelectedAction.Should().BeNull();
-        dialog.Confirmed.Should().BeFalse();
+        callbackCalled.Should().BeFalse();
     }
 
     [Fact]
@@ -189,8 +207,9 @@ public sealed class ActionMenuDialogTests
     {
         // Arrange
         string[] actions = ["Rename", "Cast", "Delete"];
+        var callbackCalled = false;
         using var app = CreateTestApp();
-        using var dialog = new ActionMenuDialog(actions);
+        using var dialog = new ActionMenuDialog(actions, _ => callbackCalled = true);
 
         // Act
         app.Begin(dialog);
@@ -198,6 +217,6 @@ public sealed class ActionMenuDialogTests
 
         // Assert
         dialog.SelectedItemIndex.Should().Be(0);
-        dialog.Confirmed.Should().BeFalse();
+        callbackCalled.Should().BeFalse();
     }
 }

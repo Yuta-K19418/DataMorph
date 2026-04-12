@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Schema.Csv;
+using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Recipes;
@@ -53,7 +54,7 @@ internal sealed class FileOperationsService
                 hints.Add("t:Tree/Table");
             }
 
-            if (_viewManager.GetCurrentContextActionView() is not null)
+            if (_viewManager.GetCurrentView() is MorphTableView)
             {
                 hints.Add("x:Menu");
             }

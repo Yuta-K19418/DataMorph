@@ -37,8 +37,8 @@ internal sealed class AppKeyHandler : IDisposable
     /// <returns><c>true</c> if the key is a global shortcut; <c>false</c> otherwise.</returns>
     internal static bool IsGlobalShortcut(KeyCode keyCode)
     {
-        var baseChar = char.ToLowerInvariant((char)(keyCode & KeyCode.CharMask));
-        return baseChar is 'o' or 's' or 'q' or 't' or 'x' or '?';
+        var baseKey = keyCode & ~(KeyCode.ShiftMask | KeyCode.CtrlMask | KeyCode.AltMask);
+        return baseKey is KeyCode.O or KeyCode.S or KeyCode.Q or KeyCode.T or KeyCode.X or (KeyCode)'?';
     }
 
     internal AppKeyHandler(
@@ -201,23 +201,21 @@ internal sealed class AppKeyHandler : IDisposable
             current = current.SuperView;
         }
 
-        var baseChar = char.ToLowerInvariant((char)(key.KeyCode & KeyCode.CharMask));
-        var hasCtrlAlt = (key.KeyCode & (KeyCode.CtrlMask | KeyCode.AltMask)) != 0;
-
         // Shortcuts like o, s, q, t, x should not have Ctrl or Alt modifiers.
-        if (hasCtrlAlt)
+        if ((key.KeyCode & (KeyCode.CtrlMask | KeyCode.AltMask)) != 0)
         {
             return;
         }
 
-        key.Handled = baseChar switch
+        var baseKey = key.KeyCode & ~KeyCode.ShiftMask;
+        key.Handled = baseKey switch
         {
-            'o' => HandleOpen(),
-            's' => HandleSave(),
-            'q' => HandleQuit(),
-            't' => HandleViewToggle(),
-            'x' => HandleActionMenu(),
-            '?' => HandleHelp(),
+            KeyCode.O => HandleOpen(),
+            KeyCode.S => HandleSave(),
+            KeyCode.Q => HandleQuit(),
+            KeyCode.T => HandleViewToggle(),
+            KeyCode.X => HandleActionMenu(),
+            (KeyCode)'?' => HandleHelp(),
             _ => false,
         };
     }

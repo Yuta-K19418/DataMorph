@@ -10,11 +10,11 @@ namespace DataMorph.Tests.App;
 public sealed class AppKeyHandlerTests
 {
     [Theory]
-    [InlineData((KeyCode)'o')]
-    [InlineData((KeyCode)'s')]
-    [InlineData((KeyCode)'q')]
-    [InlineData((KeyCode)'t')]
-    [InlineData((KeyCode)'x')]
+    [InlineData(KeyCode.O)]
+    [InlineData(KeyCode.S)]
+    [InlineData(KeyCode.Q)]
+    [InlineData(KeyCode.T)]
+    [InlineData(KeyCode.X)]
     [InlineData((KeyCode)'?')]
     public void IsGlobalShortcut_WithGlobalShortcutKeys_ReturnsTrue(KeyCode keyCode)
     {
@@ -27,9 +27,9 @@ public sealed class AppKeyHandlerTests
     }
 
     [Theory]
-    [InlineData((KeyCode)'a')]
-    [InlineData((KeyCode)'b')]
-    [InlineData((KeyCode)'z')]
+    [InlineData(KeyCode.A)]
+    [InlineData(KeyCode.B)]
+    [InlineData(KeyCode.Z)]
     [InlineData((KeyCode)'1')]
     public void IsGlobalShortcut_WithNonGlobalShortcutKeys_ReturnsFalse(KeyCode keyCode)
     {
@@ -42,11 +42,11 @@ public sealed class AppKeyHandlerTests
     }
 
     [Theory]
-    [InlineData((KeyCode)'o' | KeyCode.CtrlMask)]
-    [InlineData((KeyCode)'s' | KeyCode.CtrlMask)]
-    [InlineData((KeyCode)'q' | KeyCode.CtrlMask)]
-    [InlineData((KeyCode)'t' | KeyCode.CtrlMask)]
-    [InlineData((KeyCode)'x' | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.O | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.S | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.Q | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.T | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.X | KeyCode.CtrlMask)]
     [InlineData((KeyCode)'?' | KeyCode.CtrlMask)]
     public void IsGlobalShortcut_WithModifierKeys_ReturnsTrue(KeyCode keyCode)
     {

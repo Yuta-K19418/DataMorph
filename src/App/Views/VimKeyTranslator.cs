@@ -46,33 +46,46 @@ internal sealed class VimKeyTranslator
     /// <returns>The resolved vim navigation action.</returns>
     internal VimAction Translate(KeyCode keyCode)
     {
-        // Shift+G → GoToEnd
+        // Shift+G → GoToEnd; always clears any pending 'g' state
         if (keyCode == (KeyCode.G | KeyCode.ShiftMask))
         {
             _pendingG = false;
             return VimAction.GoToEnd;
         }
 
-        // g / gg sequence
-        if (keyCode == KeyCode.G)
+        // Second 'g' while pending — check timeout
+        if (keyCode == KeyCode.G && _pendingG)
         {
-            if (_pendingG)
-            {
-                var elapsed = Stopwatch.GetElapsedTime(_pendingGTimestamp, _timestampProvider());
-                _pendingG = false;
+            var elapsed = Stopwatch.GetElapsedTime(_pendingGTimestamp, _timestampProvider());
+            _pendingG = false;
 
-                if (elapsed.TotalMilliseconds <= _timeoutMs)
-                {
-                    return VimAction.GoToFirst;
-                }
+            if (elapsed.TotalMilliseconds <= _timeoutMs)
+            {
+                return VimAction.GoToFirst;
             }
 
+            // Timeout exceeded — treat as a new first 'g'
             _pendingG = true;
             _pendingGTimestamp = _timestampProvider();
             return VimAction.PendingGSequence;
         }
 
+        // First 'g' — enter pending state
+        if (keyCode == KeyCode.G)
+        {
+            _pendingG = true;
+            _pendingGTimestamp = _timestampProvider();
+            return VimAction.PendingGSequence;
+        }
+
+        // Any other key resets pending state
         _pendingG = false;
+
+        // Only unshifted h/j/k/l/d/u trigger vim moves
+        if ((keyCode & KeyCode.ShiftMask) != 0)
+        {
+            return VimAction.None;
+        }
 
         return keyCode switch
         {

@@ -1,7 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.App.Views.Dialogs;
 using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
@@ -60,16 +58,16 @@ internal abstract class MorphTableView : TableView, IContextActionView
     /// <inheritdoc/>
     public void ExecuteAction(string action)
     {
-        _ = action switch
+        if (!IsActionReady() || App is null || Table is null)
         {
-            ColumnActions.Rename => HandleRenameColumn(),
-            ColumnActions.Delete => HandleDeleteColumn(),
-            ColumnActions.Cast => HandleCastColumn(),
-            ColumnActions.Filter => HandleFilterColumn(),
-            ColumnActions.Fill => HandleFillColumn(),
-            ColumnActions.FormatTimestamp => HandleFormatTimestamp(),
-            _ => false,
-        };
+            return;
+        }
+
+        var handler = new ColumnActionHandler(
+            App, Table, SelectedColumn,
+            GetRawColumnName, (Action<Engine.Models.Actions.MorphAction>)OnMorphAction, IsRowIndexComplete);
+
+        handler.ExecuteAction(action);
     }
 
     /// <inheritdoc/>
@@ -110,149 +108,5 @@ internal abstract class MorphTableView : TableView, IContextActionView
         }
 
         return base.OnKeyDown(key);
-    }
-
-    private bool HandleRenameColumn()
-    {
-        if (!IsActionReady() || App is null || Table is null)
-        {
-            return true;
-        }
-
-        var rawName = GetRawColumnName(SelectedColumn);
-        using var dialog = new RenameColumnDialog(rawName);
-        App.Run(dialog);
-
-        if (!dialog.Confirmed || dialog.NewName is null)
-        {
-            return true;
-        }
-
-        OnMorphAction(new RenameColumnAction { OldName = rawName, NewName = dialog.NewName });
-        return true;
-    }
-
-    private bool HandleDeleteColumn()
-    {
-        if (!IsActionReady() || App is null || Table is null)
-        {
-            return true;
-        }
-
-        var displayName = Table.ColumnNames[SelectedColumn];
-        var rawName = GetRawColumnName(SelectedColumn);
-        using var dialog = new DeleteColumnDialog(displayName);
-        App.Run(dialog);
-
-        if (!dialog.Confirmed)
-        {
-            return true;
-        }
-
-        OnMorphAction(new DeleteColumnAction { ColumnName = rawName });
-        return true;
-    }
-
-    private bool HandleCastColumn()
-    {
-        if (!IsActionReady() || App is null || Table is null)
-        {
-            return true;
-        }
-
-        var displayName = Table.ColumnNames[SelectedColumn];
-        var rawName = GetRawColumnName(SelectedColumn);
-        using var dialog = new CastColumnDialog(displayName, ColumnType.Text);
-        App.Run(dialog);
-
-        if (!dialog.Confirmed || dialog.SelectedType is null)
-        {
-            return true;
-        }
-
-        OnMorphAction(
-            new CastColumnAction { ColumnName = rawName, TargetType = dialog.SelectedType.Value }
-        );
-        return true;
-    }
-
-    private bool HandleFilterColumn()
-    {
-        if (!IsActionReady() || App is null || Table is null)
-        {
-            return true;
-        }
-
-        if (IsRowIndexComplete is not null && !IsRowIndexComplete())
-        {
-            MessageBox.ErrorQuery(App, "Filter", "Row index is still being built. Please wait.", "OK");
-            return true;
-        }
-
-        var displayName = Table.ColumnNames[SelectedColumn];
-        var rawName = GetRawColumnName(SelectedColumn);
-        using var dialog = new FilterColumnDialog(displayName);
-        App.Run(dialog);
-
-        if (!dialog.Confirmed || dialog.SelectedOperator is null || dialog.Value is null)
-        {
-            return true;
-        }
-
-        OnMorphAction(
-            new FilterAction
-            {
-                ColumnName = rawName,
-                Operator = dialog.SelectedOperator.Value,
-                Value = dialog.Value,
-            }
-        );
-        return true;
-    }
-
-    private bool HandleFillColumn()
-    {
-        if (!IsActionReady() || App is null || Table is null)
-        {
-            return true;
-        }
-
-        var displayName = Table.ColumnNames[SelectedColumn];
-        var rawName = GetRawColumnName(SelectedColumn);
-        using var dialog = new FillColumnDialog(displayName);
-        App.Run(dialog);
-
-        if (!dialog.Confirmed)
-        {
-            return true;
-        }
-
-        OnMorphAction(new FillColumnAction { ColumnName = rawName, Value = dialog.Value });
-        return true;
-    }
-
-    private bool HandleFormatTimestamp()
-    {
-        if (!IsActionReady() || App is null || Table is null)
-        {
-            return true;
-        }
-
-        var displayName = Table.ColumnNames[SelectedColumn];
-        var rawName = GetRawColumnName(SelectedColumn);
-        using var dialog = new FormatTimestampDialog(displayName);
-        App.Run(dialog);
-
-        if (!dialog.Confirmed || string.IsNullOrEmpty(dialog.TargetFormat))
-        {
-            return true;
-        }
-
-        OnMorphAction(new FormatTimestampAction
-        {
-            ColumnName = rawName,
-            TargetFormat = dialog.TargetFormat,
-        });
-        return true;
     }
 }

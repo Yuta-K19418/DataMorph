@@ -46,58 +46,42 @@ internal sealed class VimKeyTranslator
     /// <returns>The resolved vim navigation action.</returns>
     internal VimAction Translate(KeyCode keyCode)
     {
-        var baseChar = char.ToLowerInvariant((char)(keyCode & KeyCode.CharMask));
-        var isShiftOnly = (keyCode & KeyCode.SpecialMask) == KeyCode.ShiftMask;
-
-        // Shift+G (Uppercase G) → GoToEnd
-        if (baseChar == 'g' && isShiftOnly)
+        // Shift+G → GoToEnd
+        if (keyCode == (KeyCode.G | KeyCode.ShiftMask))
         {
             _pendingG = false;
             return VimAction.GoToEnd;
         }
 
-        // Only unshifted character keys trigger vim moves (except Shift+G handled above)
-        if ((keyCode & KeyCode.SpecialMask) != 0)
+        // g / gg sequence
+        if (keyCode == KeyCode.G)
         {
-            return VimAction.None;
-        }
-
-        // Second 'g' while pending — check timeout
-        if (baseChar == 'g' && _pendingG)
-        {
-            var elapsed = Stopwatch.GetElapsedTime(_pendingGTimestamp, _timestampProvider());
-            _pendingG = false;
-
-            if (elapsed.TotalMilliseconds <= _timeoutMs)
+            if (_pendingG)
             {
-                return VimAction.GoToFirst;
+                var elapsed = Stopwatch.GetElapsedTime(_pendingGTimestamp, _timestampProvider());
+                _pendingG = false;
+
+                if (elapsed.TotalMilliseconds <= _timeoutMs)
+                {
+                    return VimAction.GoToFirst;
+                }
             }
 
-            // Timeout exceeded — treat as a new first 'g'
             _pendingG = true;
             _pendingGTimestamp = _timestampProvider();
             return VimAction.PendingGSequence;
         }
 
-        // First 'g' — enter pending state
-        if (baseChar == 'g')
-        {
-            _pendingG = true;
-            _pendingGTimestamp = _timestampProvider();
-            return VimAction.PendingGSequence;
-        }
-
-        // Any other key resets pending state
         _pendingG = false;
 
-        return baseChar switch
+        return keyCode switch
         {
-            'h' => VimAction.MoveLeft,
-            'j' => VimAction.MoveDown,
-            'k' => VimAction.MoveUp,
-            'l' => VimAction.MoveRight,
-            'd' => VimAction.PageDown,
-            'u' => VimAction.PageUp,
+            KeyCode.H => VimAction.MoveLeft,
+            KeyCode.J => VimAction.MoveDown,
+            KeyCode.K => VimAction.MoveUp,
+            KeyCode.L => VimAction.MoveRight,
+            KeyCode.D => VimAction.PageDown,
+            KeyCode.U => VimAction.PageUp,
             _ => VimAction.None,
         };
     }

@@ -31,13 +31,19 @@ public sealed class VimKeyTranslatorTests
         result.Should().Be(expected);
     }
 
+    public static TheoryData<KeyCode, int> LowercaseNavigationKeysData =>
+        new()
+        {
+            { KeyCode.H, (int)VimAction.MoveLeft },
+            { KeyCode.J, (int)VimAction.MoveDown },
+            { KeyCode.K, (int)VimAction.MoveUp },
+            { KeyCode.L, (int)VimAction.MoveRight },
+            { KeyCode.D, (int)VimAction.PageDown },
+            { KeyCode.U, (int)VimAction.PageUp },
+        };
+
     [Theory]
-    [InlineData((KeyCode)'h', (int)VimAction.MoveLeft)]
-    [InlineData((KeyCode)'j', (int)VimAction.MoveDown)]
-    [InlineData((KeyCode)'k', (int)VimAction.MoveUp)]
-    [InlineData((KeyCode)'l', (int)VimAction.MoveRight)]
-    [InlineData((KeyCode)'d', (int)VimAction.PageDown)]
-    [InlineData((KeyCode)'u', (int)VimAction.PageUp)]
+    [MemberData(nameof(LowercaseNavigationKeysData))]
     public void Translate_LowercaseNavigationKeys_ReturnExpectedAction(KeyCode keyCode, int expectedRaw)
     {
         // Arrange

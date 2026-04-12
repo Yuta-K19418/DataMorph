@@ -46,24 +46,15 @@ internal sealed class VimKeyTranslator
     /// <returns>The resolved vim navigation action.</returns>
     internal VimAction Translate(KeyCode keyCode)
     {
-        var baseChar = char.ToLowerInvariant((char)(keyCode & KeyCode.CharMask));
-        var isShiftOnly = (keyCode & KeyCode.SpecialMask) == KeyCode.ShiftMask;
-
-        // Shift+G (Uppercase G) → GoToEnd
-        if (baseChar == 'g' && isShiftOnly)
+        // Shift+G → GoToEnd; always clears any pending 'g' state
+        if (keyCode == (KeyCode.G | KeyCode.ShiftMask))
         {
             _pendingG = false;
             return VimAction.GoToEnd;
         }
 
-        // Only unshifted character keys trigger vim moves (except Shift+G handled above)
-        if ((keyCode & KeyCode.SpecialMask) != 0)
-        {
-            return VimAction.None;
-        }
-
         // Second 'g' while pending — check timeout
-        if (baseChar == 'g' && _pendingG)
+        if (keyCode == KeyCode.G && _pendingG)
         {
             var elapsed = Stopwatch.GetElapsedTime(_pendingGTimestamp, _timestampProvider());
             _pendingG = false;
@@ -80,7 +71,7 @@ internal sealed class VimKeyTranslator
         }
 
         // First 'g' — enter pending state
-        if (baseChar == 'g')
+        if (keyCode == KeyCode.G)
         {
             _pendingG = true;
             _pendingGTimestamp = _timestampProvider();
@@ -90,14 +81,20 @@ internal sealed class VimKeyTranslator
         // Any other key resets pending state
         _pendingG = false;
 
-        return baseChar switch
+        // Only unshifted h/j/k/l/d/u trigger vim moves
+        if ((keyCode & KeyCode.ShiftMask) != 0)
         {
-            'h' => VimAction.MoveLeft,
-            'j' => VimAction.MoveDown,
-            'k' => VimAction.MoveUp,
-            'l' => VimAction.MoveRight,
-            'd' => VimAction.PageDown,
-            'u' => VimAction.PageUp,
+            return VimAction.None;
+        }
+
+        return keyCode switch
+        {
+            KeyCode.H => VimAction.MoveLeft,
+            KeyCode.J => VimAction.MoveDown,
+            KeyCode.K => VimAction.MoveUp,
+            KeyCode.L => VimAction.MoveRight,
+            KeyCode.D => VimAction.PageDown,
+            KeyCode.U => VimAction.PageUp,
             _ => VimAction.None,
         };
     }

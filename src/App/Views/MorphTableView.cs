@@ -41,19 +41,22 @@ internal abstract class MorphTableView : TableView
 
         var action = _vimKeys.Translate(key.KeyCode);
 
-        static bool Do(Action a)
-        { a(); return true; }
+        static bool execute(Action a)
+        {
+            a();
+            return true;
+        }
 
         return action switch
         {
-            VimAction.MoveDown => Do(() => ChangeSelectionByOffset(0, 1, false)),
-            VimAction.MoveUp => Do(() => ChangeSelectionByOffset(0, -1, false)),
-            VimAction.MoveLeft => Do(() => ChangeSelectionByOffset(-1, 0, false)),
-            VimAction.MoveRight => Do(() => ChangeSelectionByOffset(1, 0, false)),
-            VimAction.PageDown => Do(() => ChangeSelectionByOffset(0, Viewport.Height, false)),
-            VimAction.PageUp => Do(() => ChangeSelectionByOffset(0, -Viewport.Height, false)),
-            VimAction.GoToFirst => Do(() => ChangeSelectionByOffset(0, -SelectedRow, false)),
-            VimAction.GoToEnd => Do(() => ChangeSelectionByOffset(0, Table.Rows - 1 - SelectedRow, false)),
+            VimAction.MoveDown => execute(() => ChangeSelectionByOffset(0, 1, false)),
+            VimAction.MoveUp => execute(() => ChangeSelectionByOffset(0, -1, false)),
+            VimAction.MoveLeft => execute(() => ChangeSelectionByOffset(-1, 0, false)),
+            VimAction.MoveRight => execute(() => ChangeSelectionByOffset(1, 0, false)),
+            VimAction.PageDown => execute(() => ChangeSelectionByOffset(0, Viewport.Height, false)),
+            VimAction.PageUp => execute(() => ChangeSelectionByOffset(0, -Viewport.Height, false)),
+            VimAction.GoToFirst => execute(() => ChangeSelectionByOffset(0, -SelectedRow, false)),
+            VimAction.GoToEnd => execute(() => ChangeSelectionByOffset(0, Table.Rows - 1 - SelectedRow, false)),
             VimAction.PendingGSequence => true,
             _ => HandleNonVimKey(key),
         };

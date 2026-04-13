@@ -47,7 +47,7 @@ internal sealed class ModeController
         }
 
         // First switch: scan schema lazily
-        if (string.IsNullOrEmpty(_state.CurrentFilePath))
+        if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             return Results.Failure("No file is currently open");
         }

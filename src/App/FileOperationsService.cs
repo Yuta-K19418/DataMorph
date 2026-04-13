@@ -46,7 +46,7 @@ internal sealed class FileOperationsService
 
         List<string> hints = ["o:Open", "s:Save", "q:Quit"];
 
-        if (_state.CurrentFilePath is not null)
+        if (!string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             var format = FormatDetector.Detect(_state.CurrentFilePath);
             if (format.IsSuccess && format.Value == DataFormat.JsonLines)
@@ -177,7 +177,7 @@ internal sealed class FileOperationsService
             return;
         }
 
-        if (string.IsNullOrEmpty(_state.CurrentFilePath))
+        if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             return;
         }
@@ -220,7 +220,7 @@ internal sealed class FileOperationsService
     )]
     internal async Task HandleLoadRecipeAsync()
     {
-        if (string.IsNullOrEmpty(_state.CurrentFilePath))
+        if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             return;
         }

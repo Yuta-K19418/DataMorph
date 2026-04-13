@@ -135,7 +135,7 @@ internal sealed class AppKeyHandler : IDisposable
 
     private bool HandleViewToggle()
     {
-        if (_state.CurrentFilePath is null)
+        if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             return false;
         }

@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Views;
 using DataMorph.App.Views.Dialogs;
-using DataMorph.Engine.IO;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -18,8 +17,8 @@ internal sealed class AppKeyHandler : IDisposable
     private readonly IApplication _app;
     private readonly AppState _state;
     private readonly ViewManager _viewManager;
-    private readonly FileOperationsService _fileOperations;
-    private readonly Action<IRowIndexer> _startIndexing;
+    private readonly FileDialogHandler _fileDialogHandler;
+    private readonly RecipeCommandHandler _recipeCommandHandler;
 
     [SuppressMessage(
         "Reliability",
@@ -45,17 +44,17 @@ internal sealed class AppKeyHandler : IDisposable
         IApplication app,
         AppState state,
         ViewManager viewManager,
-        FileOperationsService fileOperations,
-        StatusBar? statusBar,
-        Action<IRowIndexer> startIndexing
+        FileDialogHandler fileDialogHandler,
+        RecipeCommandHandler recipeCommandHandler,
+        StatusBar? statusBar
     )
     {
         _app = app;
         _state = state;
         _viewManager = viewManager;
-        _fileOperations = fileOperations;
+        _fileDialogHandler = fileDialogHandler;
+        _recipeCommandHandler = recipeCommandHandler;
         _statusBar = statusBar;
-        _startIndexing = startIndexing;
     }
 
     internal void Subscribe()
@@ -105,7 +104,7 @@ internal sealed class AppKeyHandler : IDisposable
 
     private bool HandleOpen()
     {
-        _ = _fileOperations.ShowFileDialogAsync(_startIndexing).ContinueWith(
+        _ = _fileDialogHandler.ShowAsync().ContinueWith(
             t =>
             {
                 if (t.IsFaulted && t.Exception is not null)
@@ -120,7 +119,7 @@ internal sealed class AppKeyHandler : IDisposable
 
     private bool HandleSave()
     {
-        _ = _fileOperations.HandleSaveRecipeAsync().ContinueWith(
+        _ = _recipeCommandHandler.SaveAsync().ContinueWith(
             t =>
             {
                 if (t.IsFaulted && t.Exception is not null)
@@ -143,7 +142,7 @@ internal sealed class AppKeyHandler : IDisposable
         var format = FormatDetector.Detect(_state.CurrentFilePath);
         if (format.IsSuccess && format.Value == DataFormat.JsonLines)
         {
-            _ = _fileOperations.HandleToggleAsync().ContinueWith(
+            _ = _viewManager.ToggleJsonLinesModeAsync().ContinueWith(
                 t =>
                 {
                     if (t.IsFaulted && t.Exception is not null)

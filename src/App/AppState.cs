@@ -15,9 +15,8 @@ internal sealed class AppState : IDisposable
 
     /// <summary>
     /// Gets or sets the current file path being processed.
-    /// <see langword="null"/> if no file is loaded.
     /// </summary>
-    public string? CurrentFilePath { get; set; }
+    public string CurrentFilePath { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the current view mode.

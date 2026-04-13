@@ -16,11 +16,11 @@ public sealed class FileOperationsServiceTests
     }
 
     [Fact]
-    public void UpdateStatusBarHints_WithNullFilePath_UsesDefaultHints()
+    public void UpdateStatusBarHints_WithNoFilePath_UsesDefaultHints()
     {
         // Arrange
         using var app = CreateTestApp();
-        using var state = new AppState { CurrentFilePath = null };
+        using var state = new AppState { CurrentFilePath = string.Empty };
         using var window = new Window();
         using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
         var modeController = new ModeController(state);
@@ -118,11 +118,11 @@ public sealed class FileOperationsServiceTests
     }
 
     [Fact]
-    public async Task HandleLoadRecipeAsync_WithNullFilePath_DoesNothing()
+    public async Task HandleLoadRecipeAsync_WithNoFilePath_DoesNothing()
     {
         // Arrange
         using var app = CreateTestApp();
-        using var state = new AppState { CurrentFilePath = null };
+        using var state = new AppState { CurrentFilePath = string.Empty };
         using var window = new Window();
         using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
         var modeController = new ModeController(state);

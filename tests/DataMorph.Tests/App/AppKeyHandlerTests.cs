@@ -66,10 +66,11 @@ public sealed class AppKeyHandlerTests
         using var app = CreateTestApp();
         using var state = new AppState();
         using var window = new Window();
-        using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
         var modeController = new ModeController(state);
-        var fileOperations = new FileOperationsService(app, state, viewManager, modeController);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileOperations, null, _ => { });
+        using var viewManager = new ViewManager(window, state, modeController);
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -85,12 +86,13 @@ public sealed class AppKeyHandlerTests
         using var app = CreateTestApp();
         using var state = new AppState();
         using var window = new Window();
-        using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController);
         using var view = new TestTableView { Table = null };
         window.Add(view);
-        var modeController = new ModeController(state);
-        var fileOperations = new FileOperationsService(app, state, viewManager, modeController);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileOperations, null, _ => { });
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -106,12 +108,13 @@ public sealed class AppKeyHandlerTests
         using var app = CreateTestApp();
         using var state = new AppState();
         using var window = new Window();
-        using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController);
         using var view = new TestTableView { Table = new TestTableSource() };
         window.Add(view);
-        var modeController = new ModeController(state);
-        var fileOperations = new FileOperationsService(app, state, viewManager, modeController);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileOperations, null, _ => { });
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -127,16 +130,17 @@ public sealed class AppKeyHandlerTests
         using var app = CreateTestApp();
         using var state = new AppState();
         using var window = new Window();
-        using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController);
         using var view = new TestTableView
         {
             Table = new TestTableSource(),
             GetRawColumnName = _ => "test"
         };
         window.Add(view);
-        var modeController = new ModeController(state);
-        var fileOperations = new FileOperationsService(app, state, viewManager, modeController);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileOperations, null, _ => { });
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -152,7 +156,8 @@ public sealed class AppKeyHandlerTests
         using var app = CreateTestApp();
         using var state = new AppState();
         using var window = new Window();
-        using var viewManager = new ViewManager(window, state, () => Task.CompletedTask);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController);
         using var view = new TestTableView
         {
             Table = new TestTableSource(),
@@ -161,9 +166,9 @@ public sealed class AppKeyHandlerTests
         };
         view.SelectedColumn = -1;
         window.Add(view);
-        var modeController = new ModeController(state);
-        var fileOperations = new FileOperationsService(app, state, viewManager, modeController);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileOperations, null, _ => { });
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
 
         // Act
         var result = handler.HandleActionMenu();

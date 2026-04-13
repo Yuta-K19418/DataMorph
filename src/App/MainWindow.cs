@@ -19,7 +19,8 @@ internal sealed class MainWindow : Window
     private readonly ModeController _modeController;
     private readonly ViewManager _viewManager;
     private readonly AppKeyHandler _keyHandler;
-    private readonly FileOperationsService _fileOperations;
+    private readonly FileDialogHandler _fileDialogHandler;
+    private readonly RecipeCommandHandler _recipeCommandHandler;
     private IRowIndexer? _activeIndexer;
 
     private Action<long, long>? _onProgressChanged;
@@ -57,12 +58,14 @@ internal sealed class MainWindow : Window
         Width = Dim.Fill();
         Height = Dim.Fill();
 
-        _viewManager = new ViewManager(this, state, HandleToggleAsync);
-        _fileOperations = new FileOperationsService(app, state, _viewManager, _modeController);
+        _viewManager = new ViewManager(this, state, _modeController);
+
+        _fileDialogHandler = new FileDialogHandler(app, state, _viewManager, StartIndexing);
+        _recipeCommandHandler = new RecipeCommandHandler(app, state, _viewManager);
 
         InitializeMenu();
         InitializeStatusBar();
-        _keyHandler = new AppKeyHandler(app, state, _viewManager, _fileOperations, _statusBar, StartIndexing);
+        _keyHandler = new AppKeyHandler(app, state, _viewManager, _fileDialogHandler, _recipeCommandHandler, _statusBar);
         _viewManager.SwitchToFileSelection();
     }
 
@@ -82,9 +85,9 @@ internal sealed class MainWindow : Window
     )]
     private void InitializeMenu()
     {
-        var openMenuItem = new MenuItem("_Open", "", async () => await _fileOperations.ShowFileDialogAsync(StartIndexing));
-        var saveRecipeMenuItem = new MenuItem("_Save Recipe", "", async () => await _fileOperations.HandleSaveRecipeAsync());
-        var loadRecipeMenuItem = new MenuItem("_Load Recipe", "", async () => await _fileOperations.HandleLoadRecipeAsync());
+        var openMenuItem = new MenuItem("_Open", "", async () => await _fileDialogHandler.ShowAsync());
+        var saveRecipeMenuItem = new MenuItem("_Save Recipe", "", async () => await _recipeCommandHandler.SaveAsync());
+        var loadRecipeMenuItem = new MenuItem("_Load Recipe", "", async () => await _recipeCommandHandler.LoadAsync());
         var exitMenuItem = new MenuItem("_Exit", "", () => _app.RequestStop());
         var fileMenuBarItem = new MenuBarItem("_File", [openMenuItem, saveRecipeMenuItem, loadRecipeMenuItem, exitMenuItem]);
         var menuBar = new MenuBar { Menus = [fileMenuBarItem] };
@@ -107,7 +110,7 @@ internal sealed class MainWindow : Window
             Height = 1,
         };
 
-        _fileOperations.UpdateStatusBarHints(_statusBar);
+        _viewManager.RefreshStatusBarHints();
         Add(_statusBar);
     }
 
@@ -158,11 +161,6 @@ internal sealed class MainWindow : Window
     {
         WireIndexerProgress(indexer);
         _indexTaskManager.Start(indexer);
-    }
-
-    private async Task HandleToggleAsync()
-    {
-        await _fileOperations.HandleToggleAsync();
     }
 
     [SuppressMessage(

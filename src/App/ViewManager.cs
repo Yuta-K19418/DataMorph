@@ -9,6 +9,7 @@ using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
+using Key = Terminal.Gui.Input.Key;
 
 namespace DataMorph.App;
 
@@ -46,6 +47,9 @@ internal sealed class ViewManager : IDisposable
             return;
         }
 
+        // Clear all existing shortcuts
+        statusBar.RemoveAll();
+
         List<string> hints = ["o:Open", "s:Save", "q:Quit"];
 
         if (!string.IsNullOrWhiteSpace(_state.CurrentFilePath))
@@ -63,7 +67,13 @@ internal sealed class ViewManager : IDisposable
         }
 
         hints.Add("?:Help");
-        statusBar.Text = string.Join("  ", hints);
+
+        // Populate shortcuts with Key.Empty to suppress key indicator
+        var shortcuts = hints.Select(hint => new Shortcut { Key = Key.Empty, HelpText = hint }).ToList();
+        foreach (var shortcut in shortcuts)
+        {
+            statusBar.Add(shortcut);
+        }
     }
 
     /// <summary>
@@ -147,9 +157,9 @@ internal sealed class ViewManager : IDisposable
         var view = new Views.CsvTableView
         {
             X = 0,
-            Y = 0,
+            Y = 1, // Start below MenuBar
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
             Table = source,
             Style = new TableStyle { AlwaysShowHeaders = true },
             OnMorphAction = HandleMorphAction,
@@ -181,9 +191,9 @@ internal sealed class ViewManager : IDisposable
         var view = new Views.JsonLinesTreeView(indexer, () => _ = ToggleJsonLinesModeAsync())
         {
             X = 0,
-            Y = 0,
+            Y = 1, // Start below MenuBar
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
         };
         SwapView(view);
         RefreshStatusBarHints();
@@ -235,9 +245,9 @@ internal sealed class ViewManager : IDisposable
         var view = new Views.JsonLinesTableView
         {
             X = 0,
-            Y = 0,
+            Y = 1, // Start below MenuBar
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
             Table = tableSource,
             Style = new TableStyle { AlwaysShowHeaders = true },
             OnMorphAction = HandleMorphAction,
@@ -327,7 +337,7 @@ internal sealed class ViewManager : IDisposable
     /// <returns>The current <see cref="StatusBar"/>, or <c>null</c>.</returns>
     internal StatusBar? GetCurrentStatusBar()
     {
-        return _container.SubViews.FirstOrDefault(v => v is StatusBar) as StatusBar;
+        return _container.SubViews.OfType<StatusBar>().FirstOrDefault();
     }
 
     /// <inheritdoc/>

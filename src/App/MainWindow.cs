@@ -40,11 +40,6 @@ internal sealed class MainWindow : Window
     )]
     private Label? _progressLabel;
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
     private StatusBar? _statusBar;
 
     public MainWindow(IApplication app, AppState state)
@@ -105,7 +100,8 @@ internal sealed class MainWindow : Window
         _statusBar = new StatusBar
         {
             X = 0,
-            Y = Pos.Bottom(this),
+            // Place at the very last line of the window
+            Y = Pos.AnchorEnd(1),
             Width = Dim.Fill(),
             Height = 1,
         };
@@ -122,6 +118,7 @@ internal sealed class MainWindow : Window
             _indexTaskManager.Dispose();
             _state.Dispose();
             _viewManager.Dispose();
+            _statusBar?.Dispose();
         }
         base.Dispose(disposing);
     }
@@ -130,10 +127,17 @@ internal sealed class MainWindow : Window
     {
         // Unsubscribe from the previous indexer to prevent event handler leaks
         // when a new file is opened while a previous indexer is still active.
-        if (_activeIndexer is not null && _onProgressChanged is not null && _onBuildIndexCompleted is not null)
+        if (_activeIndexer is not null)
         {
-            _activeIndexer.ProgressChanged -= _onProgressChanged;
-            _activeIndexer.BuildIndexCompleted -= _onBuildIndexCompleted;
+            if (_onProgressChanged is not null)
+            {
+                _activeIndexer.ProgressChanged -= _onProgressChanged;
+            }
+
+            if (_onBuildIndexCompleted is not null)
+            {
+                _activeIndexer.BuildIndexCompleted -= _onBuildIndexCompleted;
+            }
         }
 
         ShowIndexingProgress();

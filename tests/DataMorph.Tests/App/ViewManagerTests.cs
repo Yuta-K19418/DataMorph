@@ -1,6 +1,5 @@
 using AwesomeAssertions;
 using DataMorph.App;
-using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
@@ -26,73 +25,140 @@ public sealed class ViewManagerTests
         using var app = CreateTestApp();
         using var state = new AppState { CurrentFilePath = string.Empty };
         using var window = new Window();
+        using var statusBar = new StatusBar();
+        window.Add(statusBar);
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController);
 
         // Act
-        Action act = () => viewManager.RefreshStatusBarHints();
+        viewManager.RefreshStatusBarHints();
 
         // Assert
-        act.Should().NotThrow();
+        var currentStatusBar = viewManager.GetCurrentStatusBar();
+        currentStatusBar.Should().NotBeNull();
+        var hints = Enumerable.Select(
+                Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
+                s => s.HelpText);
+        hints.Should().BeEquivalentTo(
+            ["o:Open", "s:Save", "q:Quit", "?:Help"],
+            opts => opts.WithStrictOrdering());
     }
 
     [Fact]
     public void RefreshStatusBarHints_WithCsvFilePath_UsesDefaultHints()
     {
         // Arrange
-        using var app = CreateTestApp();
-        using var state = new AppState { CurrentFilePath = "test.csv" };
-        using var window = new Window();
-        var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        const string filePath = "test.csv";
+        File.WriteAllText(filePath, "col1,col2\nvalue1,value2\n");
+        try
+        {
+            using var app = CreateTestApp();
+            using var state = new AppState { CurrentFilePath = filePath };
+            using var window = new Window();
+            using var statusBar = new StatusBar();
+            window.Add(statusBar);
+            var modeController = new ModeController(state);
+            using var viewManager = new ViewManager(window, state, modeController);
 
-        // Act
-        Action act = () => viewManager.RefreshStatusBarHints();
+            // Act
+            viewManager.RefreshStatusBarHints();
 
-        // Assert
-        act.Should().NotThrow();
+            // Assert
+            var currentStatusBar = viewManager.GetCurrentStatusBar();
+            currentStatusBar.Should().NotBeNull();
+            var hints = Enumerable.Select(
+                    Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
+                    s => s.HelpText);
+            hints.Should().BeEquivalentTo(
+                ["o:Open", "s:Save", "q:Quit", "?:Help"],
+                opts => opts.WithStrictOrdering());
+        }
+        finally
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
     }
 
     [Fact]
     public void RefreshStatusBarHints_WithJsonLinesPath_IncludesToggleHint()
     {
         // Arrange
-        using var app = CreateTestApp();
-        using var state = new AppState { CurrentFilePath = "test.jsonl" };
-        using var window = new Window();
-        var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        const string filePath = "test.jsonl";
+        File.WriteAllText(filePath, "{\"col1\": \"value\"}\n");
+        try
+        {
+            using var app = CreateTestApp();
+            using var state = new AppState { CurrentFilePath = filePath };
+            using var window = new Window();
+            using var statusBar = new StatusBar();
+            window.Add(statusBar);
+            var modeController = new ModeController(state);
+            using var viewManager = new ViewManager(window, state, modeController);
 
-        // Act
-        Action act = () => viewManager.RefreshStatusBarHints();
+            // Act
+            viewManager.RefreshStatusBarHints();
 
-        // Assert
-        act.Should().NotThrow();
+            // Assert
+            var currentStatusBar = viewManager.GetCurrentStatusBar();
+            currentStatusBar.Should().NotBeNull();
+            var hints = Enumerable.Select(
+                    Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
+                    s => s.HelpText);
+            hints.Should().Contain("t:Tree/Table");
+        }
+        finally
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
     }
 
     [Fact]
     public void RefreshStatusBarHints_WithMorphTableView_IncludesMenuHint()
     {
         // Arrange
-        using var app = CreateTestApp();
-        using var state = new AppState { CurrentFilePath = "test.jsonl" };
-        using var window = new Window();
-        var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
-
-        using var testTableView = new TestTableView
+        const string filePath = "test.jsonl";
+        File.WriteAllText(filePath, "{\"col1\": \"value\"}\n");
+        try
         {
-            Table = new TestTableSource(),
-            GetRawColumnName = _ => "test",
-            OnMorphAction = _ => { }
-        };
-        window.Add(testTableView);
+            using var app = CreateTestApp();
+            using var state = new AppState { CurrentFilePath = filePath };
+            using var window = new Window();
+            using var statusBar = new StatusBar();
+            window.Add(statusBar);
+            var modeController = new ModeController(state);
+            using var viewManager = new ViewManager(window, state, modeController);
 
-        // Act
-        Action act = () => viewManager.RefreshStatusBarHints();
+            var schema = new TableSchema
+            {
+                SourceFormat = DataFormat.JsonLines,
+                Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }]
+            };
+            viewManager.SwitchToCsvTable(new MockRowIndexer(), schema);
 
-        // Assert
-        act.Should().NotThrow();
+            // Act
+            viewManager.RefreshStatusBarHints();
+
+            // Assert
+            var currentStatusBar = viewManager.GetCurrentStatusBar();
+            currentStatusBar.Should().NotBeNull();
+            var hints = Enumerable.Select(
+                    Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
+                    s => s.HelpText);
+            hints.Should().Contain("x:Menu");
+        }
+        finally
+        {
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
     }
 
     [Fact]
@@ -194,36 +260,6 @@ public sealed class ViewManagerTests
                 File.Delete(filePath);
             }
         }
-    }
-
-    /// <summary>
-    /// Testable concrete implementation of MorphTableView.
-    /// </summary>
-    private sealed class TestTableView : MorphTableView
-    {
-        public new ITableSource? Table { get; set; }
-    }
-
-    /// <summary>
-    /// Simple TableSource implementation for testing.
-    /// </summary>
-    private sealed class TestTableSource : ITableSource
-    {
-        public int Rows => 10;
-        public int Columns => 3;
-        public string[] ColumnNames => ["Col1", "Col2", "Col3"];
-
-        public object this[int row, int col]
-        {
-            get => $"R{row}C{col}";
-            set { }
-        }
-
-        public static void AddColumn(string name) { }
-        public static void AddRow() { }
-        public static void RemoveColumn(int index) { }
-        public static void RemoveRow(int index) { }
-        public static void Clear() { }
     }
 
     /// <summary>

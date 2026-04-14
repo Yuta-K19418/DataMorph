@@ -33,8 +33,5 @@ public sealed class FileDialogHandlerTests
 
         // Assert
         act.Should().NotThrow();
-
-        // TODO: Testing the dialog-cancellation path requires injecting an IFileDialog abstraction.
-        // That refactoring is out of scope here; a future task should address this.
     }
 }

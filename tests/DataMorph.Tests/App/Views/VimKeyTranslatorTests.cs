@@ -8,7 +8,7 @@ namespace DataMorph.Tests.App.Views;
 public sealed class VimKeyTranslatorTests
 {
     // ---------------------------------------------------------------------------
-    // Basic hjkl mappings
+    // Basic hjkl mappings and d/u scrolling
     // ---------------------------------------------------------------------------
 
     [Theory]
@@ -18,33 +18,7 @@ public sealed class VimKeyTranslatorTests
     [InlineData(KeyCode.L, (int)VimAction.MoveRight)]
     [InlineData(KeyCode.D, (int)VimAction.PageDown)]
     [InlineData(KeyCode.U, (int)VimAction.PageUp)]
-    public void Translate_VimNavigationKeys_ReturnExpectedAction(KeyCode keyCode, int expectedRaw)
-    {
-        // Arrange
-        var translator = new VimKeyTranslator();
-        var expected = (VimAction)expectedRaw;
-
-        // Act
-        var result = translator.Translate(keyCode);
-
-        // Assert
-        result.Should().Be(expected);
-    }
-
-    public static TheoryData<KeyCode, int> LowercaseNavigationKeysData =>
-        new()
-        {
-            { KeyCode.H, (int)VimAction.MoveLeft },
-            { KeyCode.J, (int)VimAction.MoveDown },
-            { KeyCode.K, (int)VimAction.MoveUp },
-            { KeyCode.L, (int)VimAction.MoveRight },
-            { KeyCode.D, (int)VimAction.PageDown },
-            { KeyCode.U, (int)VimAction.PageUp },
-        };
-
-    [Theory]
-    [MemberData(nameof(LowercaseNavigationKeysData))]
-    public void Translate_LowercaseNavigationKeys_ReturnExpectedAction(KeyCode keyCode, int expectedRaw)
+    public void Translate_VimNavigationAndScrollKeys_ReturnExpectedAction(KeyCode keyCode, int expectedRaw)
     {
         // Arrange
         var translator = new VimKeyTranslator();
@@ -213,7 +187,7 @@ public sealed class VimKeyTranslatorTests
     }
 
     // ---------------------------------------------------------------------------
-    // Shift modifier does not affect hjkl
+    // Shift modifier does not affect hjkldu
     // ---------------------------------------------------------------------------
 
     [Theory]
@@ -223,12 +197,12 @@ public sealed class VimKeyTranslatorTests
     [InlineData(KeyCode.L)]
     [InlineData(KeyCode.D)]
     [InlineData(KeyCode.U)]
-    public void Translate_HjklWithShift_ReturnsNone(KeyCode keyCode)
+    public void Translate_VimNavigationKeysWithShift_ReturnsNone(KeyCode keyCode)
     {
         // Arrange
         var translator = new VimKeyTranslator();
 
-        // Act — uppercase H/J/K/L (shift held) should not trigger vim moves
+        // Act — uppercase H/J/K/L/D/U (shift held) should not trigger vim moves
         var result = translator.Translate(keyCode | KeyCode.ShiftMask);
 
         // Assert

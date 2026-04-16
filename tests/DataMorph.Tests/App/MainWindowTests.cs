@@ -56,7 +56,7 @@ public sealed class MainWindowTests
     }
 
     [Fact]
-    public void KeyDown_WithLowercaseQKey_HandlesQuit()
+    public void KeyDown_WithQKey_HandlesQuit()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -68,7 +68,7 @@ public sealed class MainWindowTests
         app.Begin(mainWindow);
         mainWindow.SubscribeKeyHandler();
         mainWindow.SetFocus();
-        var handled = app.Keyboard.RaiseKeyDownEvent((Key)'q');
+        var handled = app.Keyboard.RaiseKeyDownEvent(Key.Q);
 
         // Assert
         handled.Should().BeTrue();
@@ -89,25 +89,6 @@ public sealed class MainWindowTests
         mainWindow.SetFocus();
         // Simulate '?' with Shift mask (Shift + /)
         var handled = app.Keyboard.RaiseKeyDownEvent((KeyCode)'?' | KeyCode.ShiftMask);
-
-        // Assert
-        handled.Should().BeTrue();
-    }
-
-    [Fact]
-    public void KeyDown_WithQKey_HandlesQuit()
-    {
-        // Arrange
-        using var app = CreateTestApp();
-        using var state = new AppState();
-        using var mainWindow = new MainWindow(app, state);
-        app.StopAfterFirstIteration = true;
-
-        // Act
-        app.Begin(mainWindow);
-        mainWindow.SubscribeKeyHandler();
-        mainWindow.SetFocus();
-        var handled = app.Keyboard.RaiseKeyDownEvent(Key.Q);
 
         // Assert
         handled.Should().BeTrue();

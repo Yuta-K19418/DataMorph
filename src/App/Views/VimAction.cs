@@ -28,4 +28,10 @@ internal enum VimAction
 
     /// <summary>Jump to the last row/node (Shift+G).</summary>
     GoToEnd,
+
+    /// <summary>Scroll down one page (d).</summary>
+    PageDown,
+
+    /// <summary>Scroll up one page (u).</summary>
+    PageUp,
 }

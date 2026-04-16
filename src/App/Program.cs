@@ -27,5 +27,6 @@ using var app = result.app;
 using var mainWindow = result.mainWindow;
 
 app.Init();
+mainWindow.SubscribeKeyHandler();
 app.Run(mainWindow);
 return (int)ExitCode.Success;

@@ -26,7 +26,7 @@ internal sealed class FileSelectionView : View
             {
                 X = Pos.Center(),
                 Y = Pos.Center() + 1,
-                Text = "Press Ctrl+O to open a file",
+                Text = "Press o to open a file",
             }
         );
     }

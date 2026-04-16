@@ -8,7 +8,7 @@ namespace DataMorph.Tests.App.Views;
 public sealed class VimKeyTranslatorTests
 {
     // ---------------------------------------------------------------------------
-    // Basic hjkl mappings
+    // Basic hjkl mappings and d/u scrolling
     // ---------------------------------------------------------------------------
 
     [Theory]
@@ -16,7 +16,9 @@ public sealed class VimKeyTranslatorTests
     [InlineData(KeyCode.J, (int)VimAction.MoveDown)]
     [InlineData(KeyCode.K, (int)VimAction.MoveUp)]
     [InlineData(KeyCode.L, (int)VimAction.MoveRight)]
-    public void Translate_HjklKeys_ReturnExpectedMoveAction(KeyCode keyCode, int expectedRaw)
+    [InlineData(KeyCode.D, (int)VimAction.PageDown)]
+    [InlineData(KeyCode.U, (int)VimAction.PageUp)]
+    public void Translate_VimNavigationAndScrollKeys_ReturnExpectedAction(KeyCode keyCode, int expectedRaw)
     {
         // Arrange
         var translator = new VimKeyTranslator();
@@ -185,7 +187,7 @@ public sealed class VimKeyTranslatorTests
     }
 
     // ---------------------------------------------------------------------------
-    // Shift modifier does not affect hjkl
+    // Shift modifier does not affect hjkldu
     // ---------------------------------------------------------------------------
 
     [Theory]
@@ -193,15 +195,61 @@ public sealed class VimKeyTranslatorTests
     [InlineData(KeyCode.J)]
     [InlineData(KeyCode.K)]
     [InlineData(KeyCode.L)]
-    public void Translate_HjklWithShift_ReturnsNone(KeyCode keyCode)
+    [InlineData(KeyCode.D)]
+    [InlineData(KeyCode.U)]
+    public void Translate_VimNavigationKeysWithShift_ReturnsNone(KeyCode keyCode)
     {
         // Arrange
         var translator = new VimKeyTranslator();
 
-        // Act — uppercase H/J/K/L (shift held) should not trigger vim moves
+        // Act — uppercase H/J/K/L/D/U (shift held) should not trigger vim moves
         var result = translator.Translate(keyCode | KeyCode.ShiftMask);
 
         // Assert
         result.Should().Be(VimAction.None);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Boundary value tests
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void Translate_GG_ExactlyAtTimeout_ReturnsGoToFirst()
+    {
+        // Arrange — timeout of 500 ms; advance fake time by exactly 500 ms
+        long fakeTime = 0;
+        var translator = new VimKeyTranslator(() => fakeTime, timeoutMs: 500);
+
+        _ = translator.Translate(KeyCode.G); // first g
+        fakeTime += (long)(Stopwatch.Frequency * 0.5); // advance by exactly 500 ms
+
+        // Act
+        var result = translator.Translate(KeyCode.G); // second g at boundary
+
+        // Assert — exactly at timeout should still trigger GoToFirst (<= boundary protection)
+        result.Should().Be(VimAction.GoToFirst);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Triple-gg sequence after timeout reset
+    // ---------------------------------------------------------------------------
+
+    [Fact]
+    public void Translate_GGG_AfterTimeoutReset_ReturnsPendingThenGoToFirst()
+    {
+        // Arrange — timeout of 500 ms
+        long fakeTime = 0;
+        var translator = new VimKeyTranslator(() => fakeTime, timeoutMs: 500);
+
+        _ = translator.Translate(KeyCode.G); // first g
+        fakeTime += Stopwatch.Frequency; // advance by 1 second, exceeds timeout
+
+        // Act
+        var result1 = translator.Translate(KeyCode.G); // second g (treated as new first g)
+        var result2 = translator.Translate(KeyCode.G); // third g
+
+        // Assert — after timeout reset, the sequence starts fresh
+        result1.Should().Be(VimAction.PendingGSequence);
+        result2.Should().Be(VimAction.GoToFirst);
     }
 }

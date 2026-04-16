@@ -81,7 +81,7 @@ internal sealed class VimKeyTranslator
         // Any other key resets pending state
         _pendingG = false;
 
-        // Only unshifted h/j/k/l trigger vim moves
+        // Only unshifted h/j/k/l/d/u trigger vim moves
         if ((keyCode & KeyCode.ShiftMask) != 0)
         {
             return VimAction.None;
@@ -93,6 +93,8 @@ internal sealed class VimKeyTranslator
             KeyCode.J => VimAction.MoveDown,
             KeyCode.K => VimAction.MoveUp,
             KeyCode.L => VimAction.MoveRight,
+            KeyCode.D => VimAction.PageDown,
+            KeyCode.U => VimAction.PageUp,
             _ => VimAction.None,
         };
     }

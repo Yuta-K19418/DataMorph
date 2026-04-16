@@ -1,12 +1,15 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
+using DataMorph.Engine.Types;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
+using Key = Terminal.Gui.Input.Key;
 
 namespace DataMorph.App;
 
@@ -19,18 +22,88 @@ internal sealed class ViewManager : IDisposable
 {
     private readonly Window _container;
     private readonly AppState _state;
-    private readonly Func<Task> _onToggle;
+    private readonly ModeController _modeController;
     private View? _currentView;
     private bool _disposed;
 
-    internal ViewManager(Window container, AppState state, Func<Task> onToggle)
+    internal ViewManager(Window container, AppState state, ModeController modeController)
     {
         ArgumentNullException.ThrowIfNull(container);
         ArgumentNullException.ThrowIfNull(state);
-        ArgumentNullException.ThrowIfNull(onToggle);
+        ArgumentNullException.ThrowIfNull(modeController);
         _container = container;
         _state = state;
-        _onToggle = onToggle;
+        _modeController = modeController;
+    }
+
+    /// <summary>
+    /// Refreshes the status bar hints based on the current application state.
+    /// </summary>
+    internal void RefreshStatusBarHints()
+    {
+        var statusBar = GetCurrentStatusBar();
+        if (statusBar is null)
+        {
+            return;
+        }
+
+        // Clear all existing shortcuts
+        statusBar.RemoveAll();
+
+        List<string> hints = ["o:Open", "s:Save", "q:Quit"];
+
+        if (!string.IsNullOrWhiteSpace(_state.CurrentFilePath))
+        {
+            var format = FormatDetector.Detect(_state.CurrentFilePath);
+            if (format.IsSuccess && format.Value == DataFormat.JsonLines)
+            {
+                hints.Add("t:Tree/Table");
+            }
+
+            if (GetCurrentView() is MorphTableView)
+            {
+                hints.Add("x:Menu");
+            }
+        }
+
+        hints.Add("?:Help");
+
+        // Populate shortcuts with Key.Empty to suppress key indicator
+        var shortcuts = hints.Select(hint => new Shortcut { Key = Key.Empty, HelpText = hint }).ToList();
+        foreach (var shortcut in shortcuts)
+        {
+            statusBar.Add(shortcut);
+        }
+    }
+
+    /// <summary>
+    /// Toggles between JSON Lines Tree and Table view modes.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    internal async Task ToggleJsonLinesModeAsync()
+    {
+        var result = await _modeController.ToggleJsonLinesModeAsync();
+
+        if (result.IsFailure)
+        {
+            ShowError(result.Error);
+            RefreshStatusBarHints();
+            return;
+        }
+
+        if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.RowIndexer is not null)
+        {
+            SwitchToJsonLinesTree(_state.RowIndexer);
+            return;
+        }
+
+        if (
+            _state.CurrentMode == ViewMode.JsonLinesTable
+            && _state.RowIndexer is not null
+            && _state.Schema is not null)
+        {
+            SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
+        }
     }
 
     /// <summary>
@@ -40,6 +113,7 @@ internal sealed class ViewManager : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         SwapView(Views.FileSelectionView.Create());
+        RefreshStatusBarHints();
     }
 
     /// <summary>
@@ -83,15 +157,16 @@ internal sealed class ViewManager : IDisposable
         var view = new Views.CsvTableView
         {
             X = 0,
-            Y = 0,
+            Y = 1, // Start below MenuBar
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
             Table = source,
             Style = new TableStyle { AlwaysShowHeaders = true },
             OnMorphAction = HandleMorphAction,
             GetRawColumnName = getRawColumnName,
         };
         SwapView(view);
+        RefreshStatusBarHints();
 
         if (source is Views.LazyTransformer { FilterRowIndexer: { } filterIndexer })
         {
@@ -113,14 +188,15 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        var view = new Views.JsonLinesTreeView(indexer, () => _ = _onToggle())
+        var view = new Views.JsonLinesTreeView(indexer, () => _ = ToggleJsonLinesModeAsync())
         {
             X = 0,
-            Y = 0,
+            Y = 1, // Start below MenuBar
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
         };
         SwapView(view);
+        RefreshStatusBarHints();
     }
 
     /// <summary>
@@ -166,20 +242,19 @@ internal sealed class ViewManager : IDisposable
             _ => throw new UnreachableException(),
         };
 
-        var view = new Views.JsonLinesTableView(
-            () => _ = _onToggle(),
-            HandleMorphAction,
-            getRawColumnName: getRawColumnName
-        )
+        var view = new Views.JsonLinesTableView
         {
             X = 0,
-            Y = 0,
+            Y = 1, // Start below MenuBar
             Width = Dim.Fill(),
-            Height = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
             Table = tableSource,
             Style = new TableStyle { AlwaysShowHeaders = true },
+            OnMorphAction = HandleMorphAction,
+            GetRawColumnName = getRawColumnName,
         };
         SwapView(view);
+        RefreshStatusBarHints();
 
         if (tableSource is Views.LazyTransformer { FilterRowIndexer: { } filterIndexer })
         {
@@ -248,6 +323,21 @@ internal sealed class ViewManager : IDisposable
         _currentView = newView;
         _container.Add(_currentView);
         _container.SetNeedsDraw();
+    }
+
+    /// <summary>
+    /// Gets the current view.
+    /// </summary>
+    /// <returns>The current <see cref="View"/>, or <c>null</c>.</returns>
+    internal View? GetCurrentView() => _currentView;
+
+    /// <summary>
+    /// Gets the current status bar.
+    /// </summary>
+    /// <returns>The current <see cref="StatusBar"/>, or <c>null</c>.</returns>
+    internal StatusBar? GetCurrentStatusBar()
+    {
+        return _container.SubViews.OfType<StatusBar>().FirstOrDefault();
     }
 
     /// <inheritdoc/>

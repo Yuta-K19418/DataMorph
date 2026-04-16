@@ -1,0 +1,237 @@
+using System.Diagnostics.CodeAnalysis;
+using DataMorph.App.Views.Dialogs;
+using DataMorph.Engine.IO;
+using DataMorph.Engine.Types;
+using Terminal.Gui.App;
+using Terminal.Gui.Drivers;
+using Terminal.Gui.Input;
+using Terminal.Gui.Views;
+
+namespace DataMorph.App;
+
+/// <summary>
+/// Handles global keyboard shortcuts for DataMorph application.
+/// </summary>
+internal sealed class AppKeyHandler : IDisposable
+{
+    private readonly IApplication _app;
+    private readonly AppState _state;
+    private readonly ViewManager _viewManager;
+    private readonly FileOperationsService _fileOperations;
+    private readonly Action<IRowIndexer> _startIndexing;
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
+    private readonly StatusBar? _statusBar;
+
+    private bool _disposed;
+
+    /// <summary>
+    /// Determines whether the specified key code corresponds to a global application shortcut.
+    /// </summary>
+    /// <param name="keyCode">The key code to check.</param>
+    /// <returns><c>true</c> if the key is a global shortcut; <c>false</c> otherwise.</returns>
+    internal static bool IsGlobalShortcut(KeyCode keyCode)
+    {
+        var baseChar = char.ToLowerInvariant((char)(keyCode & KeyCode.CharMask));
+        return baseChar is 'o' or 's' or 'q' or 't' or 'x' or '?';
+    }
+
+    internal AppKeyHandler(
+        IApplication app,
+        AppState state,
+        ViewManager viewManager,
+        FileOperationsService fileOperations,
+        StatusBar? statusBar,
+        Action<IRowIndexer> startIndexing
+    )
+    {
+        _app = app;
+        _state = state;
+        _viewManager = viewManager;
+        _fileOperations = fileOperations;
+        _statusBar = statusBar;
+        _startIndexing = startIndexing;
+    }
+
+    internal void Subscribe()
+    {
+        _app.Keyboard.KeyDown -= OnGlobalKeyDown;
+        _app.Keyboard.KeyDown += OnGlobalKeyDown;
+    }
+
+    /// <summary>
+    /// Handles quit shortcut (q).
+    /// Confirms with user if there are unsaved changes.
+    /// </summary>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    private bool HandleQuit()
+    {
+        if (_state.ActionStack.Count == 0)
+        {
+            _app.RequestStop();
+            return true;
+        }
+
+        var result = MessageBox.Query(
+            _app,
+            "Quit",
+            "You have unsaved changes in your recipe. Quit anyway?",
+            "Yes",
+            "No"
+        );
+        if (result == 0)
+        {
+            _app.RequestStop();
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Handles help overlay shortcut (?).
+    /// </summary>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    private bool HandleHelp()
+    {
+        using var dialog = new HelpDialog();
+        _app.Run(dialog);
+        return true;
+    }
+
+    private bool HandleOpen()
+    {
+        _ = _fileOperations.ShowFileDialogAsync(_startIndexing).ContinueWith(
+            t =>
+            {
+                if (t.IsFaulted && t.Exception is not null)
+                {
+                    _app.Invoke(() => _viewManager.ShowError(t.Exception.InnerException?.Message ?? t.Exception.Message));
+                }
+            },
+            TaskScheduler.Default
+        );
+        return true;
+    }
+
+    private bool HandleSave()
+    {
+        _ = _fileOperations.HandleSaveRecipeAsync().ContinueWith(
+            t =>
+            {
+                if (t.IsFaulted && t.Exception is not null)
+                {
+                    _app.Invoke(() => _viewManager.ShowError(t.Exception.InnerException?.Message ?? t.Exception.Message));
+                }
+            },
+            TaskScheduler.Default
+        );
+        return true;
+    }
+
+    private bool HandleViewToggle()
+    {
+        if (_state.CurrentFilePath is null)
+        {
+            return false;
+        }
+
+        var format = FormatDetector.Detect(_state.CurrentFilePath);
+        if (format.IsSuccess && format.Value == DataFormat.JsonLines)
+        {
+            _ = _fileOperations.HandleToggleAsync().ContinueWith(
+                t =>
+                {
+                    if (t.IsFaulted && t.Exception is not null)
+                    {
+                        _app.Invoke(() => _viewManager.ShowError(t.Exception.InnerException?.Message ?? t.Exception.Message));
+                    }
+                },
+                TaskScheduler.Default
+            );
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool HandleActionMenu()
+    {
+        var actionView = _viewManager.GetCurrentContextActionView();
+        if (actionView is null)
+        {
+            return false;
+        }
+
+        var actions = actionView.GetAvailableActions();
+        if (actions.Length == 0)
+        {
+            return false;
+        }
+
+        using var dialog = new ActionMenuDialog(actions);
+        _app.Run(dialog);
+
+        if (dialog.Confirmed && dialog.SelectedAction is not null)
+        {
+            actionView.ExecuteAction(dialog.SelectedAction);
+        }
+
+        return true;
+    }
+
+    private void OnGlobalKeyDown(object? sender, Key key)
+    {
+        if (key.Handled)
+        {
+            return;
+        }
+
+        // Skip global key handling when a text input view is focused
+        var focused = _app.Navigation?.GetFocused() ?? _app.TopRunnableView?.MostFocused;
+        var current = focused;
+        while (current is not null)
+        {
+            var type = current.GetType();
+            if (current is TextField || type.Name == "TextField" || type.FullName == "Terminal.Gui.Views.TextField")
+            {
+                return;
+            }
+            current = current.SuperView;
+        }
+
+        var baseChar = char.ToLowerInvariant((char)(key.KeyCode & KeyCode.CharMask));
+        var hasCtrlAlt = (key.KeyCode & (KeyCode.CtrlMask | KeyCode.AltMask)) != 0;
+
+        // Shortcuts like o, s, q, t, x should not have Ctrl or Alt modifiers.
+        if (hasCtrlAlt)
+        {
+            return;
+        }
+
+        key.Handled = baseChar switch
+        {
+            'o' => HandleOpen(),
+            's' => HandleSave(),
+            'q' => HandleQuit(),
+            't' => HandleViewToggle(),
+            'x' => HandleActionMenu(),
+            '?' => HandleHelp(),
+            _ => false,
+        };
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _app.Keyboard.KeyDown -= OnGlobalKeyDown;
+        _disposed = true;
+    }
+}

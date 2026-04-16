@@ -166,11 +166,7 @@ internal sealed class ViewManager : IDisposable
             _ => throw new UnreachableException(),
         };
 
-        var view = new Views.JsonLinesTableView(
-            () => _ = _onToggle(),
-            HandleMorphAction,
-            getRawColumnName: getRawColumnName
-        )
+        var view = new Views.JsonLinesTableView
         {
             X = 0,
             Y = 0,
@@ -178,6 +174,8 @@ internal sealed class ViewManager : IDisposable
             Height = Dim.Fill(),
             Table = tableSource,
             Style = new TableStyle { AlwaysShowHeaders = true },
+            OnMorphAction = HandleMorphAction,
+            GetRawColumnName = getRawColumnName,
         };
         SwapView(view);
 
@@ -248,6 +246,24 @@ internal sealed class ViewManager : IDisposable
         _currentView = newView;
         _container.Add(_currentView);
         _container.SetNeedsDraw();
+    }
+
+    /// <summary>
+    /// Gets the current view if it implements <see cref="Views.IContextActionView"/>.
+    /// </summary>
+    /// <returns>The current view as an <see cref="Views.IContextActionView"/>, or <c>null</c>.</returns>
+    internal Views.IContextActionView? GetCurrentContextActionView()
+    {
+        return _currentView as Views.IContextActionView;
+    }
+
+    /// <summary>
+    /// Gets the current status bar.
+    /// </summary>
+    /// <returns>The current <see cref="StatusBar"/>, or <c>null</c>.</returns>
+    internal StatusBar? GetCurrentStatusBar()
+    {
+        return _container.SubViews.FirstOrDefault(v => v is StatusBar) as StatusBar;
     }
 
     /// <inheritdoc/>

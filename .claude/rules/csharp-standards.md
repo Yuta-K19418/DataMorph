@@ -19,8 +19,12 @@ paths:
 - Example: `int[] x = [1, 2];`
 - ❌ `new List<T>()` or `new T[] { ... }` are **STRICTLY FORBIDDEN**
 
-### Pattern Matching
+### Pattern Matching & Type Handling
 - Use `switch` expressions and `is` patterns (e.g., `is not null`)
+- Use declaration patterns (`if (obj is Type t)`) or recursive patterns instead of the `as` operator
+- ❌ The `as` operator is **STRICTLY FORBIDDEN** (except when required by external APIs)
+- Use LINQ `OfType<T>()` for filtering and casting collections by type
+- ❌ Do NOT use `Select(x => x as T).Where(x => x is not null)` or similar manual filtering patterns
 - Avoid legacy `switch` statements or `==` checks for null
 
 ### Strings

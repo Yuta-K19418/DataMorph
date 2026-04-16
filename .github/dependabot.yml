@@ -9,6 +9,10 @@ updates:
     labels:
       - "dependencies"
       - "nuget"
+    # Versions > 17.13.0 cause TypeLoadException when Terminal.Gui scans assemblies (VSTest #15075)
+    ignore:
+      - dependency-name: "Microsoft.NET.Test.Sdk"
+        versions: ["> 17.13.0"]
 
   # GitHub Actions updates
   - package-ecosystem: "github-actions"

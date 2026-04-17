@@ -183,23 +183,25 @@ public sealed class AppKeyHandlerTests
     public void HandleClearActions_WhenActionStackIsEmpty_ReturnsFalse()
     {
         // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController);
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
 
         // Act
+        var result = handler.HandleClearActions();
 
         // Assert
+        result.Should().BeFalse();
+        state.ActionStack.Should().BeEmpty();
     }
 
-    [Fact]
-    public void HandleClearActions_WhenActionStackHasActions_ReturnsTrue()
-    {
-        // Arrange
-
-        // Act
-
-        // Assert
-        // Note: MessageBox.Query display is not unit-testable (requires TUI event loop).
-        //       Verify return value true (key consumed) only.
-    }
+    // Note: MessageBox.Query display is not unit-testable (requires TUI event loop).
+    // This scenario requires integration testing with TUI event loop support.
 
     private static IApplication CreateTestApp()
     {

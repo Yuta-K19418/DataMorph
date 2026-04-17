@@ -63,29 +63,43 @@ public sealed class AppStateTests
     public void ClearMorphActions_WithActions_ClearsActionStack()
     {
         // Arrange
+        using var state = new AppState();
+        state.AddMorphAction(new RenameColumnAction { OldName = "a", NewName = "b" });
+        state.AddMorphAction(new DeleteColumnAction { ColumnName = "c" });
 
         // Act
+        state.ClearMorphActions();
 
         // Assert
+        state.ActionStack.Should().BeEmpty();
     }
 
     [Fact]
     public void ClearMorphActions_WithEmptyStack_StackRemainsEmpty()
     {
         // Arrange
+        using var state = new AppState();
 
         // Act
+        state.ClearMorphActions();
 
         // Assert
+        state.ActionStack.Should().BeEmpty();
     }
 
     [Fact]
     public void ClearMorphActions_DoesNotMutatePreviousStackReference()
     {
         // Arrange
+        using var state = new AppState();
+        state.AddMorphAction(new RenameColumnAction { OldName = "a", NewName = "b" });
+        var originalList = state.ActionStack;
 
         // Act
+        state.ClearMorphActions();
 
         // Assert
+        originalList.Should().HaveCount(1);
+        state.ActionStack.Should().BeEmpty();
     }
 }

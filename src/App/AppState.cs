@@ -80,7 +80,7 @@ internal sealed class AppState : IDisposable
     /// </summary>
     internal void ClearMorphActions()
     {
-        throw new NotImplementedException();
+        ActionStack = [];
     }
 
     /// <inheritdoc/>

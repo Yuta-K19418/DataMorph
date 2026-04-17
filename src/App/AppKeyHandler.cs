@@ -188,7 +188,25 @@ internal sealed class AppKeyHandler : IDisposable
     /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
     internal bool HandleClearActions()
     {
-        throw new NotImplementedException();
+        if (_state.ActionStack.Count == 0)
+        {
+            return false;
+        }
+
+        var result = MessageBox.Query(
+            _app,
+            "Clear Actions",
+            "Clear all actions from the stack?",
+            "Yes",
+            "No"
+        );
+        if (result == 0)
+        {
+            _state.ClearMorphActions();
+            _viewManager.RefreshCurrentTableView();
+        }
+
+        return true;
     }
 
     private void OnGlobalKeyDown(object? sender, Key key)

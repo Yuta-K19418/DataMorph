@@ -15,6 +15,7 @@ public sealed class AppKeyHandlerTests
     [InlineData(KeyCode.Q)]
     [InlineData(KeyCode.T)]
     [InlineData(KeyCode.X)]
+    [InlineData(KeyCode.C)]
     [InlineData((KeyCode)'?')]
     public void IsGlobalShortcut_WithGlobalShortcutKeys_ReturnsTrue(KeyCode keyCode)
     {
@@ -47,6 +48,7 @@ public sealed class AppKeyHandlerTests
     [InlineData(KeyCode.Q | KeyCode.CtrlMask)]
     [InlineData(KeyCode.T | KeyCode.CtrlMask)]
     [InlineData(KeyCode.X | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.C | KeyCode.CtrlMask)]
     [InlineData((KeyCode)'?' | KeyCode.CtrlMask)]
     public void IsGlobalShortcut_WithModifierKeys_ReturnsTrue(KeyCode keyCode)
     {
@@ -176,6 +178,30 @@ public sealed class AppKeyHandlerTests
         // Assert
         result.Should().BeFalse();
     }
+
+    [Fact]
+    public void HandleClearActions_WhenActionStackIsEmpty_ReturnsFalse()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController);
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+
+        // Act
+        var result = handler.HandleClearActions();
+
+        // Assert
+        result.Should().BeFalse();
+        state.ActionStack.Should().BeEmpty();
+    }
+
+    // Note: MessageBox.Query display is not unit-testable (requires TUI event loop).
+    // This scenario requires integration testing with TUI event loop support.
 
     private static IApplication CreateTestApp()
     {

@@ -64,6 +64,11 @@ internal sealed class ViewManager : IDisposable
             {
                 hints.Add("x:Menu");
             }
+
+            if (_state.ActionStack.Count > 0)
+            {
+                hints.Add("c:Clear");
+            }
         }
 
         hints.Add("?:Help");

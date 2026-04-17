@@ -75,6 +75,14 @@ internal sealed class AppState : IDisposable
         ActionStack = [.. ActionStack, action];
     }
 
+    /// <summary>
+    /// Clears all morph actions from the Action Stack, resetting it to an empty state.
+    /// </summary>
+    internal void ClearMorphActions()
+    {
+        ActionStack = [];
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {

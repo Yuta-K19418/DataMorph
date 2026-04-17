@@ -15,6 +15,7 @@ public sealed class AppKeyHandlerTests
     [InlineData(KeyCode.Q)]
     [InlineData(KeyCode.T)]
     [InlineData(KeyCode.X)]
+    [InlineData(KeyCode.C)]
     [InlineData((KeyCode)'?')]
     public void IsGlobalShortcut_WithGlobalShortcutKeys_ReturnsTrue(KeyCode keyCode)
     {
@@ -47,6 +48,7 @@ public sealed class AppKeyHandlerTests
     [InlineData(KeyCode.Q | KeyCode.CtrlMask)]
     [InlineData(KeyCode.T | KeyCode.CtrlMask)]
     [InlineData(KeyCode.X | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.C | KeyCode.CtrlMask)]
     [InlineData((KeyCode)'?' | KeyCode.CtrlMask)]
     public void IsGlobalShortcut_WithModifierKeys_ReturnsTrue(KeyCode keyCode)
     {
@@ -175,6 +177,28 @@ public sealed class AppKeyHandlerTests
 
         // Assert
         result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HandleClearActions_WhenActionStackIsEmpty_ReturnsFalse()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void HandleClearActions_WhenActionStackHasActions_ReturnsTrue()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        // Note: MessageBox.Query display is not unit-testable (requires TUI event loop).
+        //       Verify return value true (key consumed) only.
     }
 
     private static IApplication CreateTestApp()

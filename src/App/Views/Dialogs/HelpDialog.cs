@@ -54,6 +54,7 @@ internal sealed class HelpDialog : Dialog
             q       : Quit
             t       : Toggle Tree/Table View (JSON Lines)
             x       : Context-Sensitive Action Menu
+            c       : Clear all actions from the stack
             ?       : Help (this overlay)
 
             Navigation

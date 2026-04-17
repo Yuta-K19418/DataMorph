@@ -58,4 +58,34 @@ public sealed class AppStateTests
         originalList.Should().ContainSingle();
         state.ActionStack.Should().HaveCount(2);
     }
+
+    [Fact]
+    public void ClearMorphActions_WithActions_ClearsActionStack()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void ClearMorphActions_WithEmptyStack_StackRemainsEmpty()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void ClearMorphActions_DoesNotMutatePreviousStackReference()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

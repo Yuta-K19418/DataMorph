@@ -37,7 +37,7 @@ internal sealed class AppKeyHandler : IDisposable
     internal static bool IsGlobalShortcut(KeyCode keyCode)
     {
         var baseKey = keyCode & ~(KeyCode.ShiftMask | KeyCode.CtrlMask | KeyCode.AltMask);
-        return baseKey is KeyCode.O or KeyCode.S or KeyCode.Q or KeyCode.T or KeyCode.X or (KeyCode)'?';
+        return baseKey is KeyCode.O or KeyCode.S or KeyCode.Q or KeyCode.T or KeyCode.X or KeyCode.C or (KeyCode)'?';
     }
 
     internal AppKeyHandler(
@@ -180,6 +180,17 @@ internal sealed class AppKeyHandler : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Handles the clear action stack shortcut (c).
+    /// Shows a confirmation dialog and clears the action stack if confirmed.
+    /// Does nothing when the action stack is empty.
+    /// </summary>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    internal bool HandleClearActions()
+    {
+        throw new NotImplementedException();
+    }
+
     private void OnGlobalKeyDown(object? sender, Key key)
     {
         if (key.Handled)
@@ -214,6 +225,7 @@ internal sealed class AppKeyHandler : IDisposable
             KeyCode.Q => HandleQuit(),
             KeyCode.T => HandleViewToggle(),
             KeyCode.X => HandleActionMenu(),
+            KeyCode.C => HandleClearActions(),
             (KeyCode)'?' => HandleHelp(),
             _ => false,
         };

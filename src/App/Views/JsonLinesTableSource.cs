@@ -34,7 +34,7 @@ internal sealed class JsonLinesTableSource : ITableSource
     }
 
     /// <inheritdoc/>
-    public int Rows => _cache.TotalLines;
+    public int Rows => _cache.TotalRows;
 
     /// <inheritdoc/>
     public int Columns => _schema.ColumnCount;

@@ -48,7 +48,7 @@ internal sealed class JsonLinesTreeView : TreeView
 
     private void LoadInitialRootNodes()
     {
-        var linesToLoad = Math.Min(_cache.TotalLines, InitialLoadCount);
+        var linesToLoad = Math.Min(_cache.TotalRows, InitialLoadCount);
 
         for (var i = 0; i < linesToLoad; i++)
         {

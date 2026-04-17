@@ -40,7 +40,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_WithinCachedRange_ReturnsCachedBytes()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
         var expectedLine2 = "{\"id\":2,\"name\":\"Bob\"}"u8.ToArray();
 
         // Act - Get line 2 (within cache)
@@ -57,7 +57,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_OutsideCachedRange_UpdatesCacheWindow()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
         var expectedLine1 = "{\"id\":1,\"name\":\"Alice\"}"u8.ToArray();
         var expectedLine8 = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
 
@@ -75,7 +75,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_FirstLineRequested_CachesFromBeginning()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 3);
+        using var cache = new RowByteCache(_indexer, capacity: 3, prefetchWindow: 20);
         var expectedLine1 = "{\"id\":1,\"name\":\"Alice\"}"u8.ToArray();
         var expectedLine2 = "{\"id\":2,\"name\":\"Bob\"}"u8.ToArray();
         var expectedLine3 = "{\"id\":3,\"name\":\"Charlie\"}"u8.ToArray();
@@ -95,7 +95,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_LastLineRequested_CachesToEnd()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 3);
+        using var cache = new RowByteCache(_indexer, capacity: 3, prefetchWindow: 20);
         var totalLines = _indexer.TotalRows;
         var lastLineIndex = (int)totalLines - 1;
         var expectedLastLine = "{\"id\":10,\"name\":\"Jack\"}"u8.ToArray();
@@ -111,27 +111,20 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_EmptyFile_ThrowsInvalidOperationException()
     {
         // Arrange
-        var emptyFilePath = Path.GetTempFileName();
-        try
+        using var tempFile = new TempFile();
+        File.WriteAllText(tempFile.Path, string.Empty);
+
+        var indexer = new RowIndexer(tempFile.Path);
+        indexer.BuildIndex();
+
+        // Act
+        var act = () =>
         {
-            File.WriteAllText(emptyFilePath, string.Empty);
+            using var cache = new RowByteCache(indexer, capacity: 200, prefetchWindow: 20);
+        };
 
-            var indexer = new RowIndexer(emptyFilePath);
-            indexer.BuildIndex();
-
-            // Act
-            var act = () =>
-            {
-                using var cache = new RowByteCache(indexer);
-            };
-
-            // Assert
-            act.Should().Throw<InvalidOperationException>();
-        }
-        finally
-        {
-            File.Delete(emptyFilePath);
-        }
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Theory]
@@ -140,7 +133,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_NegativeIndex_ReturnsEmpty(int invalidIndex)
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
 
         // Act
         var result = cache.GetRow(invalidIndex);
@@ -155,7 +148,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_IndexEqualToOrGreaterThanTotalLines_ReturnsEmpty(int overflowIndex)
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
 
         // Act
         var result = cache.GetRow(overflowIndex);
@@ -168,7 +161,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_RequestedAtCacheCenter_ReturnsSameValue()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
 
         // First access to line 2 (cache window: 0-4)
         cache.GetRow(1);
@@ -187,7 +180,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_RequestedNearWindowEdge_ReturnsCorrectRows()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
         var expectedLine4 = "{\"id\":4,\"name\":\"David\"}"u8.ToArray();
         var expectedLine8 = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
 
@@ -208,8 +201,8 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_WithCacheLargerThanTotalLines_ReturnsAllLines()
     {
         // Arrange
-        var largeCacheSize = 20; // Larger than total lines
-        using var cache = new RowByteCache(_indexer, cacheSize: largeCacheSize);
+        var largeCapacity = 20; // Larger than total lines
+        using var cache = new RowByteCache(_indexer, capacity: largeCapacity, prefetchWindow: 20);
 
         // Act - Get first and last lines
         var firstLine = cache.GetRow(0).ToArray();
@@ -227,7 +220,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void Dispose_AfterAccess_PreventsFurtherAccess()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
         cache.GetRow(0); // Normal access
 
         // Act
@@ -242,7 +235,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_AfterDisposal_ThrowsObjectDisposedException()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
         cache.Dispose();
 
         // Act
@@ -256,8 +249,8 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_WithExactCacheSize_CachesExactly()
     {
         // Arrange
-        var cacheSize = 5;
-        using var cache = new RowByteCache(_indexer, cacheSize: cacheSize);
+        var capacity = 5;
+        using var cache = new RowByteCache(_indexer, capacity: capacity, prefetchWindow: 20);
 
         // First access initializes cache (lines 0-4)
         cache.GetRow(0);
@@ -274,7 +267,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     public void GetRow_WithMultipleWindowShifts_ReturnsCorrectRows()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 4);
+        using var cache = new RowByteCache(_indexer, capacity: 4, prefetchWindow: 20);
 
         // First cache (lines 0-3)
         cache.GetRow(0);
@@ -304,4 +297,11 @@ public sealed partial class RowByteCacheTests : IDisposable
             _disposed = true;
         }
     }
+}
+
+sealed file class TempFile : IDisposable
+{
+    private readonly string _path = System.IO.Path.GetTempFileName();
+    public string Path => _path;
+    public void Dispose() => System.IO.File.Delete(_path);
 }

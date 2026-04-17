@@ -55,7 +55,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
                 lineIndex = _random.Next(CacheSize + 50, (int)totalLines - 1);
             }
 
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length; // Use result (prevent optimization)
         }
 
@@ -74,7 +74,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
             // Sequential access (within the same window)
             var lineIndex = i % CacheSize;
 
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length; // Use result (prevent optimization)
         }
 
@@ -89,7 +89,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
         // Repeated access to the same line (100% cache hit rate)
         for (var i = 0; i < 1000; i++)
         {
-            var bytes = cache.GetLineBytes(50);
+            var bytes = cache.GetRow(50);
             _ = bytes.Length; // Use result (prevent optimization)
         }
 
@@ -108,7 +108,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
         {
             // Random access
             var lineIndex = _random.Next(0, (int)totalLines - 1);
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length;
         }
 
@@ -124,7 +124,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
         for (var i = 0; i < 200; i++)
         {
             var lineIndex = _random.Next(0, 10_000);
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length;
         }
 
@@ -155,7 +155,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
             for (var i = 0; i < 100; i++)
             {
                 var lineIndex = _random.Next(0, 100_000);
-                var bytes = cache.GetLineBytes(lineIndex);
+                var bytes = cache.GetRow(lineIndex);
                 _ = bytes.Length;
             }
         }
@@ -172,7 +172,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
         var cache = new RowByteCache(_indexer, CacheSize);
 
         // Initial access
-        var bytes = cache.GetLineBytes(0);
+        var bytes = cache.GetRow(0);
         _ = bytes.Length;
 
         cache.Dispose();
@@ -186,7 +186,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
         cache1.Dispose();
 
         var cache2 = new RowByteCache(_indexer, CacheSize);
-        var bytes = cache2.GetLineBytes(0);
+        var bytes = cache2.GetRow(0);
         _ = bytes.Length;
 
         cache2.Dispose();

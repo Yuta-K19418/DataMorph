@@ -59,7 +59,7 @@ internal sealed class JsonLinesTableSource : ITableSource
                 throw new ArgumentOutOfRangeException(nameof(col));
             }
 
-            var lineBytes = _cache.GetLineBytes(row);
+            var lineBytes = _cache.GetRow(row);
             if (lineBytes.IsEmpty)
             {
                 return "<null>";

@@ -37,7 +37,7 @@ public sealed class RowByteCache : IDisposable
     /// </summary>
     /// <param name="lineIndex">The zero-based line index.</param>
     /// <returns>The raw JSON bytes, or empty if not available.</returns>
-    public ReadOnlyMemory<byte> GetLineBytes(int lineIndex)
+    public ReadOnlyMemory<byte> GetRow(int lineIndex)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 

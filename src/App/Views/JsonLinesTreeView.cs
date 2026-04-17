@@ -52,7 +52,7 @@ internal sealed class JsonLinesTreeView : TreeView
 
         for (var i = 0; i < linesToLoad; i++)
         {
-            var lineBytes = _cache.GetLineBytes(i);
+            var lineBytes = _cache.GetRow(i);
             if (lineBytes.IsEmpty)
             {
                 continue;

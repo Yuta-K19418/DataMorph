@@ -15,5 +15,9 @@ internal struct CacheEntry<TRow>
     /// Resets the entry to its default/empty state.
     /// </summary>
     /// <param name="emptyValue">The empty/default value for the row type.</param>
-    internal void Clear(TRow emptyValue) => throw new NotImplementedException();
+    internal void Clear(TRow emptyValue)
+    {
+        RowIndex = -1;
+        Value = emptyValue;
+    }
 }

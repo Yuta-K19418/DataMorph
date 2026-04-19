@@ -10,18 +10,35 @@ public sealed class RowByteCache(
     int prefetchWindow = 20)
     : SlidingWindowLruCache<ReadOnlyMemory<byte>>(indexer, capacity, prefetchWindow), IDisposable
 {
+    private readonly RowReader _reader = new(indexer.FilePath);
+    private bool _disposed;
 
     /// <inheritdoc/>
     protected override ReadOnlyMemory<byte> EmptyValue => ReadOnlyMemory<byte>.Empty;
 
     /// <inheritdoc/>
+    public override ReadOnlyMemory<byte> GetRow(int index)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return base.GetRow(index);
+    }
+
+    /// <inheritdoc/>
     protected override IEnumerable<ReadOnlyMemory<byte>> LoadRows(
         long byteOffset,
         int rowOffsetToSkip,
-        int rowsToFetch) => throw new NotImplementedException();
+        int rowsToFetch) =>
+        _reader.ReadLineBytes(byteOffset, rowOffsetToSkip, rowsToFetch);
 
     /// <inheritdoc/>
-#pragma warning disable CA1065
-    public void Dispose() => throw new NotImplementedException();
-#pragma warning restore CA1065
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _reader.Dispose();
+        _disposed = true;
+    }
 }

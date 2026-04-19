@@ -108,7 +108,7 @@ public sealed partial class RowByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void GetRow_EmptyFile_ThrowsInvalidOperationException()
+    public void Constructor_WithEmptyFile_ThrowsInvalidOperationException()
     {
         // Arrange
         using var tempFile = new TempFile();
@@ -162,17 +162,13 @@ public sealed partial class RowByteCacheTests : IDisposable
     {
         // Arrange
         using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
+        cache.GetRow(1); // prime the cache
+        var beforeAccess = cache.GetRow(1).ToArray(); // baseline from cached value
 
-        // First access to line 2 (cache window: 0-4)
-        cache.GetRow(1);
-
-        // Get line 2 again (center of cache)
-        var beforeAccess = cache.GetRow(1).ToArray();
-
-        // Act - Request same line again
+        // Act
         var afterAccess = cache.GetRow(1).ToArray();
 
-        // Assert - Cache should be maintained
+        // Assert
         afterAccess.Should().BeEquivalentTo(beforeAccess);
     }
 
@@ -219,9 +215,10 @@ public sealed partial class RowByteCacheTests : IDisposable
     [Fact]
     public void Dispose_AfterAccess_PreventsFurtherAccess()
     {
-        // Arrange
+        // Arrange - row 0 is already in cache (cache-hit path) when Dispose is called;
+        // verifies that the dispose guard fires before any cache lookup.
         using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
-        cache.GetRow(0); // Normal access
+        cache.GetRow(0);
 
         // Act
         cache.Dispose();
@@ -234,7 +231,8 @@ public sealed partial class RowByteCacheTests : IDisposable
     [Fact]
     public void GetRow_AfterDisposal_ThrowsObjectDisposedException()
     {
-        // Arrange
+        // Arrange - cache is empty (cache-miss path) when GetRow is called after Dispose;
+        // verifies that the dispose guard fires before any I/O attempt.
         using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
         cache.Dispose();
 
@@ -268,23 +266,16 @@ public sealed partial class RowByteCacheTests : IDisposable
     {
         // Arrange
         using var cache = new RowByteCache(_indexer, capacity: 4, prefetchWindow: 20);
-
-        // First cache (lines 0-3)
-        cache.GetRow(0);
+        cache.GetRow(0); // prime first window
         var firstCached = cache.GetRow(2).ToArray();
 
-        // New cache (lines 6-9)
+        // Act - shift window by accessing a row far outside the current cache
         cache.GetRow(8);
-
-        // Old cache entries should be invalidated
-        // Since we cannot inspect internal cache entries,
-        // verify by accessing different line
         var newCached = cache.GetRow(7).ToArray();
 
         // Assert
         var expectedOld = "{\"id\":3,\"name\":\"Charlie\"}"u8.ToArray();
         var expectedNew = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
-
         firstCached.Should().BeEquivalentTo(expectedOld);
         newCached.Should().BeEquivalentTo(expectedNew);
     }

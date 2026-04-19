@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace DataMorph.Engine.IO.Csv;
 
 /// <summary>
@@ -13,7 +11,6 @@ public sealed class DataRowCache(
     int prefetchWindow = 20)
     : SlidingWindowLruCache<CsvDataRow>(indexer, capacity, prefetchWindow)
 {
-    [SuppressMessage("Performance", "CA1823:Avoid unused private fields", Justification = "Used in LoadRows implementation (Step 2)")]
     private readonly DataRowReader _reader = new(indexer.FilePath, columnCount);
 
     /// <inheritdoc/>
@@ -23,5 +20,6 @@ public sealed class DataRowCache(
     protected override IEnumerable<CsvDataRow> LoadRows(
         long byteOffset,
         int rowOffsetToSkip,
-        int rowsToFetch) => throw new NotImplementedException();
+        int rowsToFetch) =>
+        _reader.ReadRows(byteOffset, rowOffsetToSkip, rowsToFetch);
 }

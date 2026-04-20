@@ -55,30 +55,30 @@ This avoids redundant node allocations for already-cached rows while keeping the
 
 `Dictionary` is initialized with `capacity` to prevent rehashing as entries are added.
 
-#### Code unification: interface + abstract base class
+#### Code unification: ~~interface +~~ abstract base class
 
-**Interface `IRowCache<TRow>`** (`DataMorph.Engine.IO` namespace):
-- Single method: `TRow Get(int index)`
-- All external classes and unit tests reference this interface only
-- Ensures testability via mocking and allows future alternative implementations without inheriting the base class
+~~**Interface `IRowCache<TRow>`** (`DataMorph.Engine.IO` namespace):~~
+- ~~Single method: `TRow Get(int index)`~~
+- ~~All external classes and unit tests reference this interface only~~
+- ~~Ensures testability via mocking and allows future alternative implementations without inheriting the base class~~
 
 **Abstract base class `SlidingWindowLruCache<TRow>`** (`DataMorph.Engine.IO` namespace):
-- Implements `IRowCache<TRow>`
+- ~~Implements `IRowCache<TRow>`~~
 - Encapsulates LRU structure (`Dictionary` + `LinkedList`), prefetch logic, and node reuse
 - Is an implementation detail — external classes must not reference it directly
 
 **Concrete classes:**
-- `DataRowCache : SlidingWindowLruCache<CsvDataRow>, IRowCache<CsvDataRow>`
-- `RowByteCache : SlidingWindowLruCache<ReadOnlyMemory<byte>>, IRowCache<ReadOnlyMemory<byte>>`
+- `DataRowCache : SlidingWindowLruCache<CsvDataRow> ~~, IRowCache<CsvDataRow>~~`
+- `RowByteCache : SlidingWindowLruCache<ReadOnlyMemory<byte>> ~~, IRowCache<ReadOnlyMemory<byte>>~~`
 
-**Considered:** Separate interfaces per format (`IDataRowCache` for CSV, `IRowByteCache` for JSON Lines).  
-**Rejected:** A single generic interface `IRowCache<TRow>` was adopted instead, as it avoids duplication and keeps the contract consistent across formats.
-
-**Rationale for separate interface from base class:** Even if the base class is refactored or replaced in the future, callers remain unaffected as long as `IRowCache<TRow>` is satisfied.
+**Decision: Reject Generic Interface due to CA1859**
+**Considered:** Generic interface `IRowCache<TRow>`.
+**Rejected:** While architecturally clean, using an interface for fields triggers C# warning **CA1859** (Change type of field to concrete type for improved performance). In high-performance TUI rendering paths, devirtualization of these calls is critical.
+**Adopted:** Use the abstract base class `SlidingWindowLruCache<TRow>` or concrete types directly in fields to ensure optimal JIT optimization and zero warnings.
 
 #### Separate preparatory rename commit
 
-Before implementing the cache strategy, a standalone commit renames `GetRow` → `Get` (CSV) and `GetLineBytes` → `Get` (JSON Lines) to align with the new interface. This keeps the cache strategy diff clean and reviewable in isolation.
+Before implementing the cache strategy, a standalone commit renames `GetRow` → `Get` (CSV) and `GetLineBytes` → `Get` (JSON Lines). This keeps the cache strategy diff clean and reviewable in isolation.
 
 ---
 
@@ -90,12 +90,14 @@ Before implementing the cache strategy, a standalone commit renames `GetRow` →
 - Retain existing cached rows on miss (no full-cache wipe)
 - Evict least-recently-used rows when cache exceeds capacity
 - Reuse evicted `LinkedListNode` objects to avoid post-warmup heap allocations
-- Expose a common generic interface `IRowCache<TRow>` for external consumers
+- ~~Expose a common generic interface `IRowCache<TRow>` for external consumers~~
+- Use a common generic base class `SlidingWindowLruCache<TRow>` for implementation sharing
 - Preserve existing public behavior: `DataRowCache` for CSV, `RowByteCache` for JSON Lines
 
 ### Non-Functional Requirements
 
 - **Zero allocations** after cache reaches capacity (hot path)
+- **High performance devirtualization:** Use concrete types for fields to avoid interface call overhead (CA1859)
 - **Native AOT compatible** (no reflection)
 - **Thread-safety:** future-proof; document assumptions
 - Prefetch window size and capacity configurable via constructor
@@ -104,19 +106,19 @@ Before implementing the cache strategy, a standalone commit renames `GetRow` →
 
 ## 2. Design
 
-### 2.1 Interface: `IRowCache<TRow>`
+### ~~2.1 Interface: `IRowCache<TRow>`~~
 
 ```csharp
-namespace DataMorph.Engine.IO;
+~~namespace DataMorph.Engine.IO;
 
 public interface IRowCache<TRow>
 {
     int TotalRows { get; }
     TRow Get(int index);
-}
+}~~
 ```
 
-### 2.2 Abstract Base Class: `SlidingWindowLruCache<TRow>`
+### 2.1 Abstract Base Class: `SlidingWindowLruCache<TRow>`
 
 #### Responsibilities
 - Maintain LRU structure (`Dictionary<int, LinkedListNode<CacheEntry<TRow>>>` + `LinkedList<CacheEntry<TRow>>`)
@@ -168,7 +170,7 @@ This avoids the null-forgiving operator (`!`) while keeping `CacheEntry` free of
 ```csharp
 namespace DataMorph.Engine.IO;
 
-public abstract class SlidingWindowLruCache<TRow> : IRowCache<TRow>
+public abstract class SlidingWindowLruCache<TRow> ~~: IRowCache<TRow>~~
 {
     private const int DefaultCapacity = 200;
     private const int DefaultPrefetchWindow = 20;
@@ -189,7 +191,7 @@ public abstract class SlidingWindowLruCache<TRow> : IRowCache<TRow>
 }
 ```
 
-### 2.3 Concrete Classes
+### 2.2 Concrete Classes
 
 ```csharp
 // CSV
@@ -198,7 +200,7 @@ public sealed class DataRowCache(
     int columnCount,
     int capacity = 200,
     int prefetchWindow = 20)
-    : SlidingWindowLruCache<CsvDataRow>(indexer, capacity, prefetchWindow), IRowCache<CsvDataRow>
+    : SlidingWindowLruCache<CsvDataRow>(indexer, capacity, prefetchWindow) ~~, IRowCache<CsvDataRow>~~
 {
     protected override IEnumerable<CsvDataRow> LoadRows(
         long byteOffset, int rowOffsetToSkip, int rowsToFetch);
@@ -210,7 +212,7 @@ public sealed class RowByteCache(
     int capacity = 200,
     int prefetchWindow = 20)
     : SlidingWindowLruCache<ReadOnlyMemory<byte>>(indexer, capacity, prefetchWindow),
-      IRowCache<ReadOnlyMemory<byte>>, IDisposable
+      ~~IRowCache<ReadOnlyMemory<byte>>,~~ IDisposable
 {
     protected override IEnumerable<ReadOnlyMemory<byte>> LoadRows(
         long byteOffset, int rowOffsetToSkip, int rowsToFetch);
@@ -218,7 +220,7 @@ public sealed class RowByteCache(
 }
 ```
 
-### 2.4 LRU Algorithm
+### 2.3 LRU Algorithm
 
 ```
 Get(index):
@@ -252,7 +254,7 @@ Prefetch(requestedRow):
       prepend node to MRU head
 ```
 
-### 2.5 Thread Safety
+### 2.4 Thread Safety
 
 - Not thread-safe by design (consistent with current implementation)
 - All access is assumed to occur on the TUI rendering thread
@@ -277,7 +279,7 @@ Prefetch(requestedRow):
 
 | File | Action |
 |------|--------|
-| `src/Engine/IO/IRowCache.cs` | Create interface |
+| ~~`src/Engine/IO/IRowCache.cs`~~ | ~~Create interface~~ |
 | `src/Engine/IO/CacheEntry.cs` | Create entry struct |
 | `src/Engine/IO/SlidingWindowLruCache.cs` | Create abstract base class |
 | `src/Engine/IO/Csv/DataRowCache.cs` | Refactor to extend base |
@@ -302,7 +304,7 @@ Prefetch(requestedRow):
 - `RowIndex == -1` after `Clear()` is called
 - `Value == emptyValue` after `Clear()` is called
 
-**`SlidingWindowLruCache<TRow>` (via `IRowCache<TRow>`)**
+**`SlidingWindowLruCache<TRow>` ~~ (via `IRowCache<TRow>`)~~**
 
 | # | Scenario |
 |---|----------|
@@ -326,7 +328,7 @@ Prefetch(requestedRow):
 
 ## 5. Acceptance Criteria
 
-- [ ] `IRowCache<TRow>` interface defined; all external callers use it
+- ~~[ ] `IRowCache<TRow>` interface defined; all external callers use it~~
 - [ ] `SlidingWindowLruCache<TRow>` implements prefetch + LRU correctly
 - [ ] No full-cache wipe on miss
 - [ ] Node reuse verified: zero `LinkedListNode` allocations after cache is full

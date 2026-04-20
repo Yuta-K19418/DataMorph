@@ -78,7 +78,7 @@ This avoids redundant node allocations for already-cached rows while keeping the
 
 #### Separate preparatory rename commit
 
-Before implementing the cache strategy, a standalone commit renames `GetRow` → `Get` (CSV) and `GetLineBytes` → `Get` (JSON Lines). This keeps the cache strategy diff clean and reviewable in isolation.
+Before implementing the cache strategy, a standalone commit renames `GetLineBytes` → `GetRow` (JSON Lines) to align with CSV's existing naming. This keeps the cache strategy diff clean and reviewable in isolation.
 
 ---
 
@@ -181,7 +181,7 @@ public abstract class SlidingWindowLruCache<TRow> ~~: IRowCache<TRow>~~
         int prefetchWindow = DefaultPrefetchWindow);
 
     public int TotalRows { get; }
-    public TRow Get(int index);
+    public TRow GetRow(int index);
 
     // Subclasses implement file I/O for a range of rows
     protected abstract IEnumerable<TRow> LoadRows(
@@ -223,7 +223,7 @@ public sealed class RowByteCache(
 ### 2.3 LRU Algorithm
 
 ```
-Get(index):
+GetRow(index):
   if index out of range → return default
   if index in dictionary:
     move node to MRU head
@@ -268,9 +268,7 @@ Prefetch(requestedRow):
 
 | File | Change |
 |------|--------|
-| `src/Engine/IO/Csv/DataRowCache.cs` | `GetRow` → `Get` |
-| `src/Engine/IO/JsonLines/RowByteCache.cs` | `GetLineBytes` → `Get` |
-| `src/App/Views/VirtualTableSource.cs` | update call site |
+| `src/Engine/IO/JsonLines/RowByteCache.cs` | `GetLineBytes` → `GetRow` |
 | `src/App/Views/JsonLinesTableSource.cs` | update call site |
 | `src/App/Views/JsonLinesTreeView.cs` | update call site |
 | `tests/` | update all test call sites |

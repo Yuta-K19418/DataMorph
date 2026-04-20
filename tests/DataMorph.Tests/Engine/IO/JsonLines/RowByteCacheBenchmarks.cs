@@ -14,7 +14,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     private bool _disposed;
 
     [Params(100, 200, 500)]
-    public int CacheSize { get; set; }
+    public int Capacity { get; set; }
 
     public RowByteCacheBenchmarks()
     {
@@ -37,7 +37,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_RandomPattern_CacheHit50()
     {
-        var cache = new RowByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, capacity: Capacity, prefetchWindow: 20);
         var totalLines = _indexer.TotalRows;
 
         // Random access pattern (approximately 50% cache hit rate)
@@ -52,10 +52,10 @@ public sealed class RowByteCacheBenchmarks : IDisposable
             else
             {
                 // Random row outside cache
-                lineIndex = _random.Next(CacheSize + 50, (int)totalLines - 1);
+                lineIndex = _random.Next(Capacity + 50, (int)totalLines - 1);
             }
 
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length; // Use result (prevent optimization)
         }
 
@@ -65,16 +65,16 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_SequentialPattern_CacheHit90()
     {
-        var cache = new RowByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, capacity: Capacity, prefetchWindow: 20);
         var totalLines = _indexer.TotalRows;
 
         // Sequential access pattern (approximately 90% cache hit rate)
         for (var i = 0; i < 1000; i++)
         {
             // Sequential access (within the same window)
-            var lineIndex = i % CacheSize;
+            var lineIndex = i % Capacity;
 
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length; // Use result (prevent optimization)
         }
 
@@ -84,12 +84,12 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_RepeatedSameLine_CacheHit100()
     {
-        var cache = new RowByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, capacity: Capacity, prefetchWindow: 20);
 
         // Repeated access to the same line (100% cache hit rate)
         for (var i = 0; i < 1000; i++)
         {
-            var bytes = cache.GetLineBytes(50);
+            var bytes = cache.GetRow(50);
             _ = bytes.Length; // Use result (prevent optimization)
         }
 
@@ -100,7 +100,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     public void Access_VaryingCacheSizes()
     {
         // Performance measurement with various cache sizes
-        var cache = new RowByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, capacity: Capacity, prefetchWindow: 20);
         var totalLines = _indexer.TotalRows;
 
         // Mixed access pattern
@@ -108,7 +108,7 @@ public sealed class RowByteCacheBenchmarks : IDisposable
         {
             // Random access
             var lineIndex = _random.Next(0, (int)totalLines - 1);
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length;
         }
 
@@ -118,13 +118,13 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     [Benchmark]
     public void Access_LargeFile_10kLines()
     {
-        var cache = new RowByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, capacity: Capacity, prefetchWindow: 20);
 
         // Random access with large file
         for (var i = 0; i < 200; i++)
         {
             var lineIndex = _random.Next(0, 10_000);
-            var bytes = cache.GetLineBytes(lineIndex);
+            var bytes = cache.GetRow(lineIndex);
             _ = bytes.Length;
         }
 
@@ -149,13 +149,13 @@ public sealed class RowByteCacheBenchmarks : IDisposable
             var indexer = new RowIndexer(largeFilePath);
             indexer.BuildIndex();
 
-            using var cache = new RowByteCache(indexer, CacheSize);
+            using var cache = new RowByteCache(indexer, capacity: Capacity, prefetchWindow: 20);
 
             // Random access with large file
             for (var i = 0; i < 100; i++)
             {
                 var lineIndex = _random.Next(0, 100_000);
-                var bytes = cache.GetLineBytes(lineIndex);
+                var bytes = cache.GetRow(lineIndex);
                 _ = bytes.Length;
             }
         }
@@ -169,10 +169,10 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     public void InitializeCache_FirstTime()
     {
         // Measure cache initialization cost
-        var cache = new RowByteCache(_indexer, CacheSize);
+        var cache = new RowByteCache(_indexer, capacity: Capacity, prefetchWindow: 20);
 
         // Initial access
-        var bytes = cache.GetLineBytes(0);
+        var bytes = cache.GetRow(0);
         _ = bytes.Length;
 
         cache.Dispose();
@@ -182,11 +182,11 @@ public sealed class RowByteCacheBenchmarks : IDisposable
     public void InitializeCache_AfterDisposal()
     {
         // Measure reinitialization cost after disposal
-        var cache1 = new RowByteCache(_indexer, CacheSize);
+        var cache1 = new RowByteCache(_indexer, capacity: Capacity, prefetchWindow: 20);
         cache1.Dispose();
 
-        var cache2 = new RowByteCache(_indexer, CacheSize);
-        var bytes = cache2.GetLineBytes(0);
+        var cache2 = new RowByteCache(_indexer, capacity: Capacity);
+        var bytes = cache2.GetRow(0);
         _ = bytes.Length;
 
         cache2.Dispose();

@@ -37,16 +37,16 @@ public sealed partial class RowByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void GetLineBytes_WithinCachedRange_ReturnsCachedBytes()
+    public void GetRow_WithinCachedRange_ReturnsCachedBytes()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
         var expectedLine2 = "{\"id\":2,\"name\":\"Bob\"}"u8.ToArray();
 
         // Act - Get line 2 (within cache)
-        var result1 = cache.GetLineBytes(1).ToArray();
+        var result1 = cache.GetRow(1).ToArray();
         // Get again (cache hit)
-        var result2 = cache.GetLineBytes(1).ToArray();
+        var result2 = cache.GetRow(1).ToArray();
 
         // Assert
         result1.Should().BeEquivalentTo(expectedLine2);
@@ -54,17 +54,17 @@ public sealed partial class RowByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void GetLineBytes_OutsideCachedRange_UpdatesCacheWindow()
+    public void GetRow_OutsideCachedRange_UpdatesCacheWindow()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
         var expectedLine1 = "{\"id\":1,\"name\":\"Alice\"}"u8.ToArray();
         var expectedLine8 = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
 
         // Act - First access caches lines 0-4
-        var result1 = cache.GetLineBytes(0).ToArray();
+        var result1 = cache.GetRow(0).ToArray();
         // Next access to line 7 updates cache window
-        var result2 = cache.GetLineBytes(7).ToArray();
+        var result2 = cache.GetRow(7).ToArray();
 
         // Assert
         result1.Should().BeEquivalentTo(expectedLine1);
@@ -72,18 +72,18 @@ public sealed partial class RowByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void GetLineBytes_FirstLineRequested_CachesFromBeginning()
+    public void GetRow_FirstLineRequested_CachesFromBeginning()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 3);
+        using var cache = new RowByteCache(_indexer, capacity: 3, prefetchWindow: 20);
         var expectedLine1 = "{\"id\":1,\"name\":\"Alice\"}"u8.ToArray();
         var expectedLine2 = "{\"id\":2,\"name\":\"Bob\"}"u8.ToArray();
         var expectedLine3 = "{\"id\":3,\"name\":\"Charlie\"}"u8.ToArray();
 
         // Act
-        var result1 = cache.GetLineBytes(0).ToArray();
-        var result2 = cache.GetLineBytes(1).ToArray();
-        var result3 = cache.GetLineBytes(2).ToArray();
+        var result1 = cache.GetRow(0).ToArray();
+        var result2 = cache.GetRow(1).ToArray();
+        var result3 = cache.GetRow(2).ToArray();
 
         // Assert
         result1.Should().BeEquivalentTo(expectedLine1);
@@ -92,58 +92,51 @@ public sealed partial class RowByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void GetLineBytes_LastLineRequested_CachesToEnd()
+    public void GetRow_LastLineRequested_CachesToEnd()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 3);
+        using var cache = new RowByteCache(_indexer, capacity: 3, prefetchWindow: 20);
         var totalLines = _indexer.TotalRows;
         var lastLineIndex = (int)totalLines - 1;
         var expectedLastLine = "{\"id\":10,\"name\":\"Jack\"}"u8.ToArray();
 
         // Act
-        var result = cache.GetLineBytes(lastLineIndex).ToArray();
+        var result = cache.GetRow(lastLineIndex).ToArray();
 
         // Assert
         result.Should().BeEquivalentTo(expectedLastLine);
     }
 
     [Fact]
-    public void GetLineBytes_EmptyFile_ThrowsInvalidOperationException()
+    public void Constructor_WithEmptyFile_ThrowsInvalidOperationException()
     {
         // Arrange
-        var emptyFilePath = Path.GetTempFileName();
-        try
+        using var tempFile = new TempFile();
+        File.WriteAllText(tempFile.Path, string.Empty);
+
+        var indexer = new RowIndexer(tempFile.Path);
+        indexer.BuildIndex();
+
+        // Act
+        var act = () =>
         {
-            File.WriteAllText(emptyFilePath, string.Empty);
+            using var cache = new RowByteCache(indexer, capacity: 200, prefetchWindow: 20);
+        };
 
-            var indexer = new RowIndexer(emptyFilePath);
-            indexer.BuildIndex();
-
-            // Act
-            var act = () =>
-            {
-                using var cache = new RowByteCache(indexer);
-            };
-
-            // Assert
-            act.Should().Throw<InvalidOperationException>();
-        }
-        finally
-        {
-            File.Delete(emptyFilePath);
-        }
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Theory]
     [InlineData(-1)]
     [InlineData(int.MinValue)]
-    public void GetLineBytes_NegativeIndex_ReturnsEmpty(int invalidIndex)
+    public void GetRow_NegativeIndex_ReturnsEmpty(int invalidIndex)
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
 
         // Act
-        var result = cache.GetLineBytes(invalidIndex);
+        var result = cache.GetRow(invalidIndex);
 
         // Assert
         result.IsEmpty.Should().BeTrue();
@@ -152,52 +145,48 @@ public sealed partial class RowByteCacheTests : IDisposable
     [Theory]
     [InlineData(10)]
     [InlineData(11)]
-    public void GetLineBytes_IndexEqualToOrGreaterThanTotalLines_ReturnsEmpty(int overflowIndex)
+    public void GetRow_IndexEqualToOrGreaterThanTotalLines_ReturnsEmpty(int overflowIndex)
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer);
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
 
         // Act
-        var result = cache.GetLineBytes(overflowIndex);
+        var result = cache.GetRow(overflowIndex);
 
         // Assert
         result.IsEmpty.Should().BeTrue();
     }
 
     [Fact]
-    public void UpdateCache_RequestedAtCacheCenter_KeepsExistingCache()
+    public void GetRow_RequestedAtCacheCenter_ReturnsSameValue()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
+        cache.GetRow(1); // prime the cache
+        var beforeAccess = cache.GetRow(1).ToArray(); // baseline from cached value
 
-        // First access to line 2 (cache window: 0-4)
-        cache.GetLineBytes(1);
+        // Act
+        var afterAccess = cache.GetRow(1).ToArray();
 
-        // Get line 2 again (center of cache)
-        var beforeAccess = cache.GetLineBytes(1).ToArray();
-
-        // Act - Request same line again
-        var afterAccess = cache.GetLineBytes(1).ToArray();
-
-        // Assert - Cache should be maintained
+        // Assert
         afterAccess.Should().BeEquivalentTo(beforeAccess);
     }
 
     [Fact]
-    public void UpdateCache_RequestedNearWindowEdge_ShiftsCacheWindow()
+    public void GetRow_RequestedNearWindowEdge_ReturnsCorrectRows()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 5);
+        using var cache = new RowByteCache(_indexer, capacity: 5, prefetchWindow: 20);
         var expectedLine4 = "{\"id\":4,\"name\":\"David\"}"u8.ToArray();
         var expectedLine8 = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
 
         // First access sets cache window (lines 0-4)
-        cache.GetLineBytes(0);
+        cache.GetRow(0);
 
         // Act - Access edge of cache window (line 4)
-        var result1 = cache.GetLineBytes(3).ToArray();
+        var result1 = cache.GetRow(3).ToArray();
         // Access line outside cache (line 8)
-        var result2 = cache.GetLineBytes(7).ToArray();
+        var result2 = cache.GetRow(7).ToArray();
 
         // Assert
         result1.Should().BeEquivalentTo(expectedLine4);
@@ -205,15 +194,15 @@ public sealed partial class RowByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void UpdateCache_CacheSizeLargerThanTotalLines_CachesAllLines()
+    public void GetRow_WithCacheLargerThanTotalLines_ReturnsAllLines()
     {
         // Arrange
-        var largeCacheSize = 20; // Larger than total lines
-        using var cache = new RowByteCache(_indexer, cacheSize: largeCacheSize);
+        var largeCapacity = 20; // Larger than total lines
+        using var cache = new RowByteCache(_indexer, capacity: largeCapacity, prefetchWindow: 20);
 
         // Act - Get first and last lines
-        var firstLine = cache.GetLineBytes(0).ToArray();
-        var lastLine = cache.GetLineBytes(9).ToArray();
+        var firstLine = cache.GetRow(0).ToArray();
+        var lastLine = cache.GetRow(9).ToArray();
 
         // Assert
         var expectedFirst = "{\"id\":1,\"name\":\"Alice\"}"u8.ToArray();
@@ -226,44 +215,46 @@ public sealed partial class RowByteCacheTests : IDisposable
     [Fact]
     public void Dispose_AfterAccess_PreventsFurtherAccess()
     {
-        // Arrange
-        using var cache = new RowByteCache(_indexer);
-        cache.GetLineBytes(0); // Normal access
+        // Arrange - row 0 is already in cache (cache-hit path) when Dispose is called;
+        // verifies that the dispose guard fires before any cache lookup.
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
+        cache.GetRow(0);
 
         // Act
         cache.Dispose();
-        var act = () => cache.GetLineBytes(0);
+        var act = () => cache.GetRow(0);
 
         // Assert
         act.Should().Throw<ObjectDisposedException>();
     }
 
     [Fact]
-    public void GetLineBytes_AfterDisposal_ThrowsObjectDisposedException()
+    public void GetRow_AfterDisposal_ThrowsObjectDisposedException()
     {
-        // Arrange
-        using var cache = new RowByteCache(_indexer);
+        // Arrange - cache is empty (cache-miss path) when GetRow is called after Dispose;
+        // verifies that the dispose guard fires before any I/O attempt.
+        using var cache = new RowByteCache(_indexer, capacity: 200, prefetchWindow: 20);
         cache.Dispose();
 
         // Act
-        var act = () => cache.GetLineBytes(0);
+        var act = () => cache.GetRow(0);
 
         // Assert
         act.Should().Throw<ObjectDisposedException>();
     }
 
     [Fact]
-    public void GetLineBytes_WithExactCacheSize_CachesExactly()
+    public void GetRow_WithExactCacheSize_CachesExactly()
     {
         // Arrange
-        var cacheSize = 5;
-        using var cache = new RowByteCache(_indexer, cacheSize: cacheSize);
+        var capacity = 5;
+        using var cache = new RowByteCache(_indexer, capacity: capacity, prefetchWindow: 20);
 
         // First access initializes cache (lines 0-4)
-        cache.GetLineBytes(0);
+        cache.GetRow(0);
 
         // Act - Get last line within cache range
-        var result = cache.GetLineBytes(4).ToArray();
+        var result = cache.GetRow(4).ToArray();
 
         // Assert
         var expected = "{\"id\":5,\"name\":\"Eve\"}"u8.ToArray();
@@ -271,27 +262,20 @@ public sealed partial class RowByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void UpdateCache_MultipleOverlaps_ProperlyInvalidatesOldEntries()
+    public void GetRow_WithMultipleWindowShifts_ReturnsCorrectRows()
     {
         // Arrange
-        using var cache = new RowByteCache(_indexer, cacheSize: 4);
+        using var cache = new RowByteCache(_indexer, capacity: 4, prefetchWindow: 20);
+        cache.GetRow(0); // prime first window
+        var firstCached = cache.GetRow(2).ToArray();
 
-        // First cache (lines 0-3)
-        cache.GetLineBytes(0);
-        var firstCached = cache.GetLineBytes(2).ToArray();
-
-        // New cache (lines 6-9)
-        cache.GetLineBytes(8);
-
-        // Old cache entries should be invalidated
-        // Since we cannot inspect internal cache entries,
-        // verify by accessing different line
-        var newCached = cache.GetLineBytes(7).ToArray();
+        // Act - shift window by accessing a row far outside the current cache
+        cache.GetRow(8);
+        var newCached = cache.GetRow(7).ToArray();
 
         // Assert
         var expectedOld = "{\"id\":3,\"name\":\"Charlie\"}"u8.ToArray();
         var expectedNew = "{\"id\":8,\"name\":\"Henry\"}"u8.ToArray();
-
         firstCached.Should().BeEquivalentTo(expectedOld);
         newCached.Should().BeEquivalentTo(expectedNew);
     }
@@ -304,4 +288,11 @@ public sealed partial class RowByteCacheTests : IDisposable
             _disposed = true;
         }
     }
+}
+
+sealed file class TempFile : IDisposable
+{
+    private readonly string _path = System.IO.Path.GetTempFileName();
+    public string Path => _path;
+    public void Dispose() => System.IO.File.Delete(_path);
 }

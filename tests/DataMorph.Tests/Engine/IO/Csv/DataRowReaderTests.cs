@@ -3,6 +3,8 @@ using DataMorph.Engine.IO.Csv;
 
 namespace DataMorph.Tests.Engine.IO.Csv;
 
+#pragma warning disable CA2000
+
 public sealed class DataRowReaderTests : IDisposable
 {
     private readonly string _testFilePath;
@@ -133,17 +135,16 @@ public sealed class DataRowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadRows_WhenFileDoesNotExist_ReturnsEmptyList()
+    public void Constructor_WhenFileDoesNotExist_ThrowsFileNotFoundException()
     {
         // Arrange
         var nonExistentPath = Path.Combine(Path.GetTempPath(), $"nonexistent_{Guid.NewGuid()}.csv");
-        var reader = new DataRowReader(nonExistentPath, columnCount: 2);
 
         // Act
-        var rows = reader.ReadRows(byteOffset: 0, rowsToSkip: 0, rowsToRead: 10);
+        var act = () => new DataRowReader(nonExistentPath, columnCount: 2);
 
         // Assert
-        rows.Should().BeEmpty();
+        act.Should().Throw<FileNotFoundException>();
     }
 
     [Fact]
@@ -162,5 +163,39 @@ public sealed class DataRowReaderTests : IDisposable
         rows.Count.Should().Be(2);
         ToStringArray(rows[0]).Should().Equal(["val1", "val2"]);
         ToStringArray(rows[1]).Should().Equal(["val3", "val4"]);
+    }
+
+    [Fact]
+    public void Dispose_ReleasesFileStream()
+    {
+        // Arrange
+        var csvContent = "col1,col2\nval1,val2";
+        File.WriteAllText(_testFilePath, csvContent);
+        var reader = new DataRowReader(_testFilePath, columnCount: 2);
+        reader.ReadRows(0, 0, 1);
+
+        // Act
+        reader.Dispose();
+
+        // Assert
+        // Try opening file with FileShare.None - should succeed if stream was released
+        using var stream = new FileStream(_testFilePath, FileMode.Open, FileAccess.Read, FileShare.None);
+        stream.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void ReadRows_AfterDispose_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        var csvContent = "col1,col2\nval1,val2";
+        File.WriteAllText(_testFilePath, csvContent);
+        var reader = new DataRowReader(_testFilePath, columnCount: 2);
+        reader.Dispose();
+
+        // Act
+        var act = () => reader.ReadRows(0, 0, 1);
+
+        // Assert
+        act.Should().Throw<ObjectDisposedException>();
     }
 }

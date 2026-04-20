@@ -6,6 +6,8 @@ using DataMorph.Engine.Types;
 
 namespace DataMorph.Tests.App.Views;
 
+#pragma warning disable CA2000
+
 public sealed class JsonLinesTableSourceTests : IDisposable
 {
     private readonly string _testFilePath;
@@ -298,5 +300,27 @@ public sealed class JsonLinesTableSourceTests : IDisposable
 
         // Assert
         rows.Should().Be(2); // Two lines written in test setup
+    }
+
+    [Fact]
+    public void Dispose_DisposesRowByteCache()
+    {
+        // Arrange
+        var cache = new RowByteCache(_indexer);
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.JsonLines,
+        };
+        var source = new JsonLinesTableSource(cache, schema);
+        _ = source[0, 0]; // Ensure MmapService is initialized
+
+        // Act
+        source.Dispose();
+
+        // Assert
+        // Verify file is released (MmapService should be disposed via RowByteCache)
+        using var stream = new FileStream(_testFilePath, FileMode.Open, FileAccess.Read, FileShare.None);
+        stream.Should().NotBeNull();
     }
 }

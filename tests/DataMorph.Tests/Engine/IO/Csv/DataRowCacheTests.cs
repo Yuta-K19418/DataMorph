@@ -3,6 +3,8 @@ using DataMorph.Engine.IO.Csv;
 
 namespace DataMorph.Tests.Engine.IO.Csv;
 
+#pragma warning disable CA2000
+
 public sealed class DataRowCacheTests : IDisposable
 {
     private readonly string _testFilePath;
@@ -175,5 +177,29 @@ public sealed class DataRowCacheTests : IDisposable
         cache.TotalRows.Should().Be(0);
         var row = cache.GetRow(0);
         row.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Dispose_DisposesReader()
+    {
+        // Arrange
+        var csvContent = "col1,col2\nval1,val2";
+        File.WriteAllText(_testFilePath, csvContent);
+        var indexer = new DataRowIndexer(_testFilePath);
+        indexer.BuildIndex();
+        var cache = new DataRowCache(indexer, columnCount: 2);
+        cache.GetRow(0);
+
+        // Act
+        cache.Dispose();
+
+        // Assert
+        // 1. GetRow should throw ObjectDisposedException
+        var actGetRow = () => cache.GetRow(0);
+        actGetRow.Should().Throw<ObjectDisposedException>();
+
+        // 2. File should be released
+        using var stream = new FileStream(_testFilePath, FileMode.Open, FileAccess.Read, FileShare.None);
+        stream.Should().NotBeNull();
     }
 }

@@ -9,7 +9,7 @@ namespace DataMorph.App.Views;
 /// Provides virtual table data source for Terminal.Gui's TableView for JSON Lines files.
 /// Delegates to RowByteCache for line retrieval and CellExtractor for cell value parsing.
 /// </summary>
-internal sealed class JsonLinesTableSource : ITableSource
+internal sealed class JsonLinesTableSource : ITableSource, IDisposable
 {
     private readonly RowByteCache _cache;
     private volatile TableSchema _schema;
@@ -96,4 +96,9 @@ internal sealed class JsonLinesTableSource : ITableSource
 
     private static byte[][] BuildColumnNamesUtf8(TableSchema schema) =>
         [.. schema.Columns.Select(c => Encoding.UTF8.GetBytes(c.Name))];
+
+    public void Dispose()
+    {
+        _cache.Dispose();
+    }
 }

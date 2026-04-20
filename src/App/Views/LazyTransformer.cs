@@ -17,7 +17,7 @@ namespace DataMorph.App.Views;
 /// <see cref="IFilterRowIndexer"/> (provided via a factory in the constructor)
 /// to map filtered row indices to source rows.
 /// </summary>
-internal sealed class LazyTransformer : ITableSource
+internal sealed class LazyTransformer : ITableSource, IDisposable
 {
     private readonly ITableSource _source;
     private readonly IReadOnlyList<int> _sourceColumnIndices;
@@ -319,4 +319,17 @@ internal sealed class LazyTransformer : ITableSource
         string? FillValue = null,
         string? FormatString = null
     );
+
+    public void Dispose()
+    {
+        if (_source is IDisposable d)
+        {
+            d.Dispose();
+        }
+
+        if (_filterRowIndexer is IDisposable fi)
+        {
+            fi.Dispose();
+        }
+    }
 }

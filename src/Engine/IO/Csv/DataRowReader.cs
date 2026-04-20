@@ -1,3 +1,4 @@
+using System.Text;
 using nietras.SeparatedValues;
 
 namespace DataMorph.Engine.IO.Csv;
@@ -6,10 +7,27 @@ namespace DataMorph.Engine.IO.Csv;
 /// Low-level CSV row reader that reads raw CSV data from a file stream.
 /// Returns rows as read-only lists of ReadOnlyMemory for memory efficiency.
 /// </summary>
-public sealed class DataRowReader(string filePath, int columnCount)
+public sealed class DataRowReader : IDisposable
 {
-    private readonly string _filePath = filePath;
-    private readonly int _columnCount = columnCount;
+    private readonly int _columnCount;
+    private readonly FileStream _fileStream;
+    private bool _disposed;
+
+    /// <summary>
+    /// Initializes a new instance of <see cref="DataRowReader"/>.
+    /// </summary>
+    /// <param name="filePath">The path to the CSV file.</param>
+    /// <param name="columnCount">The number of columns in the CSV file.</param>
+    public DataRowReader(string filePath, int columnCount)
+    {
+        _columnCount = columnCount;
+        _fileStream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read
+        );
+    }
 
     /// <summary>
     /// Reads a specified number of rows from the CSV file starting at the given byte offset.
@@ -20,6 +38,8 @@ public sealed class DataRowReader(string filePath, int columnCount)
     /// <returns>A list of CSV rows.</returns>
     public IReadOnlyList<CsvDataRow> ReadRows(long byteOffset, int rowsToSkip, int rowsToRead)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (byteOffset < 0)
         {
             return [];
@@ -34,16 +54,10 @@ public sealed class DataRowReader(string filePath, int columnCount)
 
         try
         {
-            using var fileStream = new FileStream(
-                _filePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read
-            );
+            _fileStream.Seek(byteOffset, SeekOrigin.Begin);
 
-            fileStream.Seek(byteOffset, SeekOrigin.Begin);
-
-            using var reader = Sep.New(',').Reader(o => o with { HasHeader = false }).From(fileStream);
+            using var streamReader = new StreamReader(_fileStream, Encoding.UTF8, leaveOpen: true);
+            using var reader = Sep.New(',').Reader(o => o with { HasHeader = false }).From(streamReader);
 
             // Skip rows until the actual start row
             var skipped = 0;
@@ -101,5 +115,17 @@ public sealed class DataRowReader(string filePath, int columnCount)
         }
 
         return rows;
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _fileStream.Dispose();
+        _disposed = true;
     }
 }

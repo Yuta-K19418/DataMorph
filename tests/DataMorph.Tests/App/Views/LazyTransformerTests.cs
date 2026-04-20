@@ -8,6 +8,8 @@ using Terminal.Gui.Views;
 
 namespace DataMorph.Tests.App.Views;
 
+#pragma warning disable CA2000
+
 public sealed class LazyTransformerTests
 {
     // -------------------------------------------------------------------------
@@ -32,6 +34,26 @@ public sealed class LazyTransformerTests
         public int GetSourceRow(int filteredIndex) => matchedRows[filteredIndex];
 
         public Task BuildIndexAsync(CancellationToken ct) => Task.CompletedTask;
+    }
+
+    private sealed class DisposableFakeTableSource(string[][] data, string[] columnNames)
+        : ITableSource, IDisposable
+    {
+        public bool IsDisposed { get; private set; }
+        public int Rows => data.Length;
+        public int Columns => columnNames.Length;
+        public string[] ColumnNames => columnNames;
+        public object this[int row, int col] => data[row][col];
+        public void Dispose() => IsDisposed = true;
+    }
+
+    private sealed class DisposableFilterRowIndexer : IFilterRowIndexer, IDisposable
+    {
+        public bool IsDisposed { get; private set; }
+        public int TotalMatchedRows => 0;
+        public int GetSourceRow(int filteredIndex) => -1;
+        public Task BuildIndexAsync(CancellationToken ct) => Task.CompletedTask;
+        public void Dispose() => IsDisposed = true;
     }
 
     private static TableSchema MakeSchema(params (string name, ColumnType type)[] cols) =>
@@ -1444,5 +1466,45 @@ public sealed class LazyTransformerTests
 
         // Assert
         result.Should().Be("2024-01-15 09:30:00");
+    }
+
+    [Fact]
+    public void Dispose_DisposesUnderlyingSource()
+    {
+        // Arrange
+        var source = new DisposableFakeTableSource([["a"]], ["A"]);
+        var schema = MakeSchema(("A", ColumnType.Text));
+        var transformer = new LazyTransformer(source, schema, []);
+
+        // Act
+        transformer.Dispose();
+
+        // Assert
+        source.IsDisposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Dispose_DisposesFilterRowIndexer()
+    {
+        // Arrange
+        var source = new FakeTableSource([["a"]], ["A"]);
+        var schema = MakeSchema(("A", ColumnType.Text));
+        var filterIndexer = new DisposableFilterRowIndexer();
+        IReadOnlyList<MorphAction> actions =
+        [
+            new FilterAction
+            {
+                ColumnName = "A",
+                Operator = FilterOperator.Equals,
+                Value = "a",
+            },
+        ];
+        var transformer = new LazyTransformer(source, schema, actions, _ => filterIndexer);
+
+        // Act
+        transformer.Dispose();
+
+        // Assert
+        filterIndexer.IsDisposed.Should().BeTrue();
     }
 }

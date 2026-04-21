@@ -72,7 +72,7 @@ public sealed class FilterRowIndexer : IFilterRowIndexer
             return;
         }
 
-        var reader = new DataRowReader(_indexer.FilePath, _sourceColumnCount);
+        using var reader = new DataRowReader(_indexer.FilePath, _sourceColumnCount);
         var (startByteOffset, startRowOffset) = _indexer.GetCheckPoint(0);
 
         if (startByteOffset < 0)

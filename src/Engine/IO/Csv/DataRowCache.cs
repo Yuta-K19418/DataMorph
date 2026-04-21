@@ -9,12 +9,20 @@ public sealed class DataRowCache(
     int columnCount,
     int capacity = 200,
     int prefetchWindow = 20)
-    : SlidingWindowLruCache<CsvDataRow>(indexer, capacity, prefetchWindow)
+    : SlidingWindowLruCache<CsvDataRow>(indexer, capacity, prefetchWindow), IDisposable
 {
     private readonly DataRowReader _reader = new(indexer.FilePath, columnCount);
+    private bool _disposed;
 
     /// <inheritdoc/>
     protected override CsvDataRow EmptyValue => [];
+
+    /// <inheritdoc/>
+    public override CsvDataRow GetRow(int index)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return base.GetRow(index);
+    }
 
     /// <inheritdoc/>
     protected override IEnumerable<CsvDataRow> LoadRows(
@@ -22,4 +30,16 @@ public sealed class DataRowCache(
         int rowOffsetToSkip,
         int rowsToFetch) =>
         _reader.ReadRows(byteOffset, rowOffsetToSkip, rowsToFetch);
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _reader.Dispose();
+        _disposed = true;
+    }
 }

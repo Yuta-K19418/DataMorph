@@ -40,7 +40,12 @@ internal sealed class FileDialogHandler(
             return;
         }
 
-        var detectionResult = FormatDetector.Detect(dialog.Path);
+        await HandleFileSelectedAsync(dialog.Path);
+    }
+
+    internal async Task HandleFileSelectedAsync(string path)
+    {
+        var detectionResult = FormatDetector.Detect(path);
         if (detectionResult.IsFailure)
         {
             _viewManager.ShowError(detectionResult.Error);
@@ -48,7 +53,6 @@ internal sealed class FileDialogHandler(
         }
 
         var format = detectionResult.Value;
-        var path = dialog.Path;
 
         // Reset state for new file
         _state.CurrentFilePath = path;
@@ -111,9 +115,17 @@ internal sealed class FileDialogHandler(
             _state.JsonLinesSchemaScanner = null;
             _state.Schema = null;
             _state.OnSchemaRefined = null;
-            _state.CurrentMode = ViewMode.JsonLinesTree;
 
+            var tcs = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            indexer.FirstCheckpointReached += () => tcs.TrySetResult();
+
+            _onIndexerStart(indexer);
+            await tcs.Task;
+
+            _state.CurrentMode = ViewMode.JsonLinesTree;
             _viewManager.SwitchToJsonLinesTree(indexer);
+            return;
         }
 
         _onIndexerStart(indexer);

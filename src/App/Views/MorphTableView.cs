@@ -73,4 +73,14 @@ internal abstract class MorphTableView : TableView
 
         return base.OnKeyDown(key);
     }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && Table is IDisposable disposableTable)
+        {
+            disposableTable.Dispose();
+        }
+
+        base.Dispose(disposing);
+    }
 }

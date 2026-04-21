@@ -9,13 +9,14 @@ namespace DataMorph.App.Views;
 /// Provides virtual table data source for Terminal.Gui's TableView for JSON Lines files.
 /// Delegates to RowByteCache for line retrieval and CellExtractor for cell value parsing.
 /// </summary>
-internal sealed class JsonLinesTableSource : ITableSource
+internal sealed class JsonLinesTableSource : ITableSource, IDisposable
 {
     private readonly RowByteCache _cache;
     private volatile TableSchema _schema;
     private volatile string[] _columnNames;
     private volatile string[] _rawColumnNames;
     private volatile byte[][] _columnNameUtf8;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of <see cref="JsonLinesTableSource"/>.
@@ -49,6 +50,8 @@ internal sealed class JsonLinesTableSource : ITableSource
     {
         get
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             if (row < 0 || row >= Rows)
             {
                 throw new ArgumentOutOfRangeException(nameof(row));
@@ -96,4 +99,15 @@ internal sealed class JsonLinesTableSource : ITableSource
 
     private static byte[][] BuildColumnNamesUtf8(TableSchema schema) =>
         [.. schema.Columns.Select(c => Encoding.UTF8.GetBytes(c.Name))];
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _cache.Dispose();
+        _disposed = true;
+    }
 }

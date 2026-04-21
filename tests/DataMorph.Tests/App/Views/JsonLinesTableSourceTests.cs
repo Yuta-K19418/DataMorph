@@ -56,7 +56,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, schema);
+        using var source = new JsonLinesTableSource(cache, schema);
 
         // Act
         var result = source[0, 1]; // row 0, col 1 ("name")
@@ -96,7 +96,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, schema);
+        using var source = new JsonLinesTableSource(cache, schema);
 
         // Act
         var result = source[0, 2]; // "email" does not exist in the JSON line
@@ -155,7 +155,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, originalSchema);
+        using var source = new JsonLinesTableSource(cache, originalSchema);
 
         // Act
         source.UpdateSchema(refinedSchema);
@@ -183,7 +183,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, schema);
+        using var source = new JsonLinesTableSource(cache, schema);
 
         // Act
         var act = () => _ = source[-1, 0];
@@ -210,7 +210,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, schema);
+        using var source = new JsonLinesTableSource(cache, schema);
 
         // Act
         var act = () => _ = source[0, -1];
@@ -237,7 +237,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, schema);
+        using var source = new JsonLinesTableSource(cache, schema);
 
         // Act
         var act = () => _ = source[2, 0]; // Only 2 rows (index 0 and 1), so row 2 is out of range
@@ -264,7 +264,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, schema);
+        using var source = new JsonLinesTableSource(cache, schema);
 
         // Act
         var act = () => _ = source[0, 1]; // Only 1 column (index 0), so col 1 is out of range
@@ -291,12 +291,36 @@ public sealed class JsonLinesTableSourceTests : IDisposable
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var source = new JsonLinesTableSource(cache, schema);
+        using var source = new JsonLinesTableSource(cache, schema);
 
         // Act
         var rows = source.Rows;
 
         // Assert
         rows.Should().Be(2); // Two lines written in test setup
+    }
+
+    [Fact]
+    public void Dispose_DisposesRowByteCache()
+    {
+        // Arrange
+#pragma warning disable CA2000 // Ownership transferred to source
+        var cache = new RowByteCache(_indexer);
+#pragma warning restore CA2000
+        var schema = new TableSchema
+        {
+            Columns = [new ColumnSchema { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }],
+            SourceFormat = DataFormat.JsonLines,
+        };
+        var source = new JsonLinesTableSource(cache, schema);
+        _ = source[0, 0]; // Ensure MmapService is initialized
+
+        // Act
+        source.Dispose();
+
+        // Assert
+        // Verify indexer throws ObjectDisposedException
+        var act = () => _ = source[0, 0];
+        act.Should().Throw<ObjectDisposedException>();
     }
 }

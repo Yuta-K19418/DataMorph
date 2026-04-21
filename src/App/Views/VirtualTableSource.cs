@@ -9,12 +9,13 @@ namespace DataMorph.App.Views;
 /// Provides virtual table data source for Terminal.Gui's TableView.
 /// Delegates to DataRowCache for efficient row retrieval.
 /// </summary>
-internal sealed class VirtualTableSource : ITableSource
+internal sealed class VirtualTableSource : ITableSource, IDisposable
 {
     private readonly DataRowCache _cache;
     private readonly TableSchema _schema;
     private readonly string[] _columnNames;
     private readonly string[] _rawColumnNames;
+    private bool _disposed;
 
     public VirtualTableSource(IRowIndexer indexer, TableSchema schema)
     {
@@ -33,6 +34,8 @@ internal sealed class VirtualTableSource : ITableSource
     {
         get
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             if (row < 0 || row >= Rows)
             {
                 throw new ArgumentOutOfRangeException(nameof(row));
@@ -54,5 +57,16 @@ internal sealed class VirtualTableSource : ITableSource
             // Return empty string for columns that might not exist in a ragged CSV row
             return string.Empty;
         }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _cache.Dispose();
+        _disposed = true;
     }
 }

@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sep" Version="0.12.3" />
+    <PackageReference Include="Sep" Version="0.12.5" />
   </ItemGroup>
 
   <ItemGroup>

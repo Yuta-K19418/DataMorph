@@ -257,4 +257,256 @@ public sealed class RowReaderTests : IDisposable
         var lineContent = Encoding.UTF8.GetString(lines[0].Span);
         lineContent.Should().Be("{\"id\":1,\"name\":\"Alice\"}");
     }
+
+    // Skip loop tests (data <= 1 MB)
+
+    [Fact]
+    public void ReadLineBytes_SkipLoop_SmallData_EscapedNewlineInValue_ReadsNextLineCorrectly()
+    {
+        // Arrange
+        // First line has escaped \n in value, second line should be read correctly
+        var content = "{\"text\":\"line1\\nline2\",\"id\":1}\n{\"text\":\"next line\",\"id\":2}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        // Skip first line, read second line
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+
+        // Assert
+        lines.Should().ContainSingle();
+        var lineString = Encoding.UTF8.GetString(lines[0].Span);
+        lineString.Should().Be("{\"text\":\"next line\",\"id\":2}");
+    }
+
+    [Fact]
+    public void ReadLineBytes_SkipLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    {
+        // Arrange
+        // First line has unclosed quote with literal newline, second line should be readable
+        var content = "{\"text\":\"line1\n{\"text\":\"valid line\",\"id\":2}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        // Skip first line, read second line
+        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+
+        // Assert
+        act.Should().Throw<InvalidDataException>();
+    }
+
+    [Fact]
+    public void ReadLineBytes_SkipLoop_SmallData_NormalLineEnding_ReadsNextLineCorrectly()
+    {
+        // Arrange
+        var content = "{\"id\":1}\n{\"id\":2}\n{\"id\":3}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        // Skip first line, read next two lines
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
+
+        // Assert
+        lines.Should().HaveCount(2);
+        Encoding.UTF8.GetString(lines[0].Span).Should().Be("{\"id\":2}");
+        Encoding.UTF8.GetString(lines[1].Span).Should().Be("{\"id\":3}");
+    }
+
+    // Skip loop tests (data > 1 MB)
+
+    [Fact]
+    [Trait("Category", "LargeData")]
+    public void ReadLineBytes_SkipLoop_LargeData_EscapedNewlineInValue_ReadsNextLineCorrectly()
+    {
+        // Arrange
+        // Line 0: valid >1MB line with escaped \n in value — single line exceeds maxSearch, triggering the multi-call path in skip loop
+        var largeEscapedValue = new string('a', 1_090_000) + "\\n" + new string('b', 5_000);
+        var content = $"{{\"text\":\"{largeEscapedValue}\",\"id\":0}}\n{{\"text\":\"next line\",\"id\":1}}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        // Skip large line (>1MB), read next small line
+        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+
+        // Assert
+        linesRead.Should().ContainSingle();
+        Encoding.UTF8.GetString(linesRead[0].Span).Should().Be("{\"text\":\"next line\",\"id\":1}");
+    }
+
+    [Fact]
+    [Trait("Category", "LargeData")]
+    public void ReadLineBytes_SkipLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    {
+        // Arrange
+        // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice
+        var malformedValue = new string('a', 1_100_000);
+        var content = $"{{\"text\":\"{malformedValue}\n{{\"id\":0}}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        // Skipping the first (malformed) line triggers ValidateJsonLine, which throws
+        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+
+        // Assert
+        act.Should().Throw<InvalidDataException>();
+    }
+
+    [Fact]
+    [Trait("Category", "LargeData")]
+    public void ReadLineBytes_SkipLoop_LargeData_NormalLineEnding_ReadsNextLineCorrectly()
+    {
+        // Arrange
+        // Line 0: valid >1MB line — single line exceeds maxSearch, triggering the multi-call path in skip loop
+        var largeValue = new string('a', 1_100_000);
+        var content = $"{{\"data\":\"{largeValue}\"}}\n{{\"id\":1}}\n{{\"id\":2}}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        // Skip large line (>1MB), read next two small lines
+        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
+
+        // Assert
+        linesRead.Should().HaveCount(2);
+        Encoding.UTF8.GetString(linesRead[0].Span).Should().Be("{\"id\":1}");
+        Encoding.UTF8.GetString(linesRead[1].Span).Should().Be("{\"id\":2}");
+    }
+
+    // Read loop tests (data <= 1 MB)
+
+    [Fact]
+    public void ReadLineBytes_ReadLoop_SmallData_EscapedNewlineInValue_ReturnsCorrectBytes()
+    {
+        // Arrange
+        var content = "{\"text\":\"line1\\nline2\",\"id\":1}\n{\"text\":\"next\",\"id\":2}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+
+        // Assert
+        lines.Should().HaveCount(2);
+        Encoding.UTF8.GetString(lines[0].Span).Should().Be("{\"text\":\"line1\\nline2\",\"id\":1}");
+        Encoding.UTF8.GetString(lines[1].Span).Should().Be("{\"text\":\"next\",\"id\":2}");
+    }
+
+    [Fact]
+    public void ReadLineBytes_ReadLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    {
+        // Arrange
+        var content = "{\"text\":\"malformed\n{\"text\":\"valid\",\"id\":2}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+
+        // Assert
+        act.Should().Throw<InvalidDataException>();
+    }
+
+    [Fact]
+    public void ReadLineBytes_ReadLoop_SmallData_NormalLineEnding_ReturnsCorrectBytes()
+    {
+        // Arrange
+        var content = "{\"id\":1}\n{\"id\":2}\n{\"id\":3}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 3);
+
+        // Assert
+        lines.Should().HaveCount(3);
+        Encoding.UTF8.GetString(lines[0].Span).Should().Be("{\"id\":1}");
+        Encoding.UTF8.GetString(lines[1].Span).Should().Be("{\"id\":2}");
+        Encoding.UTF8.GetString(lines[2].Span).Should().Be("{\"id\":3}");
+    }
+
+    // Read loop tests (data > 1 MB)
+
+    [Fact]
+    [Trait("Category", "LargeData")]
+    public void ReadLineBytes_ReadLoop_LargeData_EscapedNewlineInValue_ReturnsCorrectBytes()
+    {
+        // Arrange
+        // Line 0: valid >1MB line with escaped \n in value — single line exceeds maxSearch, triggering the multi-call path in read loop
+        var largeEscapedValue = new string('a', 1_090_000) + "\\n" + new string('b', 5_000);
+        var largeLine = $"{{\"text\":\"{largeEscapedValue}\",\"id\":0}}";
+        var content = largeLine + "\n" + "{\"text\":\"next\",\"id\":1}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+
+        // Assert
+        linesRead.Should().HaveCount(2);
+        Encoding.UTF8.GetString(linesRead[0].Span).Should().Be(largeLine);
+        Encoding.UTF8.GetString(linesRead[1].Span).Should().Be("{\"text\":\"next\",\"id\":1}");
+    }
+
+    [Fact]
+    [Trait("Category", "LargeData")]
+    public void ReadLineBytes_ReadLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    {
+        // Arrange
+        // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice
+        var malformedValue = new string('a', 1_100_000);
+        var content = $"{{\"text\":\"{malformedValue}\n{{\"id\":0}}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+
+        // Assert
+        act.Should().Throw<InvalidDataException>();
+    }
+
+    [Fact]
+    [Trait("Category", "LargeData")]
+    public void ReadLineBytes_ReadLoop_LargeData_NormalLineEnding_ReturnsCorrectBytes()
+    {
+        // Arrange
+        // Line 0: valid >1MB line — single line exceeds maxSearch, triggering the multi-call path in read loop
+        var largeValue = new string('a', 1_100_000);
+        var largeLine = $"{{\"data\":\"{largeValue}\"}}";
+        var content = largeLine + "\n" + "{\"id\":1}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Act
+        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+
+        // Assert
+        linesRead.Should().HaveCount(2);
+        Encoding.UTF8.GetString(linesRead[0].Span).Should().Be(largeLine);
+        Encoding.UTF8.GetString(linesRead[1].Span).Should().Be("{\"id\":1}");
+    }
+
+    [Fact]
+    public void ReadLineBytes_WithNonZeroByteOffset_ReturnsCorrectLines()
+    {
+        // Arrange
+        var content = "{\"id\":0}\n{\"id\":1}\n{\"id\":2}\n{\"id\":3}\n{\"id\":4}\n";
+        WriteTestContent(content);
+        using var reader = new RowReader(_testFilePath);
+
+        // Calculate byte offset to the middle of the file (after first 2 lines)
+        var byteOffset = Encoding.UTF8.GetBytes("{\"id\":0}\n{\"id\":1}\n").Length;
+
+        // Act
+        var lines = reader.ReadLineBytes(byteOffset: byteOffset, linesToSkip: 0, linesToRead: 2);
+
+        // Assert
+        lines.Should().HaveCount(2);
+        Encoding.UTF8.GetString(lines[0].Span).Should().Be("{\"id\":2}");
+        Encoding.UTF8.GetString(lines[1].Span).Should().Be("{\"id\":3}");
+    }
 }

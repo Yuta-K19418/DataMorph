@@ -66,12 +66,13 @@ public sealed class RowReader : IDisposable
 
         var skipped = 0;
 
-        var scanner = new RowScanner();
-
         // Skip lines if needed
+        var skipLineStartOffset = currentOffset;
+        var skipIncompleteBytes = 0;
+
         while (skipped < linesToSkip)
         {
-            var (lineCompleted, bytesConsumed) = FindNextLineLength(currentOffset, ref scanner);
+            var (lineCompleted, bytesConsumed) = FindNextLineLength(skipLineStartOffset + skipIncompleteBytes);
             // bytesConsumed <= 0 indicates EOF or error
             if (bytesConsumed <= 0)
             {
@@ -79,27 +80,43 @@ public sealed class RowReader : IDisposable
                 return result;
             }
 
-            currentOffset += bytesConsumed;
-
-            // Only increment skip count when a complete line is found
-            if (lineCompleted)
+            if (!lineCompleted)
             {
-                skipped++;
+                skipIncompleteBytes += bytesConsumed;
+                continue;
             }
-            // Incomplete lines (spanning buffers) continue processing
-            // without incrementing skip count
+
+            var totalLineBytes = bytesConsumed + skipIncompleteBytes;
+            var lineBuffer = ArrayPool<byte>.Shared.Rent(totalLineBytes);
+            try
+            {
+                var lineSpan = lineBuffer.AsSpan(0, totalLineBytes);
+                _mmap.Read(skipLineStartOffset, lineSpan);
+                var trimmedSpan = TrimNewline(lineSpan);
+                if (trimmedSpan.Length > 0)
+                {
+                    ValidateJsonLine(trimmedSpan);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(lineBuffer);
+            }
+
+            skipLineStartOffset += totalLineBytes;
+            skipIncompleteBytes = 0;
+            skipped++;
         }
+
+        currentOffset = skipLineStartOffset;
 
         // Read requested lines
         var linesRead = 0;
-        var incompleteLineBytes = 0; // Track cumulative bytes of incomplete lines
+        var incompleteLineBytes = 0;
 
         while (linesRead < linesToRead)
         {
-            var (lineCompleted, bytesConsumed) = FindNextLineLength(
-                currentOffset + incompleteLineBytes,
-                ref scanner
-            );
+            var (lineCompleted, bytesConsumed) = FindNextLineLength(currentOffset + incompleteLineBytes);
             if (bytesConsumed <= 0)
             {
                 HandleIncompleteLineAtEof(currentOffset, incompleteLineBytes, result);
@@ -112,30 +129,29 @@ public sealed class RowReader : IDisposable
                 continue;
             }
 
-            // totalLineBytes includes both the complete line and any preceding incomplete bytes
             var totalLineBytes = bytesConsumed + incompleteLineBytes;
-
-            // Read the line bytes (complete line plus any preceding incomplete bytes)
-            var lineBytes = new byte[totalLineBytes];
-
-            // Start reading from the beginning of the incomplete line (if any)
-            _mmap.Read(currentOffset, lineBytes);
-
-            // Remove trailing newline characters
-            var trimmedSpan = TrimNewline(lineBytes.AsSpan());
-
-            // Validate only if there is content
-            if (trimmedSpan.Length > 0)
+            var lineBuffer = ArrayPool<byte>.Shared.Rent(totalLineBytes);
+            try
             {
-                ValidateJsonLine(trimmedSpan);
+                var lineSpan = lineBuffer.AsSpan(0, totalLineBytes);
+                _mmap.Read(currentOffset, lineSpan);
+                var trimmedSpan = TrimNewline(lineSpan);
+                if (trimmedSpan.Length > 0)
+                {
+                    ValidateJsonLine(trimmedSpan);
+                }
+
+                var lineBytes = new byte[trimmedSpan.Length];
+                trimmedSpan.CopyTo(lineBytes);
+                result.Add(lineBytes.AsMemory());
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(lineBuffer);
             }
 
-            result.Add(lineBytes.AsMemory(0, trimmedSpan.Length));
-
-            // Advance currentOffset by the total bytes consumed (complete line + incomplete bytes)
             currentOffset += totalLineBytes;
-
-            incompleteLineBytes = 0; // Reset
+            incompleteLineBytes = 0;
             linesRead++;
         }
 
@@ -184,11 +200,10 @@ public sealed class RowReader : IDisposable
         }
         catch (InvalidDataException)
         {
-            // Incomplete or invalid line at EOF; ignore and return what we have
+            // An incomplete last line is dropped regardless of cause so that
+            // valid preceding lines are still returned to the caller.
         }
     }
-
-    // Removed CollectLineBytes method because it is no longer needed
 
     private static void ValidateJsonLine(ReadOnlySpan<byte> lineBytes)
     {
@@ -224,10 +239,7 @@ public sealed class RowReader : IDisposable
         }
     }
 
-    private (bool lineCompleted, int bytesConsumed) FindNextLineLength(
-        long startOffset,
-        ref RowScanner scanner
-    )
+    private (bool lineCompleted, int bytesConsumed) FindNextLineLength(long startOffset)
     {
         const int maxSearch = 1024 * 1024; // Search up to 1 MB
         var remaining = _mmap.Length - startOffset;
@@ -237,18 +249,19 @@ public sealed class RowReader : IDisposable
         }
 
         var searchLength = (int)Math.Min(maxSearch, remaining);
-        if (searchLength <= 0)
-        {
-            return (false, 0);
-        }
-
         var buffer = ArrayPool<byte>.Shared.Rent(searchLength);
         try
         {
             var span = buffer.AsSpan(0, searchLength);
             _mmap.Read(startOffset, span);
 
-            return scanner.FindNextLineLength(span);
+            var index = span.IndexOf((byte)'\n');
+            if (index == -1)
+            {
+                return (false, searchLength);
+            }
+
+            return (true, index + 1);
         }
         finally
         {

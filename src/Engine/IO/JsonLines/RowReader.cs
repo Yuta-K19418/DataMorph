@@ -41,6 +41,7 @@ public sealed class RowReader : IDisposable
     /// <returns>A list of raw JSON line bytes.</returns>
     /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
     /// <exception cref="InvalidDataException">The JSON line data is invalid.</exception>
+    /// <exception cref="NotSupportedException">The JSON line exceeds the supported size limit.</exception>
     public IReadOnlyList<ReadOnlyMemory<byte>> ReadLineBytes(
         long byteOffset,
         int linesToSkip,
@@ -68,7 +69,7 @@ public sealed class RowReader : IDisposable
 
         // Skip lines if needed
         var skipLineStartOffset = currentOffset;
-        var skipIncompleteBytes = 0;
+        var skipIncompleteBytes = 0L;
 
         while (skipped < linesToSkip)
         {
@@ -87,10 +88,17 @@ public sealed class RowReader : IDisposable
             }
 
             var totalLineBytes = bytesConsumed + skipIncompleteBytes;
-            var lineBuffer = ArrayPool<byte>.Shared.Rent(totalLineBytes);
+
+            // Lines exceeding ~2 GB are not currently supported; revisit if demand arises.
+            if (totalLineBytes > Array.MaxLength)
+            {
+                throw new NotSupportedException("JSON line exceeds maximum supported size.");
+            }
+
+            var lineBuffer = ArrayPool<byte>.Shared.Rent((int)totalLineBytes);
             try
             {
-                var lineSpan = lineBuffer.AsSpan(0, totalLineBytes);
+                var lineSpan = lineBuffer.AsSpan(0, (int)totalLineBytes);
                 _mmap.Read(skipLineStartOffset, lineSpan);
                 var trimmedSpan = TrimNewline(lineSpan);
                 if (trimmedSpan.Length > 0)
@@ -112,7 +120,7 @@ public sealed class RowReader : IDisposable
 
         // Read requested lines
         var linesRead = 0;
-        var incompleteLineBytes = 0;
+        var incompleteLineBytes = 0L;
 
         while (linesRead < linesToRead)
         {
@@ -130,10 +138,17 @@ public sealed class RowReader : IDisposable
             }
 
             var totalLineBytes = bytesConsumed + incompleteLineBytes;
-            var lineBuffer = ArrayPool<byte>.Shared.Rent(totalLineBytes);
+
+            // Lines exceeding ~2 GB are not currently supported; revisit if demand arises.
+            if (totalLineBytes > Array.MaxLength)
+            {
+                throw new NotSupportedException("JSON line exceeds maximum supported size.");
+            }
+
+            var lineBuffer = ArrayPool<byte>.Shared.Rent((int)totalLineBytes);
             try
             {
-                var lineSpan = lineBuffer.AsSpan(0, totalLineBytes);
+                var lineSpan = lineBuffer.AsSpan(0, (int)totalLineBytes);
                 _mmap.Read(currentOffset, lineSpan);
                 var trimmedSpan = TrimNewline(lineSpan);
                 if (trimmedSpan.Length > 0)
@@ -177,15 +192,21 @@ public sealed class RowReader : IDisposable
         return span;
     }
 
-    private void HandleIncompleteLineAtEof(long offset, int incompleteLineBytes, List<ReadOnlyMemory<byte>> result)
+    private void HandleIncompleteLineAtEof(long offset, long incompleteLineBytes, List<ReadOnlyMemory<byte>> result)
     {
         if (incompleteLineBytes <= 0)
         {
             return;
         }
 
+        // Lines exceeding ~2 GB are not currently supported; revisit if demand arises.
+        if (incompleteLineBytes > Array.MaxLength)
+        {
+            throw new NotSupportedException("JSON line exceeds maximum supported size.");
+        }
+
         // This is the last line without a newline
-        var lastLineBytes = new byte[incompleteLineBytes];
+        var lastLineBytes = new byte[(int)incompleteLineBytes];
         _mmap.Read(offset, lastLineBytes);
         var lastTrimmedSpan = TrimNewline(lastLineBytes.AsSpan());
         if (lastTrimmedSpan.Length <= 0)

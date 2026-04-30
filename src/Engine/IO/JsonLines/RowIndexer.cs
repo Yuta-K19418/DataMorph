@@ -69,7 +69,6 @@ public sealed class RowIndexer : RowIndexerBase
                 FileAccess.Read,
                 FileShare.Read
             );
-            var scanner = new RowScanner();
 
             var fileOffset = 0L;
             var rowCount = 0L;
@@ -90,7 +89,7 @@ public sealed class RowIndexer : RowIndexerBase
                 lastByteRead = buffer[bytesRead - 1];
 
                 var span = buffer.AsSpan(0, bytesRead);
-                ProcessBuffer(span, ref fileOffset, ref rowCount, ref scanner);
+                rowCount = ProcessBuffer(span, fileOffset, rowCount);
                 fileOffset += bytesRead;
             }
 
@@ -145,55 +144,41 @@ public sealed class RowIndexer : RowIndexerBase
         }
     }
 
-    private void ProcessBuffer(
+    private long ProcessBuffer(
         ReadOnlySpan<byte> buffer,
-        ref long fileOffset,
-        ref long rowCount,
-        ref RowScanner scanner
+        long fileOffset,
+        long rowCount
     )
     {
         var position = 0;
 
         while (position < buffer.Length)
         {
-            var remainingSpan = buffer[position..];
-            var (lineCompleted, bytesConsumed) = scanner.FindNextLineLength(remainingSpan);
-
-            // bytesConsumed should always be > 0 when remainingSpan is not empty
-            if (bytesConsumed <= 0)
+            var index = buffer[position..].IndexOf((byte)'\n');
+            if (index == -1)
             {
-                throw new InvalidDataException(
-                    $"FindNextLineLength returned non-positive bytesConsumed ({bytesConsumed}) "
-                        + $"for a non-empty span (length={remainingSpan.Length}) at position={position}, "
-                        + $"fileOffset={fileOffset}"
-                );
+                break;
             }
 
-            // Always advance position by the number of bytes consumed
-            position += bytesConsumed;
+            position += index + 1;
+            rowCount++;
 
-            if (lineCompleted)
+            if (rowCount % CheckPointInterval == 0)
             {
-                // A complete line was found (ending with an unescaped newline)
-                rowCount++;
+                Interlocked.Exchange(ref _totalRows, rowCount);
 
-                if (rowCount % CheckPointInterval == 0)
+                var checkpointOffset = fileOffset + position;
+                lock (_lock)
                 {
-                    // Update _totalRows for progress tracking (every 1000 rows)
-                    Interlocked.Exchange(ref _totalRows, rowCount);
-
-                    // Store checkpoint every N rows
-                    var checkpointOffset = fileOffset + position;
-                    lock (_lock)
-                    {
-                        _checkpoints.Add(checkpointOffset);
-                    }
-
-                    OnFirstCheckpointReached();
-
-                    OnProgressChanged(Interlocked.Read(ref _bytesRead), FileSize);
+                    _checkpoints.Add(checkpointOffset);
                 }
+
+                OnFirstCheckpointReached();
+
+                OnProgressChanged(Interlocked.Read(ref _bytesRead), FileSize);
             }
         }
+
+        return rowCount;
     }
 }

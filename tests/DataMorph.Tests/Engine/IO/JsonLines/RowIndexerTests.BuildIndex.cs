@@ -415,4 +415,21 @@ public sealed partial class RowIndexerTests
         // Assert
         indexer.FileSize.Should().Be(expectedFileSize);
     }
+
+    [Fact]
+    public void BuildIndex_WithMalformedLine_LiteralNewlineCountedAsRowSeparator()
+    {
+        // Arrange
+        // First line has unclosed quote with literal newline, second line is valid
+        var content = "{\"text\":\"malformed line\n{\"id\":2,\"name\":\"Bob\"}\n";
+        File.WriteAllText(_testFilePath, content);
+        var indexer = new RowIndexer(_testFilePath);
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        // Literal newline should be counted as row separator even with unclosed quote
+        indexer.TotalRows.Should().Be(2);
+    }
 }

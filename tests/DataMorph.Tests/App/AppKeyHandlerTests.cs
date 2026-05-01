@@ -69,7 +69,7 @@ public sealed class AppKeyHandlerTests
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
         using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
@@ -89,7 +89,7 @@ public sealed class AppKeyHandlerTests
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         using var view = new TestTableView { Table = null };
         window.Add(view);
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
@@ -111,7 +111,7 @@ public sealed class AppKeyHandlerTests
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         using var view = new TestTableView { Table = new TestTableSource() };
         window.Add(view);
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
@@ -133,7 +133,7 @@ public sealed class AppKeyHandlerTests
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         using var view = new TestTableView
         {
             Table = new TestTableSource(),
@@ -159,14 +159,14 @@ public sealed class AppKeyHandlerTests
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         using var view = new TestTableView
         {
             Table = new TestTableSource(),
             GetRawColumnName = _ => "test",
             OnMorphAction = _ => { }
         };
-        view.SelectedColumn = -1;
+        view.Value = null;
         window.Add(view);
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
@@ -187,7 +187,7 @@ public sealed class AppKeyHandlerTests
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
         using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);

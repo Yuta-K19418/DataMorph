@@ -40,6 +40,11 @@ internal sealed class MainWindow : Window
     )]
     private Label? _progressLabel;
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
+    )]
     private StatusBar? _statusBar;
 
     public MainWindow(IApplication app, AppState state)
@@ -53,7 +58,7 @@ internal sealed class MainWindow : Window
         Width = Dim.Fill();
         Height = Dim.Fill();
 
-        _viewManager = new ViewManager(this, state, _modeController);
+        _viewManager = new ViewManager(this, state, _modeController, app.Invoke);
 
         _fileDialogHandler = new FileDialogHandler(app, state, _viewManager, StartIndexing);
         _recipeCommandHandler = new RecipeCommandHandler(app, state, _viewManager);
@@ -118,7 +123,6 @@ internal sealed class MainWindow : Window
             _indexTaskManager.Dispose();
             _state.Dispose();
             _viewManager.Dispose();
-            _statusBar?.Dispose();
         }
         base.Dispose(disposing);
     }

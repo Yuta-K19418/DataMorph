@@ -91,11 +91,15 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
     /// </summary>
     internal string[] RawColumnNames => _rawColumnNames;
 
+    private bool _disposed;
+
     /// <inheritdoc/>
     public object this[int row, int col]
     {
         get
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
             if (row < 0 || row >= Rows)
             {
                 throw new ArgumentOutOfRangeException(nameof(row));
@@ -322,9 +326,16 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
         if (_source is IDisposable d)
         {
             d.Dispose();
         }
+
+        _disposed = true;
     }
 }

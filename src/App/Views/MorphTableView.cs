@@ -41,6 +41,20 @@ internal abstract class MorphTableView : TableView
 
         var action = _vimKeys.Translate(key.KeyCode);
 
+        void moveToRow(int row)
+        {
+            // Cannot use Command.Start/End as they reset the column to 0 or rightmost.
+            // We need to preserve the current column while moving rows.
+            if (Value is null)
+            {
+                return;
+            }
+
+            SetSelection(col: Value.Cursor.X, row: row, extendExistingSelection: false);
+            Update();
+            SetNeedsDraw();
+        }
+
         static bool execute(Action a)
         {
             a();
@@ -49,14 +63,14 @@ internal abstract class MorphTableView : TableView
 
         return action switch
         {
-            VimAction.MoveDown => execute(() => ChangeSelectionByOffset(0, 1, false)),
-            VimAction.MoveUp => execute(() => ChangeSelectionByOffset(0, -1, false)),
-            VimAction.MoveLeft => execute(() => ChangeSelectionByOffset(-1, 0, false)),
-            VimAction.MoveRight => execute(() => ChangeSelectionByOffset(1, 0, false)),
-            VimAction.PageDown => execute(() => ChangeSelectionByOffset(0, Viewport.Height, false)),
-            VimAction.PageUp => execute(() => ChangeSelectionByOffset(0, -Viewport.Height, false)),
-            VimAction.GoToFirst => execute(() => ChangeSelectionByOffset(0, -SelectedRow, false)),
-            VimAction.GoToEnd => execute(() => ChangeSelectionByOffset(0, Table.Rows - 1 - SelectedRow, false)),
+            VimAction.MoveDown => execute(() => InvokeCommand(Command.Down)),
+            VimAction.MoveUp => execute(() => InvokeCommand(Command.Up)),
+            VimAction.MoveLeft => execute(() => InvokeCommand(Command.Left)),
+            VimAction.MoveRight => execute(() => InvokeCommand(Command.Right)),
+            VimAction.PageDown => execute(() => InvokeCommand(Command.PageDown)),
+            VimAction.PageUp => execute(() => InvokeCommand(Command.PageUp)),
+            VimAction.GoToFirst => execute(() => moveToRow(0)),
+            VimAction.GoToEnd => execute(() => moveToRow(Table.Rows - 1)),
             VimAction.PendingGSequence => true,
             _ => HandleNonVimKey(key),
         };
@@ -76,9 +90,25 @@ internal abstract class MorphTableView : TableView
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing && Table is IDisposable disposableTable)
+        if (disposing)
         {
-            disposableTable.Dispose();
+            // Idiomatic safe disposal sequence:
+            // Unbind data source
+            IDisposable? tableToDispose = null;
+            if (Table is IDisposable d)
+            {
+                tableToDispose = d;
+            }
+            Table = null;
+
+            // Clear selection state (critical to prevent RenderRow crash)
+            Value = null;
+
+            // Mark for redraw
+            SetNeedsDraw();
+
+            // Dispose data source safely
+            tableToDispose?.Dispose();
         }
 
         base.Dispose(disposing);

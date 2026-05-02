@@ -87,6 +87,6 @@ internal sealed class HelpDialog : Dialog
             return true;
         }
 
-        return base.OnKeyDown(key);
+        return false;
     }
 }

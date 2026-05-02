@@ -42,7 +42,7 @@ public sealed class FileDialogHandlerTests : IDisposable
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
 
         // Act
         Action act = () =>
@@ -62,7 +62,7 @@ public sealed class FileDialogHandlerTests : IDisposable
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
 
         IRowIndexer? capturedIndexer = null;
         var handler = new FileDialogHandler(app, state, viewManager, indexer =>
@@ -73,7 +73,10 @@ public sealed class FileDialogHandlerTests : IDisposable
         });
 
         // Act
+        app.Begin(window);
         await handler.HandleFileSelectedAsync(_testFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
 
         // Assert
         state.CurrentMode.Should().Be(ViewMode.JsonLinesTree);
@@ -90,7 +93,7 @@ public sealed class FileDialogHandlerTests : IDisposable
         using var state = new AppState();
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         viewManager.SwitchToFileSelection(); // Ensure initial view is not null
 
         var tcs = new TaskCompletionSource();
@@ -101,8 +104,13 @@ public sealed class FileDialogHandlerTests : IDisposable
         });
 
         // Act
+        app.Begin(window);
         var handleTask = handler.HandleFileSelectedAsync(_testFile);
         await tcs.Task; // Wait until _onIndexerStart is called
+
+        // Process any potential early Invokes
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
 
         // Assert
         state.CurrentMode.Should().NotBe(ViewMode.JsonLinesTree);

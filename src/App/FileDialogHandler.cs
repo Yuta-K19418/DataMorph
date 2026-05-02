@@ -68,64 +68,83 @@ internal sealed class FileDialogHandler(
             try
             {
                 var schema = await schemaScanner.InitialScanAsync();
-                if (schema.Columns.Count == 0)
+                _app.Invoke(() =>
                 {
-                    _viewManager.ShowError("File contains no data");
-                    return;
-                }
+                    if (schema.Columns.Count == 0)
+                    {
+                        _viewManager.ShowError("File contains no data");
+                        return;
+                    }
 
-                _state.Schema = schema;
-                _state.RowIndexer = indexer;
-                _state.CsvSchemaScanner = schemaScanner;
-                _state.CurrentMode = ViewMode.CsvTable;
+                    _state.Schema = schema;
+                    _state.RowIndexer = indexer;
+                    _state.CsvSchemaScanner = schemaScanner;
+                    _state.CurrentMode = ViewMode.CsvTable;
 
-                _viewManager.SwitchToCsvTable(indexer, schema);
+                    _viewManager.SwitchToCsvTable(indexer, schema);
 
-                _ = schemaScanner
-                    .StartBackgroundScanAsync(schema, _state.Cts.Token)
-                    .ContinueWith(
-                        t =>
-                        {
-                            if (!t.IsCompletedSuccessfully)
+                    _ = schemaScanner
+                        .StartBackgroundScanAsync(schema, _state.Cts.Token)
+                        .ContinueWith(
+                            t =>
                             {
-                                return;
-                            }
+                                if (!t.IsCompletedSuccessfully)
+                                {
+                                    return;
+                                }
 
-                            _state.Schema = t.Result;
-                            _state.OnSchemaRefined?.Invoke(t.Result);
-                        },
-                        TaskScheduler.Default
-                    );
+                                _app.Invoke(() =>
+                                {
+                                    _state.Schema = t.Result;
+                                    _state.OnSchemaRefined?.Invoke(t.Result);
+                                });
+                            },
+                            TaskScheduler.Default
+                        );
 
-                _onIndexerStart(indexer);
+                    _onIndexerStart(indexer);
+                });
                 return;
             }
 #pragma warning disable CA1031 // UI top-level handler
             catch (Exception ex)
 #pragma warning restore CA1031
             {
-                _viewManager.ShowError($"Error scanning CSV: {ex.Message}");
+                _app.Invoke(() => _viewManager.ShowError($"Error scanning CSV: {ex.Message}"));
                 return;
             }
         }
 
         if (format == DataFormat.JsonLines)
         {
-            _state.RowIndexer = indexer;
-            _state.JsonLinesSchemaScanner = null;
-            _state.Schema = null;
-            _state.OnSchemaRefined = null;
+            try
+            {
+                _state.RowIndexer = indexer;
+                _state.JsonLinesSchemaScanner = null;
+                _state.Schema = null;
+                _state.OnSchemaRefined = null;
 
-            var tcs = new TaskCompletionSource(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-            indexer.FirstCheckpointReached += () => tcs.TrySetResult();
+                var tcs = new TaskCompletionSource(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                indexer.FirstCheckpointReached += () => tcs.TrySetResult();
 
-            _onIndexerStart(indexer);
-            await tcs.Task;
+                _onIndexerStart(indexer);
+                await tcs.Task;
 
-            _state.CurrentMode = ViewMode.JsonLinesTree;
-            _viewManager.SwitchToJsonLinesTree(indexer);
-            return;
+                _app.Invoke(() =>
+                {
+                    _state.CurrentMode = ViewMode.JsonLinesTree;
+                    _viewManager.SwitchToJsonLinesTree(indexer);
+                });
+                return;
+            }
+#pragma warning disable CA1031 // UI top-level handler
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Lines: {ex.Message}"));
+                return;
+            }
         }
 
         _onIndexerStart(indexer);

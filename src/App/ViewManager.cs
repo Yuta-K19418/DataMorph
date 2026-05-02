@@ -23,17 +23,20 @@ internal sealed class ViewManager : IDisposable
     private readonly Window _container;
     private readonly AppState _state;
     private readonly ModeController _modeController;
+    private readonly Action<Action> _uiThreadInvoke;
     private View? _currentView;
     private bool _disposed;
 
-    internal ViewManager(Window container, AppState state, ModeController modeController)
+    internal ViewManager(Window container, AppState state, ModeController modeController, Action<Action> uiThreadInvoke)
     {
         ArgumentNullException.ThrowIfNull(container);
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(modeController);
+        ArgumentNullException.ThrowIfNull(uiThreadInvoke);
         _container = container;
         _state = state;
         _modeController = modeController;
+        _uiThreadInvoke = uiThreadInvoke;
     }
 
     /// <summary>
@@ -89,26 +92,29 @@ internal sealed class ViewManager : IDisposable
     {
         var result = await _modeController.ToggleJsonLinesModeAsync();
 
-        if (result.IsFailure)
+        _uiThreadInvoke(() =>
         {
-            ShowError(result.Error);
-            RefreshStatusBarHints();
-            return;
-        }
+            if (result.IsFailure)
+            {
+                ShowError(result.Error);
+                RefreshStatusBarHints();
+                return;
+            }
 
-        if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.RowIndexer is not null)
-        {
-            SwitchToJsonLinesTree(_state.RowIndexer);
-            return;
-        }
+            if (_state.CurrentMode == ViewMode.JsonLinesTree && _state.RowIndexer is not null)
+            {
+                SwitchToJsonLinesTree(_state.RowIndexer);
+                return;
+            }
 
-        if (
-            _state.CurrentMode == ViewMode.JsonLinesTable
-            && _state.RowIndexer is not null
-            && _state.Schema is not null)
-        {
-            SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
-        }
+            if (
+                _state.CurrentMode == ViewMode.JsonLinesTable
+                && _state.RowIndexer is not null
+                && _state.Schema is not null)
+            {
+                SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
+            }
+        });
     }
 
     /// <summary>
@@ -170,7 +176,9 @@ internal sealed class ViewManager : IDisposable
             OnMorphAction = HandleMorphAction,
             GetRawColumnName = getRawColumnName,
         };
+        SetInitialSelectionWhenReady(view, indexer);
         SwapView(view);
+        view.SetFocus();
         RefreshStatusBarHints();
 
         if (source is Views.LazyTransformer { FilterRowIndexer: { } filterIndexer })
@@ -258,7 +266,9 @@ internal sealed class ViewManager : IDisposable
             OnMorphAction = HandleMorphAction,
             GetRawColumnName = getRawColumnName,
         };
+        SetInitialSelectionWhenReady(view, indexer);
         SwapView(view);
+        view.SetFocus();
         RefreshStatusBarHints();
 
         if (tableSource is Views.LazyTransformer { FilterRowIndexer: { } filterIndexer })
@@ -316,6 +326,37 @@ internal sealed class ViewManager : IDisposable
         var view = Views.PlaceholderView.Create(_state);
         view.Text = message;
         SwapView(view);
+    }
+
+    private void SetInitialSelectionWhenReady(MorphTableView view, IRowIndexer indexer)
+    {
+        if (indexer.TotalRows > 0)
+        {
+            view.SetSelection(0, 0, false);
+            view.Update();
+            return;
+        }
+
+        void onReady()
+        {
+            // Unsubscribe immediately to ensure initial selection logic runs only once
+            // and to release the captured view reference for garbage collection.
+            indexer.FirstCheckpointReached -= onReady;
+
+            _uiThreadInvoke(() =>
+            {
+                // Only set if this view is still active and the user hasn't moved the cursor yet
+                if (_currentView == view && view.Table is not null && view.Table.Rows > 0
+                    && (view.Value is null || view.Value.Cursor.Y <= 0))
+                {
+                    view.SetSelection(0, 0, false);
+                    view.Update();
+                    view.SetNeedsDraw();
+                }
+            });
+        }
+
+        indexer.FirstCheckpointReached += onReady;
     }
 
     private void SwapView(View newView)

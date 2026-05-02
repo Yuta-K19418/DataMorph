@@ -23,7 +23,7 @@ public sealed class RecipeCommandHandlerTests
         using var state = new AppState { CurrentMode = ViewMode.FileSelection };
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         var handler = new RecipeCommandHandler(app, state, viewManager);
 
         // Act
@@ -41,7 +41,7 @@ public sealed class RecipeCommandHandlerTests
         using var state = new AppState { CurrentFilePath = string.Empty };
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
         var handler = new RecipeCommandHandler(app, state, viewManager);
 
         // Act

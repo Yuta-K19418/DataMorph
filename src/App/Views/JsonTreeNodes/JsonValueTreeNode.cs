@@ -14,8 +14,8 @@ internal sealed class JsonValueTreeNode : TreeNode
     /// </summary>
     /// <param name="text">The display text for this value node.</param>
     public JsonValueTreeNode(string text)
-        : base(text)
     {
+        Text = text;
         Children = [];
     }
 

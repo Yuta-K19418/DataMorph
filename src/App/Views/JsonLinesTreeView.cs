@@ -32,18 +32,24 @@ internal sealed class JsonLinesTreeView : TreeView
         _onTableModeToggle = onTableModeToggle;
         LoadInitialRootNodes();
 
-        ObjectActivated += OnObjectActivated;
+        Accepted += OnAccepted;
     }
 
-    private void OnObjectActivated(object? sender, ObjectActivatedEventArgs<ITreeNode> e)
+    private void OnAccepted(object? sender, CommandEventArgs e)
     {
-        if (IsExpanded(e.ActivatedObject))
+        var node = SelectedObject;
+        if (node is null)
         {
-            Collapse(e.ActivatedObject);
             return;
         }
 
-        Expand(e.ActivatedObject);
+        if (IsExpanded(node))
+        {
+            Collapse(node);
+            return;
+        }
+
+        Expand(node);
     }
 
     private void LoadInitialRootNodes()

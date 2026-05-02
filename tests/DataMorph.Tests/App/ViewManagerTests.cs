@@ -28,7 +28,7 @@ public sealed class ViewManagerTests
         using var statusBar = new StatusBar();
         window.Add(statusBar);
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
 
         // Act
         viewManager.RefreshStatusBarHints();
@@ -58,7 +58,7 @@ public sealed class ViewManagerTests
             using var statusBar = new StatusBar();
             window.Add(statusBar);
             var modeController = new ModeController(state);
-            using var viewManager = new ViewManager(window, state, modeController);
+            using var viewManager = new ViewManager(window, state, modeController, action => action());
 
             // Act
             viewManager.RefreshStatusBarHints();
@@ -96,7 +96,7 @@ public sealed class ViewManagerTests
             using var statusBar = new StatusBar();
             window.Add(statusBar);
             var modeController = new ModeController(state);
-            using var viewManager = new ViewManager(window, state, modeController);
+            using var viewManager = new ViewManager(window, state, modeController, action => action());
 
             // Act
             viewManager.RefreshStatusBarHints();
@@ -132,7 +132,7 @@ public sealed class ViewManagerTests
             using var statusBar = new StatusBar();
             window.Add(statusBar);
             var modeController = new ModeController(state);
-            using var viewManager = new ViewManager(window, state, modeController);
+            using var viewManager = new ViewManager(window, state, modeController, action => action());
 
             var schema = new TableSchema
             {
@@ -174,7 +174,7 @@ public sealed class ViewManagerTests
         };
         using var window = new Window();
         var modeController = new ModeController(state);
-        using var viewManager = new ViewManager(window, state, modeController);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
 
         // Act
         await viewManager.ToggleJsonLinesModeAsync();
@@ -196,7 +196,7 @@ public sealed class ViewManagerTests
             using var state = new AppState { CurrentFilePath = filePath, CurrentMode = ViewMode.JsonLinesTable };
             using var window = new Window();
             var modeController = new ModeController(state);
-            using var viewManager = new ViewManager(window, state, modeController);
+            using var viewManager = new ViewManager(window, state, modeController, action => action());
 
             // Setup a valid table state
             var schema = new TableSchema
@@ -235,7 +235,7 @@ public sealed class ViewManagerTests
             using var state = new AppState { CurrentFilePath = filePath, CurrentMode = ViewMode.JsonLinesTree };
             using var window = new Window();
             var modeController = new ModeController(state);
-            using var viewManager = new ViewManager(window, state, modeController);
+            using var viewManager = new ViewManager(window, state, modeController, action => action());
 
             // Setup a valid tree state
             var schema = new TableSchema

@@ -16,7 +16,7 @@ public sealed class HelpDialogTests
     }
 
     [Fact]
-    public void OnKeyDown_WithEscKey_CallsRequestStop()
+    public void OnKeyDown_WithEscKey_ReturnsTrue()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -31,7 +31,7 @@ public sealed class HelpDialogTests
     }
 
     [Fact]
-    public void OnKeyDown_WithQKey_CallsRequestStop()
+    public void OnKeyDown_WithQKey_ReturnsTrue()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -46,7 +46,7 @@ public sealed class HelpDialogTests
     }
 
     [Fact]
-    public void OnKeyDown_WithLowercaseQKey_CallsRequestStop()
+    public void OnKeyDown_WithLowercaseQKey_ReturnsTrue()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -61,7 +61,7 @@ public sealed class HelpDialogTests
     }
 
     [Fact]
-    public void OnKeyDown_WithQuestionMarkKey_CallsRequestStop()
+    public void OnKeyDown_WithQuestionMarkKey_ReturnsTrue()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -90,7 +90,7 @@ public sealed class HelpDialogTests
     }
 
     [Fact]
-    public void OnKeyDown_WithOtherKey_DoesNotCallRequestStop()
+    public void OnKeyDown_WithOtherKey_DoesNotCloseDialog()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -98,9 +98,10 @@ public sealed class HelpDialogTests
 
         // Act
         app.Begin(dialog);
-        var handled = dialog.NewKeyDownEvent(Key.A);
+        _ = dialog.NewKeyDownEvent(Key.A);
 
         // Assert
-        handled.Should().BeFalse();
+        // Verify that the dialog remains as the TopRunnableView
+        app.TopRunnableView.Should().Be(dialog);
     }
 }

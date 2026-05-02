@@ -166,13 +166,13 @@ internal sealed class AppKeyHandler : IDisposable
         }
 
         if (mt.Table is null || mt.GetRawColumnName is null
-            || mt.OnMorphAction is null || mt.SelectedColumn < 0)
+            || mt.OnMorphAction is null || mt.Value is null)
         {
             return false;
         }
 
         var handler = new ColumnActionHandler(
-            _app, mt.Table, mt.SelectedColumn,
+            _app, mt.Table, mt.Value.Cursor.X,
             mt.GetRawColumnName, mt.OnMorphAction, mt.IsRowIndexComplete);
 
         using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);

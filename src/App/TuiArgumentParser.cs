@@ -7,12 +7,10 @@ namespace DataMorph.App;
 /// Accepts optional flags: <c>--file</c> and <c>--recipe</c>.
 /// Unknown flags are rejected.
 /// </summary>
-#pragma warning disable CA1823
 internal static class TuiArgumentParser
 {
     private const string FileFlag = "--file";
     private const string RecipeFlag = "--recipe";
-#pragma warning restore CA1823
 
     /// <summary>
     /// Parses the given command-line argument array into a <see cref="TuiStartupOptions"/> record.
@@ -24,6 +22,64 @@ internal static class TuiArgumentParser
     /// </returns>
     internal static Result<TuiStartupOptions> Parse(IReadOnlyList<string> args)
     {
-        throw new NotImplementedException();
+        string? inputFile = null;
+        string? recipeFile = null;
+
+        var argsIndex = 0;
+        while (argsIndex < args.Count)
+        {
+            var arg = args[argsIndex];
+
+            if (arg == FileFlag)
+            {
+                argsIndex++;
+                var consumeResult = ConsumeValue(args, argsIndex, FileFlag, inputFile);
+                if (consumeResult.IsFailure)
+                {
+                    return Results.Failure<TuiStartupOptions>(consumeResult.Error);
+                }
+                inputFile = args[argsIndex++];
+                continue;
+            }
+
+            if (arg == RecipeFlag)
+            {
+                argsIndex++;
+                var consumeResult = ConsumeValue(args, argsIndex, RecipeFlag, recipeFile);
+                if (consumeResult.IsFailure)
+                {
+                    return Results.Failure<TuiStartupOptions>(consumeResult.Error);
+                }
+                recipeFile = args[argsIndex++];
+                continue;
+            }
+
+            if (arg.StartsWith("--", StringComparison.Ordinal))
+            {
+                return Results.Failure<TuiStartupOptions>(
+                    $"Unknown option: {arg}");
+            }
+
+            argsIndex++;
+        }
+
+        return Results.Success(new TuiStartupOptions(inputFile, recipeFile));
+    }
+
+    private static Result ConsumeValue(IReadOnlyList<string> args, int currentIndex, string flag, string? currentValue)
+    {
+        if (currentValue is not null)
+        {
+            return Results.Failure(
+                $"{flag} specified more than once.");
+        }
+
+        if (currentIndex >= args.Count || args[currentIndex].StartsWith("--", StringComparison.Ordinal))
+        {
+            return Results.Failure(
+                $"{flag} requires a value.");
+        }
+
+        return Results.Success();
     }
 }

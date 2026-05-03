@@ -248,11 +248,26 @@ internal sealed class MainWindow : Window
 
     internal void ScheduleStartupLoad(TuiStartupOptions options)
     {
-        throw new NotImplementedException();
+        if (options.InputFile is null)
+        {
+            return;
+        }
+
+        _app.Invoke(() => { _ = ExecuteStartupLoadAsync(options.InputFile, options.RecipeFile); });
     }
 
-    private Task ExecuteStartupLoadAsync(string inputFile, string? recipeFile)
+    private async Task ExecuteStartupLoadAsync(string inputFile, string? recipeFile)
     {
-        throw new NotImplementedException();
+        await _fileDialogHandler.HandleFileSelectedAsync(inputFile);
+
+        if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))
+        {
+            return;
+        }
+
+        if (recipeFile is not null)
+        {
+            await _recipeCommandHandler.LoadFromPathAsync(recipeFile);
+        }
     }
 }

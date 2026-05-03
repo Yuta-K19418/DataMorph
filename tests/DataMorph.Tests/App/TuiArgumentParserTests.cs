@@ -1,3 +1,4 @@
+using AwesomeAssertions;
 using DataMorph.App;
 
 namespace DataMorph.Tests.App;
@@ -14,6 +15,9 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.InputFile.Should().BeNull();
+        result.Value.RecipeFile.Should().BeNull();
     }
 
     [Fact]
@@ -26,6 +30,9 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.InputFile.Should().Be("path.csv");
+        result.Value.RecipeFile.Should().BeNull();
     }
 
     [Fact]
@@ -38,6 +45,9 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.InputFile.Should().BeNull();
+        result.Value.RecipeFile.Should().Be("recipe.yaml");
     }
 
     [Fact]
@@ -50,6 +60,9 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.InputFile.Should().Be("path.csv");
+        result.Value.RecipeFile.Should().Be("recipe.yaml");
     }
 
     [Fact]
@@ -62,6 +75,8 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("--file");
     }
 
     [Fact]
@@ -74,6 +89,8 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("--recipe");
     }
 
     [Fact]
@@ -86,6 +103,8 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("--unknown");
     }
 
     [Fact]
@@ -98,6 +117,9 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.InputFile.Should().Be("path.csv");
+        result.Value.RecipeFile.Should().Be("recipe.yaml");
     }
 
     [Fact]
@@ -110,6 +132,8 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("--file");
     }
 
     [Fact]
@@ -122,6 +146,8 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("--recipe");
     }
 
     [Fact]
@@ -134,5 +160,8 @@ public sealed class TuiArgumentParserTests
         var result = TuiArgumentParser.Parse(args);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.InputFile.Should().Be("my file.csv");
+        result.Value.RecipeFile.Should().BeNull();
     }
 }

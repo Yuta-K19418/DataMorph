@@ -1,8 +1,6 @@
-using DataMorph.App.Schema.Csv;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
-using JsonLinesSchema = DataMorph.App.Schema.JsonLines;
 
 namespace DataMorph.App;
 
@@ -36,21 +34,9 @@ internal sealed class AppState : IDisposable
     public IRowIndexer? RowIndexer { get; set; }
 
     /// <summary>
-    /// Gets or sets the incremental schema scanner for background schema refinement.
-    /// Null if no CSV file is loaded.
-    /// </summary>
-    public IncrementalSchemaScanner? CsvSchemaScanner { get; set; }
-
-    /// <summary>
     /// Gets or sets the cancellation token source for the background schema scanner.
     /// </summary>
-    public CancellationTokenSource Cts { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the JSON Lines schema scanner for the current file.
-    /// Null until the user switches to Table mode for the first time (lazy initialization).
-    /// </summary>
-    public JsonLinesSchema.IncrementalSchemaScanner? JsonLinesSchemaScanner { get; set; }
+    public CancellationTokenSource Cts { get; private set; } = new();
 
     /// <summary>
     /// Gets or sets the callback invoked when the background schema scan completes.
@@ -64,6 +50,20 @@ internal sealed class AppState : IDisposable
     /// An empty list means no transformations are active (passthrough).
     /// </summary>
     public IReadOnlyList<MorphAction> ActionStack { get; set; } = [];
+
+    /// <summary>
+    /// Renews the cancellation token source by cancelling the current one and creating a new one.
+    /// This should be called when loading a new file to ensure the previous file's background scan
+    /// is cancelled and does not interfere with the new file.
+    /// </summary>
+    public void RenewCtsWithCancel()
+    {
+        // Cancel must precede Dispose: any captured CancellationToken derived from the old Cts
+        // will reflect IsCancellationRequested = true, keeping polling-based checks safe after disposal.
+        Cts.Cancel();
+        Cts.Dispose();
+        Cts = new CancellationTokenSource();
+    }
 
     /// <summary>
     /// Appends a morph action to the Action Stack.

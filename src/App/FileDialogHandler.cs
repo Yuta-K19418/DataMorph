@@ -57,6 +57,7 @@ internal sealed class FileDialogHandler(
         // Reset state for new file
         _state.CurrentFilePath = path;
         _state.ActionStack = [];
+        _state.RenewCtsWithCancel();
 
         // Create indexer from factory
         var indexer = RowIndexerFactory.Create(format, path);
@@ -78,7 +79,6 @@ internal sealed class FileDialogHandler(
 
                     _state.Schema = schema;
                     _state.RowIndexer = indexer;
-                    _state.CsvSchemaScanner = schemaScanner;
                     _state.CurrentMode = ViewMode.CsvTable;
 
                     _viewManager.SwitchToCsvTable(indexer, schema);
@@ -120,7 +120,6 @@ internal sealed class FileDialogHandler(
             try
             {
                 _state.RowIndexer = indexer;
-                _state.JsonLinesSchemaScanner = null;
                 _state.Schema = null;
                 _state.OnSchemaRefined = null;
 

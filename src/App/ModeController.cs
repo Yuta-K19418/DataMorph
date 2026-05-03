@@ -1,5 +1,5 @@
+using DataMorph.App.Schema.JsonLines;
 using DataMorph.Engine;
-using JsonLinesSchema = DataMorph.App.Schema.JsonLines;
 
 namespace DataMorph.App;
 
@@ -40,7 +40,7 @@ internal sealed class ModeController
         }
 
         // Subsequent switch: reuse cached schema
-        if (_state.JsonLinesSchemaScanner is not null && _state.Schema is not null)
+        if (_state.Schema is not null)
         {
             _state.CurrentMode = ViewMode.JsonLinesTable;
             return Results.Success();
@@ -52,13 +52,12 @@ internal sealed class ModeController
             return Results.Failure("No file is currently open");
         }
 
-        var scanner = new JsonLinesSchema.IncrementalSchemaScanner(_state.CurrentFilePath);
+        var scanner = new IncrementalSchemaScanner(_state.CurrentFilePath);
 
         try
         {
             var schema = await scanner.InitialScanAsync();
             _state.Schema = schema;
-            _state.JsonLinesSchemaScanner = scanner;
             _state.CurrentMode = ViewMode.JsonLinesTable;
 
             _ = scanner

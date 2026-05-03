@@ -6,15 +6,12 @@ namespace DataMorph.App.Schema.Csv;
 
 /// <summary>
 /// Performs incremental schema inference for CSV files.
-/// - Initial scan: first 200 rows (synchronous)
-/// - Background scan: remaining rows (asynchronous)
+/// - Initial scan: first 200 rows
+/// - Background scan: remaining rows in batches of 1000
 /// - Thread-safe schema updates via Copy-on-Write
 /// </summary>
-internal sealed class IncrementalSchemaScanner
+internal sealed class IncrementalSchemaScanner : IncrementalSchemaScannerBase
 {
-    private const int InitialScanCount = 200;
-    private const int BackgroundBatchSize = 1000;
-
     private readonly string _filePath;
 
     /// <summary>
@@ -26,59 +23,30 @@ internal sealed class IncrementalSchemaScanner
         _filePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
     }
 
-    /// <summary>
-    /// Performs initial scan on first 200 rows synchronously.
-    /// Must be awaited before UI can display schema.
-    /// </summary>
-    public async Task<TableSchema> InitialScanAsync()
+    /// <inheritdoc/>
+    protected override TableSchema ExecuteInitialScan()
     {
-        return await Task.Run(() =>
+        var rows = ReadRows(0, InitialScanCount);
+        var columnNames = ReadColumnNames();
+        var scanResult = SchemaScanner.ScanSchema(columnNames, rows, InitialScanCount);
+
+        if (scanResult.IsFailure)
         {
-            var rows = ReadRows(0, InitialScanCount);
-            var columnNames = ReadColumnNames();
-            var scanResult = SchemaScanner.ScanSchema(columnNames, rows, InitialScanCount);
+            throw new InvalidOperationException(scanResult.Error);
+        }
 
-            if (scanResult.IsFailure)
-            {
-                throw new InvalidOperationException(scanResult.Error);
-            }
-
-            return scanResult.Value;
-        });
+        return scanResult.Value;
     }
 
-    /// <summary>
-    /// Starts background scan from row 201 onwards.
-    /// Fire-and-forget - returns Task but should not be awaited.
-    /// </summary>
-    public Task<TableSchema> StartBackgroundScanAsync(
+    /// <inheritdoc/>
+    protected override TableSchema ExecuteBackgroundScan(
         TableSchema currentSchema,
-        CancellationToken cancellationToken
-    )
-    {
-        return Task.Run(
-            () =>
-            {
-                try
-                {
-                    return ProcessRemainingRows(currentSchema, cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected when cancelled
-                    return currentSchema;
-                }
-            },
-            cancellationToken
-        );
-    }
-
-    private TableSchema ProcessRemainingRows(TableSchema currentSchema, CancellationToken token)
+        CancellationToken cancellationToken)
     {
         var rowIndex = InitialScanCount;
         var refinedSchema = currentSchema;
 
-        while (!token.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             var rows = ReadRows(rowIndex, BackgroundBatchSize);
             if (rows.Count == 0)
@@ -88,7 +56,7 @@ internal sealed class IncrementalSchemaScanner
 
             foreach (var row in rows)
             {
-                if (token.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }

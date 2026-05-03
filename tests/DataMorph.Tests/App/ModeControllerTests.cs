@@ -75,7 +75,6 @@ public sealed class ModeControllerTests : IDisposable
     public async Task ToggleJsonLinesModeAsync_WithCachedSchema_ReusesSchema()
     {
         // Arrange
-        var cachedScanner = new DataMorph.App.Schema.JsonLines.IncrementalSchemaScanner(_jsonlFilePath);
         var cachedSchema = new DataMorph.Engine.Models.TableSchema
         {
             Columns = [new DataMorph.Engine.Models.ColumnSchema { Name = "id", Type = DataMorph.Engine.Types.ColumnType.WholeNumber }],
@@ -87,7 +86,6 @@ public sealed class ModeControllerTests : IDisposable
             CurrentFilePath = _jsonlFilePath,
             CurrentMode = ViewMode.JsonLinesTree,
             RowIndexer = new RowIndexer(_jsonlFilePath),
-            JsonLinesSchemaScanner = cachedScanner,
             Schema = cachedSchema
         };
         var controller = new ModeController(state);
@@ -98,8 +96,7 @@ public sealed class ModeControllerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         state.CurrentMode.Should().Be(ViewMode.JsonLinesTable);
-        // Should have reused the cached scanner and schema
-        state.JsonLinesSchemaScanner.Should().BeSameAs(cachedScanner);
+        // Should have reused the cached schema
         state.Schema.Should().BeSameAs(cachedSchema);
     }
 
@@ -123,7 +120,6 @@ public sealed class ModeControllerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         state.CurrentMode.Should().Be(ViewMode.JsonLinesTable);
         state.Schema.Should().NotBeNull();
-        state.JsonLinesSchemaScanner.Should().NotBeNull();
     }
 
     [Fact]

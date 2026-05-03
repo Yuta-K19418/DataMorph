@@ -9,11 +9,8 @@ namespace DataMorph.App.Schema.JsonLines;
 /// - Background scan: remaining lines in batches of 1000
 /// - Thread-safe schema updates via Copy-on-Write
 /// </summary>
-internal sealed class IncrementalSchemaScanner
+internal sealed class IncrementalSchemaScanner : IncrementalSchemaScannerBase
 {
-    private const int InitialScanCount = 200;
-    private const int BackgroundBatchSize = 1000;
-
     private readonly string _filePath;
 
     /// <summary>
@@ -26,65 +23,34 @@ internal sealed class IncrementalSchemaScanner
         _filePath = filePath;
     }
 
-    /// <summary>
-    /// Performs initial scan on first 200 lines.
-    /// Reads lines directly via RowReader independent of RowIndexer to avoid race conditions.
-    /// Must be awaited before UI can display schema.
-    /// </summary>
-    public Task<TableSchema> InitialScanAsync()
+    /// <inheritdoc/>
+    protected override TableSchema ExecuteInitialScan()
     {
-        return Task.Run(() =>
-        {
-            using var reader = new RowReader(_filePath);
-            var lines = reader.ReadLineBytes(
-                byteOffset: 0,
-                linesToSkip: 0,
-                linesToRead: InitialScanCount
-            );
-            var scanResult = SchemaScanner.ScanSchema(lines, InitialScanCount);
-
-            if (scanResult.IsFailure)
-            {
-                throw new InvalidOperationException(scanResult.Error);
-            }
-
-            return scanResult.Value;
-        });
-    }
-
-    /// <summary>
-    /// Starts background scan from line 201 onwards in batches of 1000.
-    /// Calls SchemaScanner.RefineSchema() per line and returns the final refined schema.
-    /// </summary>
-    /// <param name="currentSchema">The schema produced by <see cref="InitialScanAsync"/>.</param>
-    /// <param name="cancellationToken">Token to stop the background scan.</param>
-    public Task<TableSchema> StartBackgroundScanAsync(
-        TableSchema currentSchema,
-        CancellationToken cancellationToken
-    )
-    {
-        return Task.Run(
-            () =>
-            {
-                try
-                {
-                    return ProcessRemainingLines(currentSchema, cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    return currentSchema;
-                }
-            },
-            cancellationToken
+        using var reader = new RowReader(_filePath);
+        var lines = reader.ReadLineBytes(
+            byteOffset: 0,
+            linesToSkip: 0,
+            linesToRead: InitialScanCount
         );
+        var scanResult = SchemaScanner.ScanSchema(lines, InitialScanCount);
+
+        if (scanResult.IsFailure)
+        {
+            throw new InvalidOperationException(scanResult.Error);
+        }
+
+        return scanResult.Value;
     }
 
-    private TableSchema ProcessRemainingLines(TableSchema currentSchema, CancellationToken token)
+    /// <inheritdoc/>
+    protected override TableSchema ExecuteBackgroundScan(
+        TableSchema currentSchema,
+        CancellationToken cancellationToken)
     {
         var lineIndex = InitialScanCount;
         var refinedSchema = currentSchema;
 
-        while (!token.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested)
         {
             using var reader = new RowReader(_filePath);
             var lines = reader.ReadLineBytes(
@@ -100,7 +66,7 @@ internal sealed class IncrementalSchemaScanner
 
             foreach (var line in lines)
             {
-                if (token.IsCancellationRequested)
+                if (cancellationToken.IsCancellationRequested)
                 {
                     break;
                 }

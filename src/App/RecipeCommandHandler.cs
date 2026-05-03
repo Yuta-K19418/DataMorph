@@ -89,7 +89,17 @@ internal sealed class RecipeCommandHandler(
             return;
         }
 
-        var result = await _recipeManager.LoadAsync(dialog.Path);
+        await LoadFromPathAsync(dialog.Path);
+    }
+
+    internal async ValueTask LoadFromPathAsync(string path)
+    {
+        if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))
+        {
+            throw new InvalidOperationException("Cannot load recipe: no input file is currently loaded.");
+        }
+
+        var result = await _recipeManager.LoadAsync(path);
 
         _app.Invoke(() =>
         {

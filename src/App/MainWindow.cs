@@ -245,4 +245,29 @@ internal sealed class MainWindow : Window
             _ => $"{bytes} B",
         };
     }
+
+    internal void ScheduleStartupLoad(TuiStartupOptions options)
+    {
+        if (options.InputFile is null)
+        {
+            return;
+        }
+
+        _app.Invoke(() => { _ = ExecuteStartupLoadAsync(options.InputFile, options.RecipeFile); });
+    }
+
+    private async Task ExecuteStartupLoadAsync(string inputFile, string? recipeFile)
+    {
+        await _fileDialogHandler.HandleFileSelectedAsync(inputFile);
+
+        if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))
+        {
+            return;
+        }
+
+        if (recipeFile is not null)
+        {
+            await _recipeCommandHandler.LoadFromPathAsync(recipeFile);
+        }
+    }
 }

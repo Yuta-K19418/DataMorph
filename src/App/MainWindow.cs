@@ -245,4 +245,14 @@ internal sealed class MainWindow : Window
             _ => $"{bytes} B",
         };
     }
+
+    internal void ScheduleStartupLoad(TuiStartupOptions options)
+    {
+        throw new NotImplementedException();
+    }
+
+    private Task ExecuteStartupLoadAsync(string inputFile, string? recipeFile)
+    {
+        throw new NotImplementedException();
+    }
 }

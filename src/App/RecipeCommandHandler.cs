@@ -103,4 +103,9 @@ internal sealed class RecipeCommandHandler(
             _viewManager.RefreshCurrentTableView();
         });
     }
+
+    internal ValueTask LoadFromPathAsync(string path)
+    {
+        throw new NotImplementedException();
+    }
 }

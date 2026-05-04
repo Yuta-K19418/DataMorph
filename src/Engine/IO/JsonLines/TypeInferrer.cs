@@ -1,4 +1,7 @@
+using System.Buffers;
 using System.Buffers.Text;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using DataMorph.Engine.Types;
 
@@ -23,7 +26,8 @@ public static class TypeInferrer
     /// <param name="tokenType">The current JSON token type.</param>
     /// <param name="valueSpan">
     /// The raw UTF-8 bytes of the current token value (i.e. <c>reader.ValueSpan</c>).
-    /// Only used when <paramref name="tokenType"/> is <see cref="JsonTokenType.Number"/>.
+    /// Used when <paramref name="tokenType"/> is <see cref="JsonTokenType.Number"/> or
+    /// <see cref="JsonTokenType.String"/>.
     /// </param>
     public static ColumnType InferType(JsonTokenType tokenType, ReadOnlySpan<byte> valueSpan)
     {
@@ -56,6 +60,11 @@ public static class TypeInferrer
 
         if (tokenType == JsonTokenType.String)
         {
+            if (TryParseTimestamp(valueSpan, out _))
+            {
+                return ColumnType.Timestamp;
+            }
+
             return ColumnType.Text;
         }
 
@@ -84,4 +93,37 @@ public static class TypeInferrer
     /// <param name="tokenType">The current JSON token type.</param>
     public static bool IsNullToken(JsonTokenType tokenType) =>
         tokenType == JsonTokenType.Null;
+
+    /// <summary>
+    /// Tries to parse UTF-8 bytes as Timestamp (DateTime).
+    /// Supports ISO 8601 and common date formats.
+    /// </summary>
+    /// <param name="valueSpan">The UTF-8 byte span to parse.</param>
+    /// <param name="result">The parsed DateTime value if successful.</param>
+    /// <returns>True if parsing succeeded, false otherwise.</returns>
+    public static bool TryParseTimestamp(ReadOnlySpan<byte> valueSpan, out DateTime result)
+    {
+        if (valueSpan.IsEmpty)
+        {
+            result = default;
+            return false;
+        }
+
+        var charCount = Encoding.UTF8.GetCharCount(valueSpan);
+        var buffer = ArrayPool<char>.Shared.Rent(charCount);
+        try
+        {
+            var charSpan = buffer.AsSpan(0, Encoding.UTF8.GetChars(valueSpan, buffer));
+            return DateTime.TryParse(
+                charSpan.Trim(),
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out result
+            );
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+    }
 }

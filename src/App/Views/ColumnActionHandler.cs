@@ -15,6 +15,7 @@ internal sealed class ColumnActionHandler(
     int selectedColumn,
     Func<int, string> getRawColumnName,
     Action<MorphAction> onMorphAction,
+    DataFormat format,
     Func<bool>? isRowIndexComplete = null)
 {
     private static readonly string[] _availableActions =
@@ -78,7 +79,7 @@ internal sealed class ColumnActionHandler(
     {
         var displayName = table.ColumnNames[selectedColumn];
         var rawName = getRawColumnName(selectedColumn);
-        using var dialog = new CastColumnDialog(displayName, ColumnType.Text);
+        using var dialog = new CastColumnDialog(displayName, ColumnType.Text, format);
         app.Run(dialog);
 
         if (!dialog.Confirmed || dialog.SelectedType is null)

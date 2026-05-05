@@ -7,7 +7,7 @@ namespace DataMorph.App.Views.Dialogs;
 
 /// <summary>
 /// Modal dialog for casting a column to a different data type.
-/// Displays all available <see cref="ColumnType"/> values as radio options.
+/// Displays valid <see cref="ColumnType"/> values for the current data format as radio options.
 /// </summary>
 internal sealed class CastColumnDialog : Dialog
 {
@@ -28,12 +28,13 @@ internal sealed class CastColumnDialog : Dialog
     /// </summary>
     /// <param name="columnName">The name of the column to cast.</param>
     /// <param name="currentType">The current column type, pre-selected in the option list.</param>
+    /// <param name="format">The data format of the current file.</param>
     [SuppressMessage(
         "Reliability",
         "CA2000:Dispose objects before losing scope",
         Justification = "Child views are owned by the Dialog and disposed when the Dialog is disposed."
     )]
-    internal CastColumnDialog(string columnName, ColumnType currentType)
+    internal CastColumnDialog(string columnName, ColumnType currentType, DataFormat format)
     {
         Title = "Cast Column Type";
 
@@ -56,15 +57,55 @@ internal sealed class CastColumnDialog : Dialog
             Width = Dim.Fill(),
             Value = currentType,
         };
-        Add(colLabel, typeLabel, selector);
+        selector.EnableAutoSelectAndVimKeys();
+
+        var errorLabel = new Label
+        {
+            Text = "Selected type is not supported for this format.",
+            X = 0,
+            Y = Pos.Bottom(selector) + 1,
+            Width = Dim.Fill(),
+            Visible = false,
+        };
+
+        Add(colLabel, typeLabel, selector, errorLabel);
 
         var okButton = new Button { Text = "OK" };
         var cancelButton = new Button { Text = "Cancel" };
 
-        void Confirm()
+        var validTypes = format.GetValidCastTargets();
+
+        void updateErrorState(ColumnType? selected)
+        {
+            var isValid = selected != null && validTypes.Contains(selected.Value);
+            errorLabel.Visible = !isValid;
+            okButton.Enabled = isValid;
+        }
+
+        // Initial state
+        updateErrorState(currentType);
+
+        foreach (var cb in selector.SubViews.OfType<CheckBox>())
+        {
+            cb.HasFocusChanged += (_, _) =>
+            {
+                if (cb.HasFocus)
+                {
+                    // Value is not yet updated on focus change; confirm() performs final validation.
+                    updateErrorState(selector.Value);
+                }
+            };
+        }
+
+        void confirm()
         {
             var selected = selector.Value;
-            if (selected.Value == currentType)
+            if (selected == null || selected == currentType)
+            {
+                return;
+            }
+
+            if (!validTypes.Contains(selected.Value))
             {
                 return;
             }
@@ -77,13 +118,13 @@ internal sealed class CastColumnDialog : Dialog
         okButton.Accepting += (sender, e) =>
         {
             e.Handled = true;
-            Confirm();
+            confirm();
         };
 
         selector.Accepting += (sender, e) =>
         {
             e.Handled = true;
-            Confirm();
+            confirm();
         };
 
         AddButton(okButton);

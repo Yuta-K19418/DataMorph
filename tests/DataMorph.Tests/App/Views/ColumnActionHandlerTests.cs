@@ -1,5 +1,6 @@
 using AwesomeAssertions;
 using DataMorph.App.Views;
+using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Views;
@@ -37,7 +38,8 @@ public sealed class ColumnActionHandlerTests
         var handler = new ColumnActionHandler(
             app, table, 0,
             _ => "test",
-            _ => actionCalled = true);
+            _ => actionCalled = true,
+            DataFormat.Csv);
 
         // Act
         handler.ExecuteAction("UnknownAction");
@@ -47,13 +49,19 @@ public sealed class ColumnActionHandlerTests
     }
 
     [Theory]
-    [InlineData("Rename")]
-    [InlineData("Delete")]
-    [InlineData("Cast")]
-    [InlineData("Filter")]
-    [InlineData("Fill")]
-    [InlineData("Format Timestamp")]
-    public void ExecuteAction_WithEachValidAction_DoesNotThrow(string action)
+    [InlineData("Rename", DataFormat.Csv)]
+    [InlineData("Delete", DataFormat.Csv)]
+    [InlineData("Cast", DataFormat.Csv)]
+    [InlineData("Filter", DataFormat.Csv)]
+    [InlineData("Fill", DataFormat.Csv)]
+    [InlineData("Format Timestamp", DataFormat.Csv)]
+    [InlineData("Rename", DataFormat.JsonLines)]
+    [InlineData("Delete", DataFormat.JsonLines)]
+    [InlineData("Cast", DataFormat.JsonLines)]
+    [InlineData("Filter", DataFormat.JsonLines)]
+    [InlineData("Fill", DataFormat.JsonLines)]
+    [InlineData("Format Timestamp", DataFormat.JsonLines)]
+    public void ExecuteAction_WithEachValidAction_DoesNotThrow(string action, DataFormat format)
     {
         // Arrange
         using var app = CreateTestApp();
@@ -61,7 +69,8 @@ public sealed class ColumnActionHandlerTests
         var handler = new ColumnActionHandler(
             app, table, 0,
             _ => "test",
-            _ => { });
+            _ => { },
+            format);
         app.StopAfterFirstIteration = true;
 
         // Act

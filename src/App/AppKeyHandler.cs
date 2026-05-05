@@ -171,9 +171,16 @@ internal sealed class AppKeyHandler : IDisposable
             return false;
         }
 
+        var format = FormatDetector.Detect(_state.CurrentFilePath);
+        if (format.IsFailure)
+        {
+            _app.Invoke(() => _viewManager.ShowError(format.Error));
+            return false;
+        }
+
         var handler = new ColumnActionHandler(
             _app, mt.Table, mt.Value.Cursor.X,
-            mt.GetRawColumnName, mt.OnMorphAction, mt.IsRowIndexComplete);
+            mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
 
         using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
         _app.Run(dialog);

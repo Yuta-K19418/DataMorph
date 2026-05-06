@@ -1,5 +1,6 @@
 using DataMorph.Engine.Models.Actions;
 using Terminal.Gui.Input;
+using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
@@ -11,6 +12,7 @@ namespace DataMorph.App.Views;
 internal abstract class MorphTableView : TableView
 {
     private readonly VimKeyTranslator _vimKeys = new();
+    private int[] _maxColumnWidths = [];
 
     /// <summary>
     /// Callback invoked when the user confirms a column morphing action.
@@ -30,6 +32,66 @@ internal abstract class MorphTableView : TableView
     /// When <see langword="null"/>, morphing is disabled (same guard as <see cref="OnMorphAction"/>).
     /// </summary>
     internal Func<int, string>? GetRawColumnName { get; init; }
+
+    /// <summary>
+    /// Initializes column widths from header text lengths and installs per-column
+    /// <see cref="ColumnStyle.RepresentationGetter"/> callbacks to track the maximum
+    /// cell width observed during rendering. Widths grow only, never shrink.
+    /// </summary>
+    internal void InitializeColumnWidths()
+    {
+        if (Table is null)
+        {
+            return;
+        }
+
+        _maxColumnWidths = new int[Table.Columns];
+        for (var col = 0; col < Table.Columns; col++)
+        {
+            var colIdx = col;
+            _maxColumnWidths[colIdx] = Table.ColumnNames[colIdx].Length;
+            var colStyle = Style.GetOrCreateColumnStyle(colIdx);
+            colStyle.MinWidth = _maxColumnWidths[colIdx];
+            colStyle.RepresentationGetter = value =>
+            {
+                var text = value?.ToString() ?? string.Empty;
+                if (text.Length > _maxColumnWidths[colIdx])
+                {
+                    _maxColumnWidths[colIdx] = text.Length;
+                }
+
+                return text;
+            };
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override bool OnDrawingContent(DrawContext? ctx)
+    {
+        var result = base.OnDrawingContent(ctx);
+        if (_maxColumnWidths.Length == 0)
+        {
+            return result;
+        }
+
+        var changed = false;
+        for (var col = 0; col < _maxColumnWidths.Length; col++)
+        {
+            var colStyle = Style.GetOrCreateColumnStyle(col);
+            if (colStyle.MinWidth != _maxColumnWidths[col])
+            {
+                colStyle.MinWidth = _maxColumnWidths[col];
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            RefreshContentSize();
+        }
+
+        return result;
+    }
 
     /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)

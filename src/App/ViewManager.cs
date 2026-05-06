@@ -178,6 +178,7 @@ internal sealed class ViewManager : IDisposable
         };
         SetInitialSelectionWhenReady(view, indexer);
         SwapView(view);
+        view.InitializeColumnWidths();
         view.SetFocus();
         RefreshStatusBarHints();
 
@@ -268,6 +269,7 @@ internal sealed class ViewManager : IDisposable
         };
         SetInitialSelectionWhenReady(view, indexer);
         SwapView(view);
+        view.InitializeColumnWidths();
         view.SetFocus();
         RefreshStatusBarHints();
 

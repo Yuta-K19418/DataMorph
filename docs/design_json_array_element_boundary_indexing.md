@@ -83,6 +83,13 @@ Identical to `JsonLines.RowIndexer`:
 (element 0, 1000, 2000, …). `GetCheckPoint(n)` returns
 `(_checkpoints[n / 1000], (int)(n % 1000))` — same arithmetic as JsonLines.
 
+**Out-of-range clamping**: when `n / 1000 >= _checkpoints.Count`, the ideal
+checkpoint index is clamped to `_checkpoints.Count - 1`. The `rowOffset` is then
+computed as `(int)(n - clampedIndex * 1000)` (not `n % 1000`), which preserves the
+full distance from the last available checkpoint. This ensures that the caller can
+still seek forward from the checkpoint to the target element (or detect EOF when the
+file has fewer elements than requested).
+
 Unlike `JsonLines.RowIndexer` which pre-seeds `_checkpoints = [0]` (the file starts
 with the first row), `JsonArray.RowIndexer` initialises `_checkpoints` as empty and
 populates index 0 when element 0 is found. `GetCheckPoint` returns `(-1, 0)` when

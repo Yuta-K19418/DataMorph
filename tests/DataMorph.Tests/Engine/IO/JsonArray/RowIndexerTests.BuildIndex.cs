@@ -173,7 +173,8 @@ public sealed partial class RowIndexerTests
     {
         // Arrange
         using var cts = new CancellationTokenSource();
-        var elements = Enumerable.Range(0, 2000).Select(i => $"{{\"id\":{i}}}");
+        // Use enough elements to exceed 1 MB buffer to ensure multiple outer loop iterations
+        var elements = Enumerable.Range(0, 100_000).Select(i => $"{{\"id\":{i}}}");
         File.WriteAllText(_testFilePath, $"[{string.Join(",", elements)}]");
         var indexer = new RowIndexer(_testFilePath);
         indexer.ProgressChanged += (_, _) => cts.Cancel();
@@ -191,7 +192,7 @@ public sealed partial class RowIndexerTests
     {
         // Arrange
         using var cts = new CancellationTokenSource();
-        var elements = Enumerable.Range(0, 2000).Select(i => $"{{\"id\":{i}}}");
+        var elements = Enumerable.Range(0, 100_000).Select(i => $"{{\"id\":{i}}}");
         File.WriteAllText(_testFilePath, $"[{string.Join(",", elements)}]");
         var indexer = new RowIndexer(_testFilePath);
         var buildIndexCompletedFired = false;
@@ -205,6 +206,22 @@ public sealed partial class RowIndexerTests
         Func<Task> act = () => task;
         await act.Should().ThrowAsync<OperationCanceledException>();
         buildIndexCompletedFired.Should().BeTrue();
+    }
+
+    [Fact]
+    public void BuildIndex_LessThanCheckpointInterval_FiresFirstCheckpointReached()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, "[{\"a\":1},{\"b\":2},{\"c\":3}]");
+        var indexer = new RowIndexer(_testFilePath);
+        var firstCheckpointFired = false;
+        indexer.FirstCheckpointReached += () => firstCheckpointFired = true;
+
+        // Act
+        indexer.BuildIndex();
+
+        // Assert
+        firstCheckpointFired.Should().BeTrue();
     }
 
     [Fact]

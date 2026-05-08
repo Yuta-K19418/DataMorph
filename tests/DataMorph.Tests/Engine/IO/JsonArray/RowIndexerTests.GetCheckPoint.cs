@@ -110,4 +110,36 @@ public sealed partial class RowIndexerTests
         byteOffset.Should().Be(1); // clamped to checkpoint 0
         rowOffset.Should().Be(5000);
     }
+
+    [Fact]
+    public void GetCheckPoint_WithLeadingWhitespace_ReturnsCorrectByteOffset()
+    {
+        // Arrange — 2-byte leading whitespace before '['
+        File.WriteAllText(_testFilePath, "  [{\"a\":1}]");
+        var indexer = new RowIndexer(_testFilePath);
+        indexer.BuildIndex();
+
+        // Act
+        var (byteOffset, rowOffset) = indexer.GetCheckPoint(0);
+
+        // Assert — offset of '{' is 3 (2 whitespace + '[' = byte 3)
+        byteOffset.Should().Be(3);
+        rowOffset.Should().Be(0);
+    }
+
+    [Fact]
+    public void GetCheckPoint_WithNegativeTargetRow_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, "[{\"id\":1},{\"id\":2},{\"id\":3}]");
+        var indexer = new RowIndexer(_testFilePath);
+        indexer.BuildIndex();
+
+        // Act
+        var act = () => indexer.GetCheckPoint(-1);
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
 }

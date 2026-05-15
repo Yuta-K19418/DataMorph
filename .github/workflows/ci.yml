@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ${{ matrix.os }}
@@ -52,7 +56,19 @@ jobs:
         retention-days: 30
 
   aot-compilation-check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rid: linux-x64
+            binary: data-morph
+          - os: macos-latest
+            rid: osx-x64
+            binary: data-morph
+          - os: windows-latest
+            rid: win-x64
+            binary: data-morph.exe
 
     steps:
     - uses: actions/checkout@v6
@@ -63,13 +79,14 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Publish with Native AOT
-      run: dotnet publish src/App/DataMorph.App.csproj --configuration Release
+      run: dotnet publish src/App/DataMorph.App.csproj --configuration Release -r ${{ matrix.rid }}
 
     - name: Verify AOT binary exists
+      shell: bash
       run: |
-        if [ -f "src/App/bin/Release/net10.0/linux-x64/publish/data-morph" ]; then
+        if [ -f "src/App/bin/Release/net10.0/${{ matrix.rid }}/publish/${{ matrix.binary }}" ]; then
           echo "✓ Native AOT binary generated successfully"
-          ls -lh src/App/bin/Release/net10.0/linux-x64/publish/data-morph
+          ls -lh "src/App/bin/Release/net10.0/${{ matrix.rid }}/publish/${{ matrix.binary }}"
         else
           echo "✗ Native AOT binary not found"
           exit 1

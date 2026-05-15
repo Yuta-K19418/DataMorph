@@ -2,6 +2,7 @@ using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.Csv;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Types;
+using JsonArray = DataMorph.Engine.IO.JsonArray;
 
 namespace DataMorph.App;
 
@@ -22,6 +23,7 @@ internal static class RowIndexerFactory
         {
             DataFormat.Csv => new DataRowIndexer(filePath),
             DataFormat.JsonLines => new RowIndexer(filePath),
+            DataFormat.JsonArray => new JsonArray.RowIndexer(filePath),
             _ => throw new NotSupportedException($"Unsupported format: {format}"),
         };
     }

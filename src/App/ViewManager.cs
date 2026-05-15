@@ -347,7 +347,7 @@ internal sealed class ViewManager : IDisposable
             {
                 // Only set if this view is still active and the user hasn't moved the cursor yet
                 if (_currentView == view && view.Table is not null && view.Table.Rows > 0
-                    && (view.Value is null || view.Value.Cursor.Y <= 0))
+                    && (view.Value is null || view.Value.SelectedCell.Y <= 0))
                 {
                     view.SetSelection(0, 0, false);
                     view.Update();

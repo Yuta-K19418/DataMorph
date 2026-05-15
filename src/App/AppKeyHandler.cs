@@ -179,7 +179,7 @@ internal sealed class AppKeyHandler : IDisposable
         }
 
         var handler = new ColumnActionHandler(
-            _app, mt.Table, mt.Value.Cursor.X,
+            _app, mt.Table, mt.Value.SelectedCell.X,
             mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
 
         using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);

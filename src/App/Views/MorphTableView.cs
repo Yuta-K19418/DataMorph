@@ -50,7 +50,7 @@ internal abstract class MorphTableView : TableView
                 return;
             }
 
-            SetSelection(col: Value.Cursor.X, row: row, extendExistingSelection: false);
+            SetSelection(col: Value.SelectedCell.X, row: row, extendExistingSelection: false);
             Update();
             SetNeedsDraw();
         }

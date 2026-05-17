@@ -57,6 +57,7 @@ paths:
 - **Do NOT use control flow statements** (`if`, `else`, `while`, `for`, `foreach`, `switch`) inside test methods
 - Tests should be deterministic and straightforward with no branching logic
 - If you need to test multiple conditions, use `[Theory]` with `[InlineData]` instead
+- **EXCEPTION**: Benchmark methods (`[Benchmark]`) using **BenchmarkDotNet** may use `for` loops to perform the work being measured.
 - Reference: [Microsoft - Avoid logic in tests](https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices#avoid-logic-in-unit-tests)
 
 ## Parameterized Tests

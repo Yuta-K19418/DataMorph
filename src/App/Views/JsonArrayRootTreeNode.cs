@@ -1,3 +1,5 @@
+using System.Text.Json;
+using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO.JsonArray;
 using Terminal.Gui.Views;
 
@@ -39,11 +41,65 @@ internal sealed class JsonArrayRootTreeNode : TreeNode
 
     private void LoadChildren()
     {
-        throw new NotImplementedException();
+        var totalToShow = Math.Min(_cache.TotalRows, MaxElementsShown);
+        List<ITreeNode> children = [];
+        children.EnsureCapacity(totalToShow + 1);
+
+        for (var i = 0; i < totalToShow; i++)
+        {
+            var bytes = _cache.GetRow(i);
+            if (bytes.IsEmpty)
+            {
+                continue;
+            }
+
+            children.Add(CreateElementNode(bytes, i));
+        }
+
+        if (_cache.TotalRows > MaxElementsShown)
+        {
+            var overflow = _cache.TotalRows - MaxElementsShown;
+            var elementText = overflow == 1 ? "element" : "elements";
+            children.Add(new JsonValueTreeNode(
+                $"... ({overflow} more {elementText} - use a filtered view)")
+            {
+                ValueKind = JsonValueKind.Undefined,
+            });
+        }
+
+        base.Children = children;
     }
 
     private static ITreeNode CreateElementNode(ReadOnlyMemory<byte> bytes, int index)
     {
-        throw new NotImplementedException();
+        var prefix = $"[{index}]: ";
+        var reader = new Utf8JsonReader(bytes.Span);
+
+        if (!reader.Read())
+        {
+            return new JsonValueTreeNode($"{prefix}[Invalid JSON]")
+            {
+                ValueKind = JsonValueKind.Undefined,
+            };
+        }
+
+        if (reader.TokenType == JsonTokenType.StartObject)
+        {
+            var node = new JsonObjectTreeNode(bytes);
+            node.Text = $"{prefix}{node.Text}";
+            return node;
+        }
+
+        if (reader.TokenType == JsonTokenType.StartArray)
+        {
+            var node = new JsonArrayTreeNode(bytes);
+            node.Text = $"{prefix}{node.Text}";
+            return node;
+        }
+
+        return new JsonValueTreeNode($"{prefix}{reader.GetPrimitiveDisplay()}")
+        {
+            ValueKind = reader.TokenType.ToJsonValueKind(),
+        };
     }
 }

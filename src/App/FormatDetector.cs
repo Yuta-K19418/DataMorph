@@ -40,6 +40,7 @@ internal static class FormatDetector
         {
             ".CSV" => Results.Success(DataFormat.Csv),
             ".JSONL" => Results.Success(DataFormat.JsonLines),
+            ".JSON" => Results.Success(DataFormat.JsonArray),
             _ => Results.Failure<DataFormat>($"Unsupported file format: {rawExtension}"),
         };
     }

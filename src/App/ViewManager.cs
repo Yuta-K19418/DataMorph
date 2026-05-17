@@ -58,12 +58,7 @@ internal sealed class ViewManager : IDisposable
         if (!string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             var format = FormatDetector.Detect(_state.CurrentFilePath);
-            if (format.IsSuccess && format.Value == DataFormat.JsonLines)
-            {
-                hints.Add("t:Tree/Table");
-            }
-
-            if (format.IsSuccess && format.Value == DataFormat.JsonArray)
+            if (format.IsSuccess && format.Value is DataFormat.JsonLines or DataFormat.JsonArray)
             {
                 hints.Add("t:Tree/Table");
             }
@@ -124,11 +119,13 @@ internal sealed class ViewManager : IDisposable
 
     /// <summary>
     /// Toggles between JSON Array Tree and Table view modes.
+    /// Table view is not supported; returns a completed task immediately.
     /// </summary>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <returns>A completed task.</returns>
     internal Task ToggleJsonArrayModeAsync()
     {
-        throw new NotImplementedException();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return Task.CompletedTask;
     }
 
     /// <summary>

@@ -8,6 +8,7 @@ public sealed class FormatDetectorTests : IDisposable
 {
     private readonly string _csvFilePath;
     private readonly string _jsonlFilePath;
+    private readonly string _jsonArrayFilePath;
     private readonly string _unsupportedFilePath;
     private readonly string _emptyFilePath;
     private readonly string _nonExistentFilePath;
@@ -16,14 +17,15 @@ public sealed class FormatDetectorTests : IDisposable
     {
         _csvFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".csv");
         _jsonlFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".jsonl");
-        _unsupportedFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+        _jsonArrayFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+        _unsupportedFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".txt");
         _emptyFilePath = Path.ChangeExtension(Path.GetTempFileName(), ".csv");
         _nonExistentFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.csv");
     }
 
     public void Dispose()
     {
-        foreach (var path in new[] { _csvFilePath, _jsonlFilePath, _unsupportedFilePath, _emptyFilePath })
+        foreach (var path in new[] { _csvFilePath, _jsonlFilePath, _jsonArrayFilePath, _unsupportedFilePath, _emptyFilePath })
         {
             if (File.Exists(path))
             {
@@ -71,6 +73,20 @@ public sealed class FormatDetectorTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Should().Be(DataFormat.JsonLines);
+    }
+
+    [Fact]
+    public async Task Detect_WithJsonArrayFile_ReturnsJsonArrayFormat()
+    {
+        // Arrange
+        await File.WriteAllTextAsync(_jsonArrayFilePath, "[1,2,3]");
+
+        // Act
+        var result = FormatDetector.Detect(_jsonArrayFilePath);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be(DataFormat.JsonArray);
     }
 
     [Fact]

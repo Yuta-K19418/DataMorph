@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Json;
 using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO;
@@ -73,39 +72,9 @@ internal sealed class JsonLinesTreeView : MorphTreeView
             return new JsonArrayTreeNode(lineBytes) { Text = $"Line {lineNumber}: [...]" };
         }
 
-        return new JsonValueTreeNode($"Line {lineNumber}: {GetPrimitiveDisplay(ref reader)}")
+        return new JsonValueTreeNode($"Line {lineNumber}: {reader.GetPrimitiveDisplay()}")
         {
-            ValueKind = GetValueKind(reader.TokenType),
-        };
-    }
-
-    private static string GetPrimitiveDisplay(ref Utf8JsonReader reader)
-    {
-        return reader.TokenType switch
-        {
-            JsonTokenType.String =>
-                $"\"{JsonTreeNodeHelper.EscapeString(reader.GetString() ?? string.Empty)}\"",
-            JsonTokenType.Number when reader.TryGetDecimal(out var d) => d.ToString(
-                CultureInfo.InvariantCulture
-            ),
-            JsonTokenType.Number => reader.GetDouble().ToString(CultureInfo.InvariantCulture),
-            JsonTokenType.True => "true",
-            JsonTokenType.False => "false",
-            JsonTokenType.Null => "<null>",
-            _ => "<unknown>",
-        };
-    }
-
-    private static JsonValueKind GetValueKind(JsonTokenType tokenType)
-    {
-        return tokenType switch
-        {
-            JsonTokenType.String => JsonValueKind.String,
-            JsonTokenType.Number => JsonValueKind.Number,
-            JsonTokenType.True => JsonValueKind.True,
-            JsonTokenType.False => JsonValueKind.False,
-            JsonTokenType.Null => JsonValueKind.Null,
-            _ => JsonValueKind.Undefined,
+            ValueKind = reader.TokenType.ToJsonValueKind(),
         };
     }
 

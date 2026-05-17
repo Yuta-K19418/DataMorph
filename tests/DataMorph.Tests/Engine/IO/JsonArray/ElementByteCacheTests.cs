@@ -1,3 +1,5 @@
+using System.Text;
+using AwesomeAssertions;
 using DataMorph.Engine.IO.JsonArray;
 
 namespace DataMorph.Tests.Engine.IO.JsonArray;
@@ -50,62 +52,112 @@ public sealed class ElementByteCacheTests : IDisposable
     }
 
     [Fact]
-    public void GetRow_WithinCachedRange_ReturnsCachedBytes()
+    public void GetRow_FirstAccess_ReturnsCorrectBytes()
     {
         // Arrange
+        using var cache = new ElementByteCache(_indexer);
 
         // Act
+        var result = cache.GetRow(0);
 
         // Assert
+        Encoding.UTF8.GetString(result.Span).Should().Be("{\"id\":1,\"name\":\"Alice\"}");
+    }
+
+    [Fact]
+    public void GetRow_SecondAccessSameIndex_ReturnsSameBytes()
+    {
+        // Arrange
+        using var cache = new ElementByteCache(_indexer);
+
+        // Act
+        var first = cache.GetRow(0);
+        var second = cache.GetRow(0);
+
+        // Assert
+        first.ToArray().Should().Equal(second.ToArray());
+    }
+
+    [Fact]
+    public void GetRow_LastValidIndex_ReturnsCorrectBytes()
+    {
+        // Arrange
+        using var cache = new ElementByteCache(_indexer);
+        var lastIndex = (int)cache.TotalRows - 1;
+
+        // Act
+        var result = cache.GetRow(lastIndex);
+
+        // Assert
+        Encoding.UTF8.GetString(result.Span).Should().Be("{\"id\":10,\"name\":\"Jack\"}");
     }
 
     [Fact]
     public void GetRow_OutsideCachedRange_UpdatesCacheWindow()
     {
         // Arrange
+        using var cache = new ElementByteCache(_indexer, capacity: 5, prefetchWindow: 3);
 
-        // Act
+        // Act — access index 0 to prime cache, then access index 9 (outside initial window)
+        _ = cache.GetRow(0);
+        var result = cache.GetRow(9);
 
         // Assert
+        Encoding.UTF8.GetString(result.Span).Should().Be("{\"id\":10,\"name\":\"Jack\"}");
     }
 
     [Fact]
     public void GetRow_NegativeIndex_ReturnsEmpty()
     {
         // Arrange
+        using var cache = new ElementByteCache(_indexer);
 
         // Act
+        var result = cache.GetRow(-1);
 
         // Assert
+        result.IsEmpty.Should().BeTrue();
     }
 
     [Fact]
     public void GetRow_IndexEqualToTotalElements_ReturnsEmpty()
     {
         // Arrange
+        using var cache = new ElementByteCache(_indexer);
+        var totalRows = cache.TotalRows;
 
         // Act
+        var result = cache.GetRow(totalRows);
 
         // Assert
+        result.IsEmpty.Should().BeTrue();
     }
 
     [Fact]
     public void GetRow_AfterDisposal_ThrowsObjectDisposedException()
     {
         // Arrange
+        var cache = new ElementByteCache(_indexer);
+        cache.Dispose();
 
         // Act
+        var act = () => cache.GetRow(0);
 
         // Assert
+        act.Should().Throw<ObjectDisposedException>();
     }
 
     [Fact]
     public void Dispose_CalledTwice_DoesNotThrow()
     {
         // Arrange
+        var cache = new ElementByteCache(_indexer);
 
         // Act
+        cache.Dispose();
+        var act = () => cache.Dispose();
 
         // Assert
+        act.Should().NotThrow();
     }
 }

@@ -146,6 +146,37 @@ internal sealed class FileDialogHandler(
             }
         }
 
+        if (format == DataFormat.JsonArray)
+        {
+            try
+            {
+                _state.RowIndexer = indexer;
+                _state.Schema = null;
+                _state.OnSchemaRefined = null;
+
+                var tcs = new TaskCompletionSource(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                indexer.FirstCheckpointReached += () => tcs.TrySetResult();
+
+                _onIndexerStart(indexer);
+                await tcs.Task;
+
+                _app.Invoke(() =>
+                {
+                    _state.CurrentMode = ViewMode.JsonArrayTree;
+                    _viewManager.SwitchToJsonArrayTree(indexer);
+                });
+                return;
+            }
+#pragma warning disable CA1031 // UI top-level handler
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Array: {ex.Message}"));
+                return;
+            }
+        }
+
         _onIndexerStart(indexer);
     }
 }

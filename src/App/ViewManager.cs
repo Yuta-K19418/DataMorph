@@ -63,6 +63,11 @@ internal sealed class ViewManager : IDisposable
                 hints.Add("t:Tree/Table");
             }
 
+            if (format.IsSuccess && format.Value == DataFormat.JsonArray)
+            {
+                hints.Add("t:Tree/Table");
+            }
+
             if (GetCurrentView() is MorphTableView)
             {
                 hints.Add("x:Menu");
@@ -115,6 +120,15 @@ internal sealed class ViewManager : IDisposable
                 SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
             }
         });
+    }
+
+    /// <summary>
+    /// Toggles between JSON Array Tree and Table view modes.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    internal Task ToggleJsonArrayModeAsync()
+    {
+        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -202,6 +216,31 @@ internal sealed class ViewManager : IDisposable
         ArgumentNullException.ThrowIfNull(indexer);
 
         var view = new Views.JsonLinesTreeView(indexer, () => _ = ToggleJsonLinesModeAsync())
+        {
+            X = 0,
+            Y = 1, // Start below MenuBar
+            Width = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
+        };
+        SwapView(view);
+        RefreshStatusBarHints();
+    }
+
+    /// <summary>
+    /// Switches the content area to the JSON Array hierarchical tree view.
+    /// </summary>
+    /// <param name="indexer">The JSON Array row indexer for the loaded file.</param>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views are owned by the container and disposed via SwapView."
+    )]
+    internal void SwitchToJsonArrayTree(IRowIndexer indexer)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(indexer);
+
+        var view = new Views.JsonArrayTreeView(indexer, () => _ = ToggleJsonArrayModeAsync())
         {
             X = 0,
             Y = 1, // Start below MenuBar

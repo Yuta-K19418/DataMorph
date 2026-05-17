@@ -26,6 +26,16 @@ internal enum ViewMode
     JsonLinesTable,
 
     /// <summary>
+    /// JSON Array tree view with hierarchical element display.
+    /// </summary>
+    JsonArrayTree,
+
+    /// <summary>
+    /// JSON Array table view with virtualized grid rendering.
+    /// </summary>
+    JsonArrayTable,
+
+    /// <summary>
     /// Placeholder view displaying loaded file information.
     /// Will be replaced by CsvTable, JsonTable views in future issues.
     /// </summary>

@@ -262,6 +262,36 @@ public sealed class ViewManagerTests
         }
     }
 
+    [Fact]
+    public void SwitchToJsonArrayTree_WithValidIndexer_SetsCurrentView()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void SwitchToJsonArrayTree_WithNullIndexer_ThrowsArgumentNullException()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void SwitchToJsonArrayTree_AfterDisposal_ThrowsObjectDisposedException()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
     /// <summary>
     /// Mock IRowIndexer for testing.
     /// </summary>

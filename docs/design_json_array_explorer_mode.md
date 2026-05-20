@@ -13,10 +13,11 @@ abstract base class that provides Vim-key navigation and Enter-to-toggle logic.
 
 ### Functional Requirements
 
-- **Root Node**: Display a single root node showing `[ n items ]` for the whole array
-- **Element Nodes**: Expand root to reveal `[0]`, `[1]`, `[2]`, … child nodes
-- **Lazy Loading**: Parse each element's content only when that element node is expanded
+- **Element Nodes (≤ 1,000 items)**: Element nodes (`[0]: ...`, `[1]: ...`, `[2]: ...`, …) are added directly to the tree root without a wrapper node
+- **Range Nodes (≥ 1,001 items)**: Elements are grouped into `JsonArrayRangeTreeNode` instances of 1,000 items each (e.g., `[0 - 999]`, `[1000 - 1999]`). Each range node lazy-loads its children on first expansion.
+- **Lazy Loading**: Child nodes (sub-properties / nested arrays) of each element node are populated only when that node is first expanded. Note: for ≤ 1,000 items, the element display text (e.g., `{Object: N properties}`) is computed eagerly at view construction time — up to 1,000 `GetRow` calls are made in the constructor. Children of each element node remain lazy.
 - **Nested Structures**: Recursively display nested objects and arrays using existing `JsonObjectTreeNode` / `JsonArrayTreeNode`
+- **Total Count**: The total element count is displayed in the status bar when Explorer Mode is activated (via `ViewManager.SwitchToJsonArrayTree`)
 - **Arrow-key Navigation**: Inherited from Terminal.Gui `TreeView` (h/j/k/l Vim keys also supported)
 - **Element Boundary Index**: Use `JsonArray.RowIndexer` (implemented in the previous issue) to resolve byte offsets for any element
 
@@ -42,21 +43,25 @@ abstract base class that provides Vim-key navigation and Enter-to-toggle logic.
 │          ▼                              ▼                              │
 │  ┌───────────────────────┐       ┌──────────────────────────────────┐  │
 │  │  JsonLinesTreeView    │       │       JsonArrayTreeView          │  │
-│  │  (creates row nodes)  │       │  (creates an element root node)  │  │
-│  └───────────────────────┘       └──────────────────────────────────┘  │
-│                              │                                         │
-│                              ▼                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │              JsonArrayRootTreeNode                              │   │
-│  │   Text = "[ n items ]"  (lazy-loads element child nodes)        │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│           │               │               │                            │
-│           ▼               ▼               ▼                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                  │
-│  │JsonObject    │  │JsonArray     │  │JsonValue     │  (existing)      │
-│  │TreeNode      │  │TreeNode      │  │TreeNode      │                  │
-│  │[0]: {Obj: N} │  │[1]: [Arr: M] │  │[2]: 42       │                  │
-│  └──────────────┘  └──────────────┘  └──────────────┘                  │
+│  │  (creates row nodes)  │       │  (≤1000: element nodes directly) │  │
+│  └───────────────────────┘       │  (≥1001: range nodes, lazy)      │  │
+│                                  └─────────────┬────────────────────┘  │
+│                                                │                       │
+│                         ┌──────────────────────┴─────────────────┐     │
+│                         │  (≥1001 items only)                    │     │
+│                         ▼                                        │     │
+│  ┌──────────────────────────────────────────┐                    │     │
+│  │        JsonArrayRangeTreeNode            │                    │     │
+│  │  Text = "[0 - 999]"  (lazy-loads 1,000   │                    │     │
+│  │   child element nodes on first expand)   │                    │     │
+│  └──────────────────────────────────────────┘                    │     │
+│           │               │               │                      │     │
+│           ▼               ▼               ▼                      │     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  (existing)│     │
+│  │JsonObject    │  │JsonArray     │  │JsonValue     │            │     │
+│  │TreeNode      │  │TreeNode      │  │TreeNode      │            │     │
+│  │[0]: {Obj: N} │  │[1]: [Arr: M] │  │[2]: 42       │            │     │
+│  └──────────────┘  └──────────────┘  └──────────────┘            │     │
 │                                                                        │
 ├─ Engine Layer ─────────────────────────────────────────────────────────┤
 │                                                                        │
@@ -132,6 +137,10 @@ Element bytes are captured by recording `TokenStartIndex` at the start of each e
 computing the end from `BytesConsumed` when the element is complete. These bytes are copied
 to a heap array and returned as `ReadOnlyMemory<byte>`.
 
+**Allocation note**: `ReadElementBytes` allocates a `List<ReadOnlyMemory<byte>>` and a `new byte[length]`
+per element. This is a one-time setup cost per range expansion and is not subject to the
+"zero allocations on the rendering hot path" NFR, which applies to rendering only.
+
 **API**:
 
 ```csharp
@@ -205,27 +214,23 @@ public sealed class ElementByteCache(
 }
 ```
 
-### 3.3 App: `JsonArrayRootTreeNode`
+### 3.3 App: `JsonArrayRangeTreeNode`
 
 **Namespace**: `DataMorph.App.Views`
 
-**Responsibility**: The single root node of the explorer tree. Displays `[ n items ]`.
-On first `Children` access (lazy), reads element bytes from `ElementByteCache` and
-constructs child element nodes.
+**Responsibility**: Represents a 1,000-item range within a large JSON Array (used only when
+`TotalRows > 1,000`). On first `Children` access (lazy), reads element bytes from
+`ElementByteCache` and constructs child element nodes for that range.
 
-**Display Format (Option B)**: Element nodes use the richer format produced by each node
-type's own `FormatDisplayText()`, prefixed with the element index. After constructing a
-node (which sets its `Text` in the constructor), `Text` is updated in place:
+**Display Format**: Same element node format as direct expansion, grouped under a range header:
 
 ```
-[ 3 items ]
-├── [0]: {Object: 2 properties}
-│   ├── id: 1
-│   └── name: "Alice"
-├── [1]: [Array: 2 items]
-│   ├── [0]: "x"
-│   └── [1]: "y"
-└── [2]: 42
+▼ [0 - 999]
+  ▶ [0]: {Object: 2 properties}
+  ▶ [1]: [Array: 2 items]
+  ▶ [2]: 42
+  ...
+▶ [1000 - 1999]
 ```
 
 `CreateElementNode` peeks the first token to determine node type, creates the appropriate
@@ -233,21 +238,26 @@ node (which sets its `Text` in the constructor), `Text` is updated in place:
 to the node's `Text`. This avoids calling `JsonTreeNodeHelper.CreateChildNode`, which
 produces the abbreviated `{...}` / `[...]` form used for nested child nodes.
 
+**Memory Management**: Children remain in heap memory after expansion (Plan A). Viewport-based
+auto-release is deferred to a future independent issue.
+
 **Constructor Null Guard**: `ArgumentNullException.ThrowIfNull(cache)` in the constructor body.
 
 ```csharp
-internal sealed class JsonArrayRootTreeNode : TreeNode
+internal sealed class JsonArrayRangeTreeNode : TreeNode
 {
-    internal const int MaxElementsShown = 5_000;
-
     private readonly ElementByteCache _cache;
+    private readonly int _startIndex;
+    private readonly int _count;
     private bool _childrenLoaded;
 
-    public JsonArrayRootTreeNode(ElementByteCache cache)
+    public JsonArrayRangeTreeNode(ElementByteCache cache, int startIndex, int count)
     {
         ArgumentNullException.ThrowIfNull(cache);
         _cache = cache;
-        Text = $"[ {cache.TotalRows} items ]";
+        _startIndex = startIndex;
+        _count = count;
+        Text = $"[{startIndex} - {startIndex + count - 1}]";
     }
 
     public override IList<ITreeNode> Children
@@ -264,19 +274,14 @@ internal sealed class JsonArrayRootTreeNode : TreeNode
         set => base.Children = value;
     }
 
-    private void LoadChildren() { /* iterate cache; build element nodes */ }
+    private void LoadChildren() { /* read _count elements starting at _startIndex from _cache; build element nodes */ }
 
-    private static ITreeNode CreateElementNode(ReadOnlyMemory<byte> bytes, int index)
+    internal static ITreeNode CreateElementNode(ReadOnlyMemory<byte> bytes, int index)
     {
         // Peek first token → create typed node → prepend "[{index}]: " to node.Text
     }
 }
 ```
-
-**Large-array cap**: When `TotalRows > MaxElementsShown`, only the first `MaxElementsShown`
-element nodes are created. A trailing `JsonValueTreeNode` reading
-`"... ({TotalRows - MaxElementsShown} more elements - use a filtered view)"` is appended.
-A future virtual-scroll enhancement can remove this cap.
 
 ### 3.4 App: `MorphTreeView`
 
@@ -300,6 +305,7 @@ internal abstract class MorphTreeView : TreeView
 
     protected MorphTreeView(Action onTableModeToggle)
     {
+        ArgumentNullException.ThrowIfNull(onTableModeToggle);
         _onTableModeToggle = onTableModeToggle;
         Accepted += OnAccepted;
     }
@@ -351,21 +357,53 @@ internal abstract class MorphTreeView : TreeView
 
 **Namespace**: `DataMorph.App.Views`
 
-**Responsibility**: `MorphTreeView` subclass. Creates `ElementByteCache` and a single
-`JsonArrayRootTreeNode`; adds it via `AddObject`. Inherits all Vim-key handling and
-`'t'`-key table-mode toggle from `MorphTreeView`.
+**Responsibility**: `MorphTreeView` subclass. Creates `ElementByteCache` and populates the
+tree root directly — without a wrapper node. For arrays of ≤ 1,000 items, element nodes are
+added directly via `AddObject`. For arrays of ≥ 1,001 items, 1,000-item `JsonArrayRangeTreeNode`
+instances are created and added instead. Inherits all Vim-key handling and `'t'`-key
+table-mode toggle from `MorphTreeView`.
+
+**Factory method**: The constructor is `private`. Callers use `JsonArrayTreeView.Create(...)`.
+A constructor hides allocation-heavy work from the call site; surfacing it as a named factory
+method makes the cost explicit to callers.
 
 ```csharp
 internal sealed class JsonArrayTreeView : MorphTreeView
 {
+    private const int RangeSize = 1_000;
     private readonly ElementByteCache _cache;
 
-    public JsonArrayTreeView(IRowIndexer indexer, Action onTableModeToggle)
+    private JsonArrayTreeView(ElementByteCache cache, Action onTableModeToggle)
         : base(onTableModeToggle)
     {
-        _cache = new ElementByteCache(indexer);
-        var rootNode = new JsonArrayRootTreeNode(_cache);
-        AddObject(rootNode);
+        _cache = cache;
+    }
+
+    internal static JsonArrayTreeView Create(IRowIndexer indexer, Action onTableModeToggle)
+    {
+        var cache = new ElementByteCache(indexer);
+        var view = new JsonArrayTreeView(cache, onTableModeToggle);
+        var totalRows = indexer.TotalRows;
+
+        if (totalRows <= RangeSize)
+        {
+            for (int i = 0; i < totalRows; i++)
+            {
+                var bytes = cache.GetRow(i);
+                if (bytes.IsEmpty) continue;
+                view.AddObject(JsonArrayRangeTreeNode.CreateElementNode(bytes, i));
+            }
+            return view;
+        }
+
+        var start = 0;
+        while (start < totalRows)
+        {
+            var count = Math.Min(RangeSize, totalRows - start);
+            view.AddObject(new JsonArrayRangeTreeNode(cache, start, count));
+            start += RangeSize;
+        }
+        return view;
     }
 
     protected override void Dispose(bool disposing) { /* dispose _cache */ }
@@ -383,12 +421,12 @@ internal sealed class JsonArrayTreeView : MorphTreeView
 | `src/Engine/IO/JsonArray/ElementReader.cs` | Engine | MmapService + rolling-buffer element byte reader |
 | `src/Engine/IO/JsonArray/ElementByteCache.cs` | Engine | Sliding window LRU cache for element bytes |
 | `src/App/Views/MorphTreeView.cs` | App | Abstract base: Vim-key navigation + Enter toggle |
-| `src/App/Views/JsonArrayRootTreeNode.cs` | App | Root summary node; lazy-loads child element nodes |
-| `src/App/Views/JsonArrayTreeView.cs` | App | `MorphTreeView` subclass; orchestrates cache + root node |
+| `src/App/Views/JsonArrayRangeTreeNode.cs` | App | 1,000-item range node; lazy-loads child element nodes on first expansion |
+| `src/App/Views/JsonArrayTreeView.cs` | App | `MorphTreeView` subclass; orchestrates cache + range/element nodes |
 | `tests/DataMorph.Tests/Engine/IO/JsonArray/ElementReaderTests.cs` | Tests | Unit tests for `ElementReader` |
 | `tests/DataMorph.Tests/Engine/IO/JsonArray/ElementByteCacheTests.cs` | Tests | Unit tests for `ElementByteCache` |
 | `tests/DataMorph.Tests/Engine/IO/JsonArray/ElementByteCacheBenchmarks.cs` | Tests | BenchmarkDotNet perf tests for `ElementByteCache` hot path |
-| `tests/DataMorph.Tests/App/Views/JsonArrayRootTreeNodeTests.cs` | Tests | Unit tests for tree-building logic |
+| `tests/DataMorph.Tests/App/Views/JsonArrayRangeTreeNodeTests.cs` | Tests | Unit tests for range-node tree-building logic |
 
 ### Files to Modify
 
@@ -396,7 +434,7 @@ internal sealed class JsonArrayTreeView : MorphTreeView
 |------|--------|
 | `src/App/Views/JsonLinesTreeView.cs` | Change base class from `TreeView` to `MorphTreeView`; pass `onTableModeToggle` to `base(...)`; remove `_vimKeys`, `_onTableModeToggle`, `OnKeyDown`, `HandleNonVimKey`, `ConsumeAction`, `OnAccepted` (all moved to base) |
 | `src/App/ViewMode.cs` | Add `JsonArrayTree` and `JsonArrayTable` enum values |
-| `src/App/ViewManager.cs` | Add `SwitchToJsonArrayTree(IRowIndexer)` method with `[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Child views are owned by the container and disposed via SwapView.")]` — required because `JsonArrayTreeView` is instantiated locally and passed to `SwapView` (same pattern as `SwitchToJsonLinesTree`); add `ToggleJsonArrayModeAsync()` mirroring `ToggleJsonLinesModeAsync()` |
+| `src/App/ViewManager.cs` | Implement `SwitchToJsonArrayTree(IRowIndexer)` and `ToggleJsonArrayModeAsync()`; add `private long _jsonArrayTotalRows` field for status bar display |
 | `src/App/MainWindow.cs` (or `FileDialogHandler`) | After JSON Array indexing completes, call `SwitchToJsonArrayTree` |
 
 ---
@@ -406,13 +444,16 @@ internal sealed class JsonArrayTreeView : MorphTreeView
 | Decision | Rationale |
 |----------|-----------|
 | Engine returns `ReadOnlyMemory<byte>`, not `ITreeNode` | Engine must not depend on Terminal.Gui; mirrors JsonLines pattern |
-| Single root node `[ n items ]` | Makes it clear the file is an array; user can collapse/expand to explore |
+| No wrapper root node | A wrapper node (`[ n items ]`) forces an extra expand keystroke before any element is visible; contradicts explorer-mode UX. Structural symmetry with `JsonLinesTreeView` is also preserved. |
+| ≤ 1,000 items: direct element nodes | Small arrays don't need grouping; immediate visibility on open. |
+| ≥ 1,001 items: 1,000-item `JsonArrayRangeTreeNode` | Groups elements so that unexpanded ranges never allocate child nodes; prevents OOM for large arrays without an arbitrary cap. |
+| Memory management: Plan A (do nothing on collapse) | Expanded children remain in Gen2 heap. GC churn from repeatedly releasing/reallocating 1,000-node batches (Plan C) outweighs the memory savings. Viewport-based auto-release (Plan B) is deferred to a future issue. |
+| Total count in status bar | `IRowIndexer.TotalRows` is available at `ViewManager.SwitchToJsonArrayTree` call time; no change to `JsonArrayTreeView` required. |
 | Reuse `JsonObjectTreeNode`, `JsonArrayTreeNode`, `JsonValueTreeNode` | Identical structural nodes; zero duplication |
 | Option B display format (`[0]: {Object: 2 properties}`) | Richer than `{...}`; user sees element count/property count before expanding |
 | Extend `SlidingWindowLruCache<ReadOnlyMemory<byte>>` | Reuses prefetch and LRU eviction; same API as `RowByteCache` |
 | Synthetic `[` prepended to buffer in `ElementReader` | Places elements at depth 1 so `Utf8JsonReader.Read()` advances past commas automatically; no manual separator scanning needed |
 | `MmapService` for `ElementReader` I/O | Consistent with `RowReader`; supports random-access reads without reopening the file handle |
-| `MaxElementsShown = 5_000` cap on root child nodes | Terminal.Gui `TreeView` holds all nodes in memory; prevents OOM for million-element arrays |
 | All tree operations on the UI thread | Same model as `JsonLinesTreeView`; no synchronization needed |
 | `MorphTreeView` abstract base class | Mirrors `MorphTableView`; eliminates Vim-key duplication between `JsonLinesTreeView` and `JsonArrayTreeView` |
 
@@ -451,6 +492,7 @@ Same as `JsonLinesTreeView`:
 |------|-------|----------|
 | `Constructor_WithNullFilePath_ThrowsArgumentNullException` | `null` | `ArgumentNullException` |
 | `Constructor_WithWhiteSpacePath_ThrowsArgumentException` | `"   "` | `ArgumentException` |
+| `Constructor_WithNonExistentFilePath_ThrowsInvalidOperationException` | Non-existent path | `InvalidOperationException` |
 | `ReadElementBytes_SingleObject_ReturnsObjectBytes` | `[{"a":1}]`, offset at `{` | 1 entry; bytes parse to `{"a":1}` |
 | `ReadElementBytes_MultipleElements_ReturnsCorrectCount` | `[1, 2, 3]`, offset at `1` | 3 entries |
 | `ReadElementBytes_WithSkip_SkipsCorrectElements` | `[1, 2, 3]`, skip=1, fetch=2 | Bytes for `2` and `3` |
@@ -460,39 +502,59 @@ Same as `JsonLinesTreeView`:
 | `ReadElementBytes_WithNegativeSkipCount_ThrowsArgumentOutOfRangeException` | elementsToSkip=-1 | `ArgumentOutOfRangeException` |
 | `ReadElementBytes_WithNegativeFetchCount_ThrowsArgumentOutOfRangeException` | elementsToFetch=-1 | `ArgumentOutOfRangeException` |
 | `ReadElementBytes_EmptyArray_ReturnsEmptyList` | `[]` | Empty list |
+| `ReadElementBytes_MixedTypeArray_ReturnsCorrectElements` | `[1, "str", true, null, {}, []]` | 6 entries, each with correct type bytes |
+| `ReadElementBytes_SkipPastEnd_ReturnsEmptyList` | `[1, 2]`, skip=5 | Empty list |
 | `ReadElementBytes_AfterDispose_ThrowsObjectDisposedException` | Disposed instance | `ObjectDisposedException` |
 
 ### 7.2 Unit Tests — `ElementByteCache`
 
 | Test | Scenario | Expected |
 |------|----------|----------|
+| `GetRow_FirstAccess_ReturnsCorrectBytes` | `GetRow(0)` on a fresh cache | Correct bytes for element 0 |
+| `GetRow_LastValidIndex_ReturnsCorrectBytes` | `GetRow(TotalRows - 1)` | Correct bytes for last element |
 | `GetRow_WithinCachedRange_ReturnsCachedBytes` | Cache hit on second call | Same bytes returned; `ElementReader` called once |
 | `GetRow_OutsideCachedRange_UpdatesCacheWindow` | Cache miss | Bytes loaded; window advances |
 | `GetRow_NegativeIndex_ReturnsEmpty` | `GetRow(-1)` | `ReadOnlyMemory<byte>.Empty` |
 | `GetRow_IndexEqualToTotalElements_ReturnsEmpty` | `GetRow(TotalRows)` | `ReadOnlyMemory<byte>.Empty` |
 | `GetRow_AfterDisposal_ThrowsObjectDisposedException` | Disposed instance | `ObjectDisposedException` |
 | `Dispose_CalledTwice_DoesNotThrow` | Double dispose | No exception |
+| `Dispose_AllowsFileDeletion_AfterDispose` | Create an `ElementByteCache` backed by a temp file; call `cache.Dispose()`; then call `File.Delete(filePath)` | No `IOException` thrown. Verifies mmap handle release on Windows (open handles block deletion). On macOS, `unlink(2)` semantics mean the call always succeeds regardless of disposal — the test serves as documentation on that platform. |
 
-### 7.3 Unit Tests — `JsonArrayRootTreeNode`
+### 7.3 Unit Tests — `JsonArrayRangeTreeNode`
 
 | Test | Input | Expected |
 |------|-------|----------|
 | `Constructor_WithNullCache_ThrowsArgumentNullException` | `null` | `ArgumentNullException` |
-| `Constructor_SetsCorrectDisplayText` | Cache with `TotalRows = 5` | `Text = "[ 5 items ]"` |
-| `Children_FirstAccess_LoadsElementNodes` | 3-element array | `Children.Count = 3` |
-| `Children_EmptyArray_ReturnsEmptyChildren` | `TotalRows = 0` | `Children.Count = 0` |
+| `Constructor_SetsCorrectDisplayText` | `startIndex=0, count=1000` | `Text = "[0 - 999]"` |
+| `Constructor_SetsCorrectDisplayText_PartialRange` | `startIndex=1000, count=500` | `Text = "[1000 - 1499]"` |
+| `Children_FirstAccess_LoadsElementNodes` | Range covering 3 elements | `Children.Count = 3` |
+| `Children_EmptyRange_ReturnsEmptyChildren` | `count = 0` | `Children.Count = 0` |
 | `Children_ObjectElement_CreatesJsonObjectTreeNode` | `[{"a":1}]` | Child is `JsonObjectTreeNode` with `Text` starting with `[0]:` |
 | `Children_ArrayElement_CreatesJsonArrayTreeNode` | `[[1,2]]` | Child is `JsonArrayTreeNode` with `Text` starting with `[0]:` |
 | `Children_PrimitiveElement_CreatesJsonValueTreeNode` | `[42]` | Child is `JsonValueTreeNode` with `Text = "[0]: 42"` |
 | `Children_NullElement_CreatesJsonValueTreeNode` | `[null, 1]` | First child is `JsonValueTreeNode` with `Text = "[0]: <null>"` |
-| `Children_LargeArray_CapsAtMaxElementsShown` | `TotalRows = 6000` | `Children.Count = MaxElementsShown + 1` |
-| `Children_LargeArray_TruncationNodeHasExpectedText` | `TotalRows = 6000` | Last child `Text = "... (1000 more elements - use a filtered view)"` |
-| `Children_SecondAccess_ReturnsSameCount` | Any array | `Children.Count` is identical on second access (behaviour test; avoids dependency on private `LoadChildren`) |
+| `Children_InvalidJsonElement_CreatesJsonValueTreeNodeWithErrorText` | Malformed bytes | Child is `JsonValueTreeNode` with `Text` containing `[Invalid JSON]` |
+| `Children_SecondAccess_ReturnsSameCount` | Any range | `Children.Count` is identical on second access |
+| `Children_SkipsEmptyBytes_WhenCacheReturnsEmpty` | Cache returns `Empty` for some indices | Empty-byte entries are skipped; `Children.Count` equals non-empty count |
 
-### 7.4 Unit Tests — `ViewManager` (additions to existing `ViewManagerTests`)
+### 7.4 Unit Tests — `JsonArrayTreeView`
+
+| Test | Input | Expected |
+|------|-------|----------|
+| `Constructor_SmallArray_AddsElementNodesDirectly` | `TotalRows = 5` | Top-level objects are element nodes, not `JsonArrayRangeTreeNode` |
+| `Constructor_ExactBoundary_AddsElementNodesDirectly` | `TotalRows = 1000` | Top-level objects are element nodes, not `JsonArrayRangeTreeNode` |
+| `Constructor_LargeArray_AddsRangeNodes` | `TotalRows = 1001` | Top-level objects are all `JsonArrayRangeTreeNode` |
+| `Constructor_LargeArray_CorrectRangeCount` | `TotalRows = 2500` | 3 range nodes: `[0-999]`, `[1000-1999]`, `[2000-2499]` |
+| `Constructor_EmptyArray_AddsNoNodes` | `TotalRows = 0` | No top-level objects |
+| `Constructor_SmallArray_SkipsEmptyBytes_WhenCacheReturnsEmpty` | Cache returns `Empty` for some indices | Empty-byte entries are skipped; fewer nodes than `TotalRows` |
+
+### 7.5 Unit Tests — `ViewManager` (additions to existing `ViewManagerTests`)
 
 | Test | Expected |
 |------|----------|
 | `SwitchToJsonArrayTree_WithValidIndexer_SetsCurrentView` | Current view is `JsonArrayTreeView` |
+| `SwitchToJsonArrayTree_WithValidIndexer_ShowsTotalCountInStatusBar` | Status bar text contains `TotalRows` value |
 | `SwitchToJsonArrayTree_WithNullIndexer_ThrowsArgumentNullException` | `ArgumentNullException` |
 | `SwitchToJsonArrayTree_AfterDisposal_ThrowsObjectDisposedException` | `ObjectDisposedException` |
+| `ToggleJsonArrayModeAsync_WhenLive_DoesNotThrow` | Called on a live `ViewManager` | Completes without exception |
+| `ToggleJsonArrayModeAsync_AfterDisposal_ThrowsObjectDisposedException` | Disposed instance | `ObjectDisposedException` |

@@ -162,7 +162,11 @@ internal sealed class MainWindow : Window
 
     private void OnBuildIndexCompleted()
     {
-        _app.Invoke(DismissIndexingProgress);
+        _app.Invoke(() =>
+        {
+            DismissIndexingProgress();
+            _viewManager.RefreshStatusBarHints();
+        });
     }
 
     internal void StartIndexing(IRowIndexer indexer)

@@ -25,6 +25,7 @@ internal sealed class ViewManager : IDisposable
     private readonly ModeController _modeController;
     private readonly Action<Action> _uiThreadInvoke;
     private View? _currentView;
+    private Label? _itemCountLabel;
     private bool _disposed;
 
     internal ViewManager(Window container, AppState state, ModeController modeController, Action<Action> uiThreadInvoke)
@@ -41,9 +42,12 @@ internal sealed class ViewManager : IDisposable
 
     /// <summary>
     /// Refreshes the status bar hints based on the current application state.
+    /// When indexing is complete, also shows an item count label at the right edge.
     /// </summary>
     internal void RefreshStatusBarHints()
     {
+        RemoveItemCountLabel();
+
         var statusBar = GetCurrentStatusBar();
         if (statusBar is null)
         {
@@ -81,6 +85,20 @@ internal sealed class ViewManager : IDisposable
         foreach (var shortcut in shortcuts)
         {
             statusBar.Add(shortcut);
+        }
+
+        if (_state.RowIndexer is { IsIndexingCompleted: true })
+        {
+            _itemCountLabel = new Label
+            {
+                Text = $"{_state.RowIndexer.TotalRows} items",
+                // AnchorEnd places the right edge at the container boundary; subtract 1 to keep a margin
+                X = Pos.AnchorEnd() - 1,
+                // Place on the same row as the StatusBar (bottom line of the container)
+                Y = Pos.AnchorEnd(1),
+                SchemeName = statusBar.SchemeName,
+            };
+            _container.Add(_itemCountLabel);
         }
     }
 
@@ -237,13 +255,11 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        var view = new Views.JsonArrayTreeView(indexer, () => _ = ToggleJsonArrayModeAsync())
-        {
-            X = 0,
-            Y = 1, // Start below MenuBar
-            Width = Dim.Fill(),
-            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
-        };
+        var view = Views.JsonArrayTreeView.Create(indexer, () => _ = ToggleJsonArrayModeAsync());
+        view.X = 0;
+        view.Y = 1; // Start below MenuBar
+        view.Width = Dim.Fill();
+        view.Height = Dim.Fill() - 1; // Leave room for StatusBar at the bottom
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -407,6 +423,18 @@ internal sealed class ViewManager : IDisposable
         _container.SetNeedsDraw();
     }
 
+    private void RemoveItemCountLabel()
+    {
+        if (_itemCountLabel is null)
+        {
+            return;
+        }
+
+        _container.Remove(_itemCountLabel);
+        _itemCountLabel.Dispose();
+        _itemCountLabel = null;
+    }
+
     /// <summary>
     /// Gets the current view.
     /// </summary>
@@ -431,6 +459,7 @@ internal sealed class ViewManager : IDisposable
         }
 
         _disposed = true;
+        RemoveItemCountLabel();
         _currentView?.Dispose();
     }
 }

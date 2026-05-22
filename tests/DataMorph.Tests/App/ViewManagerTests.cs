@@ -261,7 +261,7 @@ public sealed class ViewManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task ToggleJsonArrayModeAsync_WhenCalled_ReturnsCompletedTask()
+    public async Task ToggleJsonArrayModeAsync_WhenLive_DoesNotThrow()
     {
         // Arrange
         using var app = CreateTestApp();
@@ -317,6 +317,104 @@ public sealed class ViewManagerTests : IDisposable
     }
 
     [Fact]
+    public void SwitchToJsonArrayTree_WithValidIndexer_DoesNotShowTotalCountBeforeIndexCompletion()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".json", "[1,2,3]");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath, CurrentMode = ViewMode.JsonArrayTree };
+        using var window = new Window();
+        using var statusBar = new StatusBar();
+        window.Add(statusBar);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        var indexer = new RowIndexer(filePath);
+
+        // Act — do NOT call BuildIndex, so IsIndexingCompleted stays false
+        viewManager.SwitchToJsonArrayTree(indexer);
+
+        // Assert — item count is not shown until BuildIndexCompleted fires
+        var currentStatusBar = viewManager.GetCurrentStatusBar();
+        currentStatusBar.Should().NotBeNull();
+        var hints = Enumerable.Select(
+                Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
+                s => s.HelpText);
+        hints.Should().NotContainMatch("*items*");
+        window.SubViews.OfType<Label>().Should().NotContain(l => l.Text.Contains("items", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void RefreshStatusBarHints_WithNoParam_RemovesExistingItemCountLabel()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".csv", "col1\nval1");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath, RowIndexer = new MockRowIndexer("test.csv", 5000) };
+        using var window = new Window();
+        using var statusBar = new StatusBar();
+        window.Add(statusBar);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        viewManager.RefreshStatusBarHints();
+        window.SubViews.OfType<Label>().First(l => l.Text == "5000 items").Text.Should().Be("5000 items");
+
+        // Act — clear RowIndexer so the label won't be re-added
+        state.RowIndexer = null;
+        viewManager.RefreshStatusBarHints();
+
+        // Assert
+        window.SubViews.OfType<Label>().Should().NotContain(l => l.Text == "5000 items");
+    }
+
+    [Fact]
+    public void RefreshStatusBarHints_WithCompletedIndexer_ShowsItemCountLabel()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".csv", "col1\nval1");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath, RowIndexer = new MockRowIndexer("test.csv", 5000) };
+        using var window = new Window();
+        using var statusBar = new StatusBar();
+        window.Add(statusBar);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        // Act
+        viewManager.RefreshStatusBarHints();
+
+        // Assert
+        window.SubViews.OfType<Label>().First(l => l.Text == "5000 items").Text.Should().Be("5000 items");
+    }
+
+    [Fact]
+    public void RefreshStatusBarHints_WithUpdatedIndexer_ReplacesCountOnSubsequentCall()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".csv", "col1\nval1");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath, RowIndexer = new MockRowIndexer("test.csv", 1000) };
+        using var window = new Window();
+        using var statusBar = new StatusBar();
+        window.Add(statusBar);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        // Act — first call
+        viewManager.RefreshStatusBarHints();
+
+        // Assert — shows count from first indexer
+        window.SubViews.OfType<Label>().First(l => l.Text == "1000 items").Text.Should().Be("1000 items");
+
+        // Act — replace indexer with one that has a different row count
+        state.RowIndexer = new MockRowIndexer("test.csv", 5000);
+        viewManager.RefreshStatusBarHints();
+
+        // Assert — shows updated count, old count is gone
+        window.SubViews.OfType<Label>().First(l => l.Text == "5000 items").Text.Should().Be("5000 items");
+        window.SubViews.OfType<Label>().Should().NotContain(l => l.Text == "1000 items");
+    }
+
+    [Fact]
     public void SwitchToJsonArrayTree_WithNullIndexer_ThrowsArgumentNullException()
     {
         // Arrange
@@ -355,12 +453,13 @@ public sealed class ViewManagerTests : IDisposable
     /// <summary>
     /// Mock IRowIndexer for testing.
     /// </summary>
-    private sealed class MockRowIndexer(string filePath) : IRowIndexer
+    private sealed class MockRowIndexer(string filePath, long totalRows = 10) : IRowIndexer
     {
         public string FilePath => filePath;
         public long FileSize => 1000;
         public long BytesRead => 1000;
-        public long TotalRows => 10;
+        public long TotalRows => totalRows;
+        public bool IsIndexingCompleted => true;
 
 #pragma warning disable CS0067
         public event Action? FirstCheckpointReached;

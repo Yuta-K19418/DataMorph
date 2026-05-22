@@ -183,6 +183,7 @@ public sealed class IndexTaskManagerTests : IDisposable
         public long FileSize => 0;
         public long TotalRows => 0;
         public string FilePath => string.Empty;
+        public bool IsIndexingCompleted { get; private set; }
 
         public void BuildIndex(CancellationToken ct = default)
         {
@@ -192,6 +193,7 @@ public sealed class IndexTaskManagerTests : IDisposable
                 Thread.Sleep(1);
             }
             WasCancelled = true;
+            IsIndexingCompleted = true;
             BuildIndexCompleted?.Invoke();
         }
 

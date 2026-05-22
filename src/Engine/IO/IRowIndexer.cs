@@ -43,6 +43,11 @@ public interface IRowIndexer
     long TotalRows { get; }
 
     /// <summary>
+    /// Gets whether <see cref="BuildIndex"/> has completed.
+    /// </summary>
+    bool IsIndexingCompleted { get; }
+
+    /// <summary>
     /// Gets the path to the file being indexed.
     /// </summary>
     string FilePath { get; }

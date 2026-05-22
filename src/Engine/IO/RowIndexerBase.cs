@@ -50,8 +50,13 @@ public abstract class RowIndexerBase : IRowIndexer
     /// </summary>
     private bool _firstCheckpointReached;
 
+    private volatile bool _isIndexingCompleted;
+
     /// <inheritdoc />
     public long FileSize { get; protected set; }
+
+    /// <inheritdoc />
+    public bool IsIndexingCompleted => _isIndexingCompleted;
 
     /// <inheritdoc />
     public abstract long BytesRead { get; }
@@ -106,6 +111,7 @@ public abstract class RowIndexerBase : IRowIndexer
     /// </summary>
     protected void OnBuildIndexCompleted()
     {
+        _isIndexingCompleted = true;
         BuildIndexCompleted?.Invoke();
     }
 }

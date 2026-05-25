@@ -25,6 +25,7 @@ internal sealed class ViewManager : IDisposable
     private readonly ModeController _modeController;
     private readonly Action<Action> _uiThreadInvoke;
     private View? _currentView;
+    private Label? _itemCountLabel;
     private bool _disposed;
 
     internal ViewManager(Window container, AppState state, ModeController modeController, Action<Action> uiThreadInvoke)
@@ -41,9 +42,12 @@ internal sealed class ViewManager : IDisposable
 
     /// <summary>
     /// Refreshes the status bar hints based on the current application state.
+    /// When indexing is complete, also shows an item count label at the right edge.
     /// </summary>
     internal void RefreshStatusBarHints()
     {
+        RemoveItemCountLabel();
+
         var statusBar = GetCurrentStatusBar();
         if (statusBar is null)
         {
@@ -58,7 +62,7 @@ internal sealed class ViewManager : IDisposable
         if (!string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             var format = FormatDetector.Detect(_state.CurrentFilePath);
-            if (format.IsSuccess && format.Value == DataFormat.JsonLines)
+            if (format.IsSuccess && format.Value is DataFormat.JsonLines or DataFormat.JsonArray)
             {
                 hints.Add("t:Tree/Table");
             }
@@ -81,6 +85,20 @@ internal sealed class ViewManager : IDisposable
         foreach (var shortcut in shortcuts)
         {
             statusBar.Add(shortcut);
+        }
+
+        if (_state.RowIndexer is { IsIndexingCompleted: true })
+        {
+            _itemCountLabel = new Label
+            {
+                Text = $"{_state.RowIndexer.TotalRows} items",
+                // AnchorEnd places the right edge at the container boundary; subtract 1 to keep a margin
+                X = Pos.AnchorEnd() - 1,
+                // Place on the same row as the StatusBar (bottom line of the container)
+                Y = Pos.AnchorEnd(1),
+                SchemeName = statusBar.SchemeName,
+            };
+            _container.Add(_itemCountLabel);
         }
     }
 
@@ -115,6 +133,17 @@ internal sealed class ViewManager : IDisposable
                 SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
             }
         });
+    }
+
+    /// <summary>
+    /// Toggles between JSON Array Tree and Table view modes.
+    /// Table view is not supported; returns a completed task immediately.
+    /// </summary>
+    /// <returns>A completed task.</returns>
+    internal Task ToggleJsonArrayModeAsync()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -208,6 +237,29 @@ internal sealed class ViewManager : IDisposable
             Width = Dim.Fill(),
             Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
         };
+        SwapView(view);
+        RefreshStatusBarHints();
+    }
+
+    /// <summary>
+    /// Switches the content area to the JSON Array hierarchical tree view.
+    /// </summary>
+    /// <param name="indexer">The JSON Array row indexer for the loaded file.</param>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views are owned by the container and disposed via SwapView."
+    )]
+    internal void SwitchToJsonArrayTree(IRowIndexer indexer)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(indexer);
+
+        var view = Views.JsonArrayTreeView.Create(indexer, () => _ = ToggleJsonArrayModeAsync());
+        view.X = 0;
+        view.Y = 1; // Start below MenuBar
+        view.Width = Dim.Fill();
+        view.Height = Dim.Fill() - 1; // Leave room for StatusBar at the bottom
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -371,6 +423,18 @@ internal sealed class ViewManager : IDisposable
         _container.SetNeedsDraw();
     }
 
+    private void RemoveItemCountLabel()
+    {
+        if (_itemCountLabel is null)
+        {
+            return;
+        }
+
+        _container.Remove(_itemCountLabel);
+        _itemCountLabel.Dispose();
+        _itemCountLabel = null;
+    }
+
     /// <summary>
     /// Gets the current view.
     /// </summary>
@@ -395,6 +459,7 @@ internal sealed class ViewManager : IDisposable
         }
 
         _disposed = true;
+        RemoveItemCountLabel();
         _currentView?.Dispose();
     }
 }

@@ -17,6 +17,7 @@ public sealed class SlidingWindowLruCacheTests
         public long TotalRows => totalRows;
         public long BytesRead => 0;
         public long FileSize => totalRows * 10;
+        public bool IsIndexingCompleted => true;
 
         public void BuildIndex(CancellationToken ct = default) { }
 

@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using DataMorph.Engine.IO.JsonObject;
 
 namespace DataMorph.Tests.Engine.IO.JsonObject;
 
@@ -10,9 +11,9 @@ public sealed class TopLevelScannerBenchmarks
     private const int KeyCount10 = 10;
     private const int KeyCount100 = 100;
 
-    private string? _tempFilePath10Keys;
-    private string? _tempFilePath100KeysSmall;
-    private string? _tempFilePath100KeysLarge;
+    private string _tempFilePath10Keys = string.Empty;
+    private string _tempFilePath100KeysSmall = string.Empty;
+    private string _tempFilePath100KeysLarge = string.Empty;
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -39,17 +40,17 @@ public sealed class TopLevelScannerBenchmarks
     [GlobalCleanup]
     public void GlobalCleanup()
     {
-        if (_tempFilePath10Keys is not null)
+        if (_tempFilePath10Keys.Length > 0)
         {
             File.Delete(_tempFilePath10Keys);
         }
 
-        if (_tempFilePath100KeysSmall is not null)
+        if (_tempFilePath100KeysSmall.Length > 0)
         {
             File.Delete(_tempFilePath100KeysSmall);
         }
 
-        if (_tempFilePath100KeysLarge is not null)
+        if (_tempFilePath100KeysLarge.Length > 0)
         {
             File.Delete(_tempFilePath100KeysLarge);
         }
@@ -58,19 +59,19 @@ public sealed class TopLevelScannerBenchmarks
     [Benchmark]
     public void Scan_10Keys_SmallValues()
     {
-        throw new NotImplementedException();
+        TopLevelScanner.Scan(_tempFilePath10Keys);
     }
 
     [Benchmark]
     public void Scan_100Keys_SmallValues()
     {
-        throw new NotImplementedException();
+        TopLevelScanner.Scan(_tempFilePath100KeysSmall);
     }
 
     [Benchmark]
     public void Scan_100Keys_LargeNestedValues()
     {
-        throw new NotImplementedException();
+        TopLevelScanner.Scan(_tempFilePath100KeysLarge);
     }
 
     private static void WriteKeyValues(string path, int count, Func<int, string> valueFactory)

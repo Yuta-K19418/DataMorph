@@ -1,3 +1,6 @@
+using AwesomeAssertions;
+using DataMorph.Engine.IO.JsonObject;
+
 namespace DataMorph.Tests.Engine.IO.JsonObject;
 
 public sealed partial class TopLevelScannerTests : IDisposable
@@ -26,8 +29,10 @@ public sealed partial class TopLevelScannerTests : IDisposable
         // Arrange — no setup required
 
         // Act
+        var act = () => TopLevelScanner.Scan(null!);
 
         // Assert
+        act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -36,7 +41,9 @@ public sealed partial class TopLevelScannerTests : IDisposable
         // Arrange — no setup required
 
         // Act
+        var act = () => TopLevelScanner.Scan("   ");
 
         // Assert
+        act.Should().Throw<ArgumentException>();
     }
 }

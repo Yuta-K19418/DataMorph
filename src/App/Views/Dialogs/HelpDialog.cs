@@ -27,13 +27,12 @@ internal sealed class HelpDialog : Dialog
         Width = Dim.Absolute(54);
         Height = Dim.Absolute(32);
 
-        var helpText = new TextView
+        var helpText = new Label
         {
             X = 0,
             Y = 0,
             Width = Dim.Fill(),
             Height = Dim.Fill() - 1,
-            ReadOnly = true,
             Text = GetHelpText(),
         };
 

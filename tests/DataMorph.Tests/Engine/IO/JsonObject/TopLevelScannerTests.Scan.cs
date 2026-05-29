@@ -361,22 +361,6 @@ public sealed partial class TopLevelScannerTests
     }
 
     [Fact]
-    public void Scan_WhenCancelled_ThrowsOperationCanceledException()
-    {
-        // Arrange
-        using var cts = new CancellationTokenSource();
-        var fields = string.Join(",", Enumerable.Range(0, 100_000).Select(i => $"\"f{i}\":{i}"));
-        File.WriteAllText(_testFilePath, $"{{{fields}}}");
-        cts.Cancel();
-
-        // Act
-        var act = () => TopLevelScanner.Scan(_testFilePath, cts.Token);
-
-        // Assert
-        act.Should().Throw<OperationCanceledException>();
-    }
-
-    [Fact]
     public void Scan_WithPreCancelledToken_ThrowsOperationCanceledException()
     {
         // Arrange — file exists and is valid, but the token is already cancelled

@@ -56,7 +56,53 @@ internal static class FormatDetector
     /// </returns>
     private static Result<DataFormat> DetectJsonFormat(string filePath)
     {
-        // TODO: Implement in Step 2 — detect object vs array by reading first token
-        return Results.Success(DataFormat.JsonArray);
+        try
+        {
+            using var fs = File.OpenRead(filePath);
+            SkipUtf8BomIfPresent(fs);
+
+            var b = fs.ReadByte();
+            while (b != -1 && char.IsWhiteSpace((char)b))
+            {
+                b = fs.ReadByte();
+            }
+
+            if (b == -1)
+            {
+                return Results.Failure<DataFormat>("File contains no valid JSON root token");
+            }
+
+            return (char)b switch
+            {
+                '{' => Results.Success(DataFormat.JsonObject),
+                '[' => Results.Success(DataFormat.JsonArray),
+                _ => Results.Failure<DataFormat>($"Unrecognized JSON root token: '{(char)b}'"),
+            };
+        }
+        catch (IOException ex)
+        {
+            return Results.Failure<DataFormat>($"Failed to read file: {ex.Message}");
+        }
+    }
+
+    private static void SkipUtf8BomIfPresent(FileStream fs)
+    {
+        Span<byte> bom = stackalloc byte[3];
+        try
+        {
+            fs.ReadExactly(bom);
+        }
+        catch (EndOfStreamException)
+        {
+            fs.Seek(0, SeekOrigin.Begin);
+            return;
+        }
+
+        if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+        {
+            return;
+        }
+
+        fs.Seek(-3, SeekOrigin.Current);
     }
 }

@@ -139,40 +139,66 @@ public sealed class IndexTaskManagerTests : IDisposable
     public void CancelCurrent_WhenIdle_DoesNotThrow()
     {
         // Arrange
+        using var manager = new IndexTaskManager();
 
         // Act
+        var act = () => manager.CancelCurrent();
 
         // Assert
+        act.Should().NotThrow();
     }
 
     [Fact]
-    public void CancelCurrent_AfterStart_CancelsTask()
+    public async Task CancelCurrent_AfterStart_CancelsTask()
     {
         // Arrange
+        var indexer = new BlockingIndexer();
+        var firstCheckpoint = new TaskCompletionSource<bool>();
+        var completed = new TaskCompletionSource<bool>();
+        indexer.FirstCheckpointReached += () => firstCheckpoint.TrySetResult(true);
+        indexer.BuildIndexCompleted += () => completed.TrySetResult(true);
+
+        using var manager = new IndexTaskManager();
+        manager.Start(indexer);
+        await firstCheckpoint.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
         // Act
+        manager.CancelCurrent();
 
         // Assert
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        indexer.WasCancelled.Should().BeTrue();
     }
 
     [Fact]
     public void CancelCurrent_CalledTwice_DoesNotThrow()
     {
         // Arrange
+        using var manager = new IndexTaskManager();
+        manager.CancelCurrent();
 
         // Act
+        var act = () => manager.CancelCurrent();
 
         // Assert
+        act.Should().NotThrow();
     }
 
     [Fact]
     public void CancelCurrent_AfterDisposal_ThrowsObjectDisposedException()
     {
         // Arrange
+        // CA2000: manager is disposed via manager.Dispose() below; suppress false positive.
+#pragma warning disable CA2000
+        var manager = new IndexTaskManager();
+#pragma warning restore CA2000
+        manager.Dispose();
 
         // Act
+        var act = () => manager.CancelCurrent();
 
         // Assert
+        act.Should().Throw<ObjectDisposedException>();
     }
 
     [Fact]

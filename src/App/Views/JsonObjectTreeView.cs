@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DataMorph.App.Views.JsonTreeNodes;
 using Terminal.Gui.Views;
 
@@ -27,7 +28,14 @@ internal sealed class JsonObjectTreeView : MorphTreeView
         IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries,
         Action onTableModeToggle)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentNullException.ThrowIfNull(onTableModeToggle);
+        var view = new JsonObjectTreeView(onTableModeToggle);
+        foreach (var (key, valueBytes) in entries)
+        {
+            view.AddObject(CreateKeyNode(key, valueBytes));
+        }
+        return view;
     }
 
     /// <summary>
@@ -43,6 +51,46 @@ internal sealed class JsonObjectTreeView : MorphTreeView
     /// <returns>A tree node representing the key-value pair.</returns>
     internal static ITreeNode CreateKeyNode(string key, ReadOnlyMemory<byte> valueBytes)
     {
-        throw new NotImplementedException();
+        string withKey(string text) => $"{key}: {text}";
+        ITreeNode invalidNode() =>
+            new JsonValueTreeNode(withKey("[Invalid JSON]")) { ValueKind = JsonValueKind.Undefined };
+
+        if (valueBytes.IsEmpty)
+        {
+            return invalidNode();
+        }
+
+        var reader = new Utf8JsonReader(valueBytes.Span);
+
+        try
+        {
+            if (!reader.Read())
+            {
+                return invalidNode();
+            }
+
+            if (reader.TokenType == JsonTokenType.StartObject)
+            {
+                var node = new JsonObjectTreeNode(valueBytes);
+                node.Text = withKey(node.Text);
+                return node;
+            }
+
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                var node = new JsonArrayTreeNode(valueBytes);
+                node.Text = withKey(node.Text);
+                return node;
+            }
+
+            return new JsonValueTreeNode(withKey(reader.GetPrimitiveDisplay()))
+            {
+                ValueKind = reader.TokenType.ToJsonValueKind(),
+            };
+        }
+        catch (JsonException)
+        {
+            return invalidNode();
+        }
     }
 }

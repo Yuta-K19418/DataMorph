@@ -43,7 +43,13 @@ internal sealed class IndexTaskManager : IDisposable
     /// </summary>
     public void CancelCurrent()
     {
-        throw new NotImplementedException();
+        lock (_lock)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _cts?.Cancel();
+            _cts?.Dispose();
+            _cts = null;
+        }
     }
 
     /// <inheritdoc/>

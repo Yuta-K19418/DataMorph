@@ -181,7 +181,25 @@ internal sealed class MainWindow : Window
     /// </summary>
     internal void StopCurrentIndexing()
     {
-        throw new NotImplementedException();
+        if (_activeIndexer is not null)
+        {
+            if (_onProgressChanged is not null)
+            {
+                _activeIndexer.ProgressChanged -= _onProgressChanged;
+            }
+
+            if (_onBuildIndexCompleted is not null)
+            {
+                _activeIndexer.BuildIndexCompleted -= _onBuildIndexCompleted;
+            }
+
+            _activeIndexer = null;
+            _onProgressChanged = null;
+            _onBuildIndexCompleted = null;
+        }
+
+        _indexTaskManager.CancelCurrent();
+        DismissIndexingProgress();
     }
 
     [SuppressMessage(

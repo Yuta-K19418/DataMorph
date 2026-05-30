@@ -279,7 +279,15 @@ internal sealed class ViewManager : IDisposable
     internal void SwitchToJsonObjectTree(
         IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries)
     {
-        throw new NotImplementedException();
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(entries);
+        var view = Views.JsonObjectTreeView.Create(entries, static () => { });
+        view.X = 0;
+        view.Y = 1;
+        view.Width = Dim.Fill();
+        view.Height = Dim.Fill() - 1;
+        SwapView(view);
+        RefreshStatusBarHints();
     }
 
     /// <summary>

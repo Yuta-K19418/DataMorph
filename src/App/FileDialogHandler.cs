@@ -14,12 +14,14 @@ internal sealed class FileDialogHandler(
     IApplication app,
     AppState state,
     ViewManager viewManager,
-    Action<IRowIndexer> onIndexerStart)
+    Action<IRowIndexer> onIndexerStart,
+    Action stopIndexing)
 {
     private readonly IApplication _app = app;
     private readonly AppState _state = state;
     private readonly ViewManager _viewManager = viewManager;
     private readonly Action<IRowIndexer> _onIndexerStart = onIndexerStart;
+    private readonly Action _stopIndexing = stopIndexing;
 
     [SuppressMessage(
         "Reliability",
@@ -58,6 +60,38 @@ internal sealed class FileDialogHandler(
         _state.CurrentFilePath = path;
         _state.ActionStack = [];
         _state.RenewCtsWithCancel();
+
+        // JSON Object: scan keys via TopLevelScanner, then switch to tree view directly.
+        // No IRowIndexer is needed — keys are not rows.
+        if (format == DataFormat.JsonObject)
+        {
+            _stopIndexing();
+            _state.RowIndexer = null;
+            _state.Schema = null;
+            _state.OnSchemaRefined = null;
+
+            var ct = _state.Cts.Token;
+            try
+            {
+                var entries = await Task.Run(
+                    () => Engine.IO.JsonObject.TopLevelScanner.Scan(path, ct), ct);
+                _app.Invoke(() =>
+                {
+                    _state.CurrentMode = ViewMode.JsonObjectTree;
+                    _viewManager.SwitchToJsonObjectTree(entries);
+                });
+            }
+            catch (OperationCanceledException) { /* file reloaded before scan completed */ }
+#pragma warning disable CA1031 // UI top-level handler
+            catch (Exception ex)
+#pragma warning restore CA1031
+            {
+                _app.Invoke(() =>
+                    _viewManager.ShowError($"Error loading JSON Object: {ex.Message}"));
+            }
+
+            return;
+        }
 
         // Create indexer from factory
         var indexer = RowIndexerFactory.Create(format, path);

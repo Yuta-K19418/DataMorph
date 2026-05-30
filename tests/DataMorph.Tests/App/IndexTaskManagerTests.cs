@@ -136,6 +136,46 @@ public sealed class IndexTaskManagerTests : IDisposable
     }
 
     [Fact]
+    public void CancelCurrent_WhenIdle_DoesNotThrow()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CancelCurrent_AfterStart_CancelsTask()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CancelCurrent_CalledTwice_DoesNotThrow()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CancelCurrent_AfterDisposal_ThrowsObjectDisposedException()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
     public async Task Dispose_CancelsIndexing()
     {
         // Arrange

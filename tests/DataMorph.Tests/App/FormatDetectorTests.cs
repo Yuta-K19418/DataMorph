@@ -127,4 +127,54 @@ public sealed class FormatDetectorTests : IDisposable
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("is empty");
     }
+
+    [Fact]
+    public void Detect_JsonObjectFile_ReturnsJsonObject()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Detect_JsonObjectWithLeadingWhitespace_ReturnsJsonObject()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Detect_JsonArrayWithLeadingWhitespace_ReturnsJsonArray()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Detect_JsonFileWithUnknownRoot_ReturnsFailure()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Detect_WhitespaceOnlyJsonFile_ReturnsFailure()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

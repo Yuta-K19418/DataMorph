@@ -60,7 +60,7 @@ internal sealed class MainWindow : Window
 
         _viewManager = new ViewManager(this, state, _modeController, app.Invoke);
 
-        _fileDialogHandler = new FileDialogHandler(app, state, _viewManager, StartIndexing);
+        _fileDialogHandler = new FileDialogHandler(app, state, _viewManager, StartIndexing, StopCurrentIndexing);
         _recipeCommandHandler = new RecipeCommandHandler(app, state, _viewManager);
 
         InitializeMenu();
@@ -173,6 +173,15 @@ internal sealed class MainWindow : Window
     {
         WireIndexerProgress(indexer);
         _indexTaskManager.Start(indexer);
+    }
+
+    /// <summary>
+    /// Stops the currently running indexing task and unwires progress events.
+    /// Must be called on the UI thread; <see cref="DismissIndexingProgress"/> modifies Terminal.Gui views.
+    /// </summary>
+    internal void StopCurrentIndexing()
+    {
+        throw new NotImplementedException();
     }
 
     [SuppressMessage(

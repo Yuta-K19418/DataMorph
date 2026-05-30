@@ -38,6 +38,14 @@ internal sealed class IndexTaskManager : IDisposable
         }
     }
 
+    /// <summary>
+    /// Cancels the currently running indexing task without starting a new one.
+    /// </summary>
+    public void CancelCurrent()
+    {
+        throw new NotImplementedException();
+    }
+
     /// <inheritdoc/>
     public void Dispose()
     {
@@ -52,6 +60,7 @@ internal sealed class IndexTaskManager : IDisposable
             // periodically and exit cooperatively.
             _cts?.Cancel();
             _cts?.Dispose();
+            _cts = null;
             _disposed = true;
         }
     }

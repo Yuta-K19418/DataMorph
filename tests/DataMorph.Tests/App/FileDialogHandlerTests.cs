@@ -47,7 +47,7 @@ public sealed class FileDialogHandlerTests : IDisposable
         // Act
         Action act = () =>
         {
-            _ = new FileDialogHandler(app, state, viewManager, _ => { });
+            _ = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         };
 
         // Assert
@@ -70,7 +70,7 @@ public sealed class FileDialogHandlerTests : IDisposable
             capturedIndexer = indexer;
             // Simulate indexing start
             Task.Run(() => indexer.BuildIndex());
-        });
+        }, () => { });
 
         // Act
         app.Begin(window);
@@ -83,6 +83,26 @@ public sealed class FileDialogHandlerTests : IDisposable
         viewManager.GetCurrentView().Should().BeOfType<JsonLinesTreeView>();
         Assert.NotNull(capturedIndexer);
         capturedIndexer.TotalRows.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public void HandleFileSelectedAsync_JsonObjectFile_SwitchesToJsonObjectTree()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void HandleFileSelectedAsync_JsonObjectFile_WhenCancelled_DoesNotSwitchView()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
     }
 
     [Fact]
@@ -101,7 +121,7 @@ public sealed class FileDialogHandlerTests : IDisposable
         {
             // Do NOT start indexing yet, so FirstCheckpointReached won't fire
             tcs.TrySetResult();
-        });
+        }, () => { });
 
         // Act
         app.Begin(window);

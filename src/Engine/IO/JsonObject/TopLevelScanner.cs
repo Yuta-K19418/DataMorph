@@ -4,12 +4,21 @@ using System.Text.Json;
 
 namespace DataMorph.Engine.IO.JsonObject;
 
-internal sealed class TopLevelScanner
+/// <summary>
+/// Scans a JSON Object file and extracts all top-level key-value pairs in a single pass.
+/// </summary>
+public sealed class TopLevelScanner
 {
     private const int InitialBufferSize = 1024 * 1024; // 1 MB
     private const int MaxBufferSize = 16 * 1024 * 1024; // 16 MB
 
-    internal static IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> Scan(
+    /// <summary>
+    /// Scans the specified JSON Object file and returns all top-level key-value pairs.
+    /// </summary>
+    /// <param name="filePath">Path to the JSON Object file.</param>
+    /// <param name="ct">Cancellation token for cooperative cancellation.</param>
+    /// <returns>A read-only list of key-value pairs with raw JSON bytes for each value.</returns>
+    public static IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> Scan(
         string filePath,
         CancellationToken ct = default
     )

@@ -450,6 +450,36 @@ public sealed class ViewManagerTests : IDisposable
         act.Should().Throw<ObjectDisposedException>();
     }
 
+    [Fact]
+    public void SwitchToJsonObjectTree_WithValidEntries_SetsCurrentView()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void SwitchToJsonObjectTree_WithNullEntries_ThrowsArgumentNullException()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void SwitchToJsonObjectTree_AfterDisposal_ThrowsObjectDisposedException()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
     /// <summary>
     /// Mock IRowIndexer for testing.
     /// </summary>

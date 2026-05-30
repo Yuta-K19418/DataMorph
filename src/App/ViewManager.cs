@@ -265,6 +265,24 @@ internal sealed class ViewManager : IDisposable
     }
 
     /// <summary>
+    /// Switches the content area to the JSON Object hierarchical tree view.
+    /// Table mode is not supported for JSON Object; a no-op callback is passed inline.
+    /// </summary>
+    /// <param name="entries">
+    /// The key-value pairs returned by <see cref="Engine.IO.JsonObject.TopLevelScanner.Scan"/>.
+    /// </param>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "Child views are owned by the container and disposed via SwapView."
+    )]
+    internal void SwitchToJsonObjectTree(
+        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
     /// Switches the content area to the JSON Lines table view.
     /// Wraps the source with <see cref="Views.LazyTransformer"/> when the Action Stack is non-empty.
     /// Registers <see cref="AppState.OnSchemaRefined"/> for background schema updates.

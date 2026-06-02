@@ -11,10 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <TrimmerRootDescriptor Include="TrimmerRoots.xml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <InternalsVisibleTo Include="DataMorph.Tests" />
   </ItemGroup>
 
@@ -37,9 +33,6 @@
     <InvariantGlobalization>false</InvariantGlobalization>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
-
-    <!-- Suppress Terminal.Gui AOT warnings -->
-    <NoWarn>$(NoWarn);IL2026;IL3050;IL3053</NoWarn>
   </PropertyGroup>
 
 </Project>

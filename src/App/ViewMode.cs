@@ -36,6 +36,11 @@ internal enum ViewMode
     JsonArrayTable,
 
     /// <summary>
+    /// JSON Object tree view with hierarchical key-value display.
+    /// </summary>
+    JsonObjectTree,
+
+    /// <summary>
     /// Placeholder view displaying loaded file information.
     /// Will be replaced by CsvTable, JsonTable views in future issues.
     /// </summary>

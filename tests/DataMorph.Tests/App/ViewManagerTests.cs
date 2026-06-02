@@ -450,6 +450,94 @@ public sealed class ViewManagerTests : IDisposable
         act.Should().Throw<ObjectDisposedException>();
     }
 
+    [Fact]
+    public void SwitchToJsonObjectTree_WithValidEntries_SetsCurrentView()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = "test.json" };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries =
+        [
+            ("id", System.Text.Encoding.UTF8.GetBytes("1")),
+        ];
+
+        // Act
+        viewManager.SwitchToJsonObjectTree(entries);
+
+        // Assert
+        viewManager.GetCurrentView().Should().BeOfType<JsonObjectTreeView>();
+    }
+
+    [Fact]
+    public void SwitchToJsonObjectTree_WithNullEntries_ThrowsArgumentNullException()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)>? nullEntries = null;
+
+        // Act
+        var act = () => viewManager.SwitchToJsonObjectTree(nullEntries!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void SwitchToJsonObjectTree_AfterDisposal_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        var viewManager = new ViewManager(window, state, modeController, action => action());
+        viewManager.Dispose();
+        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries = [];
+
+        // Act
+        var act = () => viewManager.SwitchToJsonObjectTree(entries);
+
+        // Assert
+        act.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public void RefreshStatusBarHints_WithJsonObjectFilePath_DoesNotIncludeToggleHint()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".json", "{\"id\":1}");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath, CurrentMode = ViewMode.JsonObjectTree };
+        using var window = new Window();
+        using var statusBar = new StatusBar();
+        window.Add(statusBar);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries =
+        [
+            ("id", System.Text.Encoding.UTF8.GetBytes("1")),
+        ];
+        viewManager.SwitchToJsonObjectTree(entries);
+
+        // Act
+        viewManager.RefreshStatusBarHints();
+
+        // Assert
+        var currentStatusBar = viewManager.GetCurrentStatusBar();
+        currentStatusBar.Should().NotBeNull();
+        var hints = Enumerable.Select(
+            Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
+            s => s.HelpText);
+        hints.Should().NotContainMatch("*Tree/Table*");
+    }
+
     /// <summary>
     /// Mock IRowIndexer for testing.
     /// </summary>

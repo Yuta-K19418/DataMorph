@@ -10,20 +10,28 @@ namespace DataMorph.Tests.App;
 
 public sealed class FileDialogHandlerTests : IDisposable
 {
-    private readonly string _testFile;
+    private readonly string _jsonLinesFile;
+    private readonly string _jsonObjectFile;
 
     public FileDialogHandlerTests()
     {
-        _testFile = Path.ChangeExtension(Path.GetTempFileName(), ".jsonl");
-        // Add enough data to ensure we can control the flow
-        File.WriteAllText(_testFile, "{\"id\":1}\n");
+        _jsonLinesFile = Path.ChangeExtension(Path.GetTempFileName(), ".jsonl");
+        File.WriteAllText(_jsonLinesFile, "{\"id\":1}\n");
+
+        _jsonObjectFile = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+        File.WriteAllText(_jsonObjectFile, "{\"name\":\"test\",\"count\":42}");
     }
 
     public void Dispose()
     {
-        if (File.Exists(_testFile))
+        if (File.Exists(_jsonLinesFile))
         {
-            File.Delete(_testFile);
+            File.Delete(_jsonLinesFile);
+        }
+
+        if (File.Exists(_jsonObjectFile))
+        {
+            File.Delete(_jsonObjectFile);
         }
     }
 
@@ -74,7 +82,7 @@ public sealed class FileDialogHandlerTests : IDisposable
 
         // Act
         app.Begin(window);
-        await handler.HandleFileSelectedAsync(_testFile);
+        await handler.HandleFileSelectedAsync(_jsonLinesFile);
         app.StopAfterFirstIteration = true;
         app.Run(window);
 
@@ -86,23 +94,53 @@ public sealed class FileDialogHandlerTests : IDisposable
     }
 
     [Fact]
-    public void HandleFileSelectedAsync_JsonObjectFile_SwitchesToJsonObjectTree()
+    public async Task HandleFileSelectedAsync_JsonObjectFile_SwitchesToJsonObjectTree()
     {
         // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var handler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
 
         // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_jsonObjectFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
 
         // Assert
+        state.CurrentMode.Should().Be(ViewMode.JsonObjectTree);
+        viewManager.GetCurrentView().Should().BeOfType<JsonObjectTreeView>();
     }
 
     [Fact]
-    public void HandleFileSelectedAsync_JsonObjectFile_WhenCancelled_DoesNotSwitchView()
+    public async Task HandleFileSelectedAsync_JsonObjectFile_WhenCancelled_DoesNotSwitchView()
     {
         // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        viewManager.SwitchToFileSelection();
+
+        // _stopIndexing is called after RenewCtsWithCancel(), so cancelling state.Cts
+        // here pre-cancels the token before TopLevelScanner.Scan runs.
+        var handler = new FileDialogHandler(app, state, viewManager, _ => { },
+            () => state.Cts.Cancel());
 
         // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_jsonObjectFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
 
         // Assert
+        state.CurrentMode.Should().NotBe(ViewMode.JsonObjectTree);
+        viewManager.GetCurrentView().Should().NotBeOfType<JsonObjectTreeView>();
     }
 
     [Fact]
@@ -125,7 +163,7 @@ public sealed class FileDialogHandlerTests : IDisposable
 
         // Act
         app.Begin(window);
-        var handleTask = handler.HandleFileSelectedAsync(_testFile);
+        var handleTask = handler.HandleFileSelectedAsync(_jsonLinesFile);
         await tcs.Task; // Wait until _onIndexerStart is called
 
         // Process any potential early Invokes

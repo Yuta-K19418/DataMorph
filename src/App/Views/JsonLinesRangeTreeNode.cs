@@ -1,7 +1,8 @@
+using System.Text.Json;
+using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO.JsonLines;
 using Terminal.Gui.Views;
 
-#pragma warning disable CS0169, IDE0044, CA1823 // Fields will be assigned/used in Step 2 implementation
 namespace DataMorph.App.Views;
 
 /// <summary>
@@ -18,7 +19,15 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
 
     public JsonLinesRangeTreeNode(RowByteCache cache, int startIndex, int count)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(cache);
+        ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        _cache = cache;
+        _startIndex = startIndex;
+        _count = count;
+        Text = count == 0
+            ? $"Lines {startIndex + 1} (empty)"
+            : $"Lines {startIndex + 1}-{startIndex + count}";
     }
 
     /// <inheritdoc/>
@@ -26,7 +35,13 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
     {
         get
         {
-            throw new NotImplementedException();
+            if (!_childrenLoaded)
+            {
+                LoadChildren();
+                _childrenLoaded = true;
+            }
+
+            return base.Children;
         }
         set => base.Children = value;
     }
@@ -38,12 +53,26 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
     /// </summary>
     internal void ClearChildren()
     {
-        throw new NotImplementedException();
+        base.Children = [];
+        _childrenLoaded = false;
     }
 
     private void LoadChildren()
     {
-        throw new NotImplementedException();
+        List<ITreeNode> children = [];
+
+        for (var i = 0; i < _count; i++)
+        {
+            var bytes = _cache.GetRow(_startIndex + i);
+            if (bytes.IsEmpty)
+            {
+                continue;
+            }
+
+            children.Add(CreateLineNode(bytes, _startIndex + i));
+        }
+
+        base.Children = children;
     }
 
     /// <summary>
@@ -52,7 +81,50 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
     /// </summary>
     internal static ITreeNode CreateLineNode(ReadOnlyMemory<byte> lineBytes, int lineIndex)
     {
-        throw new NotImplementedException();
+        var lineNumber = lineIndex + 1;
+        string withLine(string text) => $"Line {lineNumber}: {text}";
+        ITreeNode invalidNode() =>
+            new JsonValueTreeNode(withLine("[Invalid JSON]")) { ValueKind = JsonValueKind.Undefined };
+
+        if (lineBytes.IsEmpty)
+        {
+            return invalidNode();
+        }
+
+        var reader = new Utf8JsonReader(lineBytes.Span);
+
+        try
+        {
+            if (!reader.Read())
+            {
+                return invalidNode();
+            }
+
+            if (reader.TokenType == JsonTokenType.StartObject)
+            {
+                return new JsonObjectTreeNode(lineBytes)
+                {
+                    LineNumber = lineNumber,
+                    Text = withLine("{...}"),
+                };
+            }
+
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                return new JsonArrayTreeNode(lineBytes)
+                {
+                    Text = withLine("[...]"),
+                };
+            }
+        }
+        catch (JsonException)
+        {
+            return invalidNode();
+        }
+
+        return new JsonValueTreeNode(withLine(reader.GetPrimitiveDisplay()))
+        {
+            ValueKind = reader.TokenType.ToJsonValueKind(),
+        };
     }
 }
-#pragma warning restore CS0169, IDE0044, CA1823

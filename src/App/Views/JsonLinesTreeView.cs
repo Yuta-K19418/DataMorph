@@ -12,6 +12,7 @@ namespace DataMorph.App.Views;
 /// </summary>
 internal sealed class JsonLinesTreeView : MorphTreeView
 {
+    private const int RangeSize = 1_000;
     private readonly RowByteCache _cache;
 
     private JsonLinesTreeView(RowByteCache cache, Action onTableModeToggle)
@@ -29,7 +30,46 @@ internal sealed class JsonLinesTreeView : MorphTreeView
     /// <returns>A new <see cref="JsonLinesTreeView"/> instance populated with line or range nodes.</returns>
     internal static JsonLinesTreeView Create(IRowIndexer indexer, Action onTableModeToggle)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(indexer);
+        ArgumentNullException.ThrowIfNull(onTableModeToggle);
+        var totalRows = indexer.TotalRows;
+
+        if (totalRows > int.MaxValue)
+        {
+            throw new NotSupportedException(
+                $"JSON Lines files exceeding {int.MaxValue} lines are not supported."
+            );
+        }
+
+        var rowCount = (int)totalRows;
+        var cache = new RowByteCache(indexer);
+        var view = new JsonLinesTreeView(cache, onTableModeToggle);
+
+        if (rowCount <= RangeSize)
+        {
+            for (var i = 0; i < rowCount; i++)
+            {
+                var bytes = cache.GetRow(i);
+                if (bytes.IsEmpty)
+                {
+                    continue;
+                }
+
+                view.AddObject(JsonLinesRangeTreeNode.CreateLineNode(bytes, i));
+            }
+
+            return view;
+        }
+
+        var start = 0;
+        while (start < rowCount)
+        {
+            var count = Math.Min(RangeSize, rowCount - start);
+            view.AddObject(new JsonLinesRangeTreeNode(cache, start, count));
+            start += RangeSize;
+        }
+
+        return view;
     }
 
     /// <summary>
@@ -39,7 +79,12 @@ internal sealed class JsonLinesTreeView : MorphTreeView
     /// </summary>
     private void HandleAccepted(object? sender, CommandEventArgs e)
     {
-        throw new NotImplementedException();
+        var node = SelectedObject;
+
+        if (node is JsonLinesRangeTreeNode rangeNode && !IsExpanded(rangeNode))
+        {
+            rangeNode.ClearChildren();
+        }
     }
 
     /// <inheritdoc/>

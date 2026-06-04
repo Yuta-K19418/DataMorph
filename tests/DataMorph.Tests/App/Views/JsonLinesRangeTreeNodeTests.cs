@@ -105,13 +105,14 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     }
 
     [Fact]
-    public void Children_FirstAccess_LoadsLineNodes()
+    public void EnsureChildrenLoaded_PopulatesChildren()
     {
         // Arrange
         using var cache = CreateCache("{\"a\":1}\n{\"b\":2}\n{\"c\":3}");
         var node = new JsonLinesRangeTreeNode(cache, 0, 3);
 
         // Act
+        node.EnsureChildrenLoaded();
         var children = node.Children;
 
         // Assert
@@ -134,14 +135,16 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     }
 
     [Fact]
-    public void Children_SecondAccess_ReturnsSameCount()
+    public void EnsureChildrenLoaded_CalledTwice_ReturnsSameCount()
     {
         // Arrange
         using var cache = CreateCache("{\"a\":1}\n{\"b\":2}\n{\"c\":3}");
         var node = new JsonLinesRangeTreeNode(cache, 0, 3);
 
         // Act
+        node.EnsureChildrenLoaded();
         var firstCount = node.Children.Count;
+        node.EnsureChildrenLoaded();
         var secondCount = node.Children.Count;
 
         // Assert
@@ -157,6 +160,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var node = new JsonLinesRangeTreeNode(cache, 0, 3);
 
         // Act
+        node.EnsureChildrenLoaded();
         var children = node.Children;
 
         // Assert — index 2 returns Empty and is skipped
@@ -233,15 +237,93 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         using var cache = CreateCache("{\"a\":1}\n{\"b\":2}");
         var node = new JsonLinesRangeTreeNode(cache, 0, 2);
 
-        // Act — access Children to trigger lazy load
+        // Act — load children via EnsureChildrenLoaded
+        node.EnsureChildrenLoaded();
         var beforeClear = node.Children;
         beforeClear.Should().HaveCount(2);
 
         node.ClearChildren();
+        node.EnsureChildrenLoaded();
         var afterClear = node.Children;
 
         // Assert — children are reloaded after ClearChildren
         afterClear.Should().NotBeSameAs(beforeClear);
         afterClear.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void IsChildrenLoaded_InitiallyFalse()
+    {
+        // Arrange
+        using var cache = CreateCache("{\"a\":1}");
+        var node = new JsonLinesRangeTreeNode(cache, 0, 1);
+
+        // Act
+        var result = node.IsChildrenLoaded;
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [Fact]
+    public void EnsureChildrenLoaded_LoadsChildren()
+    {
+        // Arrange
+        using var cache = CreateCache("{\"a\":1}\n{\"b\":2}");
+        var node = new JsonLinesRangeTreeNode(cache, 0, 2);
+
+        // Act
+        node.EnsureChildrenLoaded();
+
+        // Assert
+        node.IsChildrenLoaded.Should().BeTrue();
+        node.Children.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void EnsureChildrenLoaded_WhenAlreadyLoaded_IsIdempotent()
+    {
+        // Arrange
+        using var cache = CreateCache("{\"a\":1}");
+        var node = new JsonLinesRangeTreeNode(cache, 0, 1);
+
+        // Act
+        node.EnsureChildrenLoaded();
+        var firstChildren = node.Children;
+        node.EnsureChildrenLoaded();
+        var secondChildren = node.Children;
+
+        // Assert — second call does not reload
+        secondChildren.Should().BeSameAs(firstChildren);
+    }
+
+    [Fact]
+    public void IsChildrenLoaded_AfterClearChildren_IsFalse()
+    {
+        // Arrange
+        using var cache = CreateCache("{\"a\":1}");
+        var node = new JsonLinesRangeTreeNode(cache, 0, 1);
+
+        // Act
+        node.EnsureChildrenLoaded();
+        node.ClearChildren();
+
+        // Assert
+        node.IsChildrenLoaded.Should().BeFalse();
+    }
+
+    [Fact]
+    public void EnsureChildrenLoaded_EmptyRange_SetsIsChildrenLoadedTrue()
+    {
+        // Arrange
+        using var cache = CreateCache("{\"a\":1}");
+        var node = new JsonLinesRangeTreeNode(cache, 0, 0);
+
+        // Act
+        node.EnsureChildrenLoaded();
+
+        // Assert
+        node.IsChildrenLoaded.Should().BeTrue();
+        node.Children.Should().BeEmpty();
     }
 }

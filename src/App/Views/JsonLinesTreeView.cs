@@ -1,6 +1,7 @@
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 using Terminal.Gui.Input;
+using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
 
@@ -20,6 +21,21 @@ internal sealed class JsonLinesTreeView : MorphTreeView
     {
         _cache = cache;
         Accepted += HandleAccepted;
+        TreeBuilder = new DelegateTreeBuilder<ITreeNode>(
+            // canExpand = branch/leaf (shows expand/collapse icon); IsExpanded = current expansion state (open/closed).
+            canExpand: node =>
+                // JsonLinesRangeTreeNode is always a branch by design; other nodes are branches only when they have children.
+                node is JsonLinesRangeTreeNode || node.Children.Count > 0,
+            childGetter: node =>
+            {
+                if (node is JsonLinesRangeTreeNode r)
+                {
+                    r.EnsureChildrenLoaded();
+                }
+
+                return node.Children;
+            }
+        );
     }
 
     /// <summary>

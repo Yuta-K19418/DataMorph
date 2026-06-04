@@ -242,10 +242,16 @@ public sealed class JsonLinesTreeViewTests : IDisposable
         var beforeCollapse = rangeNode.Children;
         beforeCollapse.Should().NotBeEmpty();
 
-        // Act — Accept on expanded node collapses it; HandleAccepted calls ClearChildren()
+        // Act — collapse
         view.InvokeCommand(Command.Accept);
 
-        // Assert — children are a new instance after ClearChildren + lazy-reload
+        // Assert — ClearChildren() was called: Children is now empty
+        rangeNode.Children.Should().BeEmpty();
+
+        // Act — simulate re-expansion via TreeBuilder's childGetter
+        rangeNode.EnsureChildrenLoaded();
+
+        // Assert — children are reloaded as a new instance
         rangeNode.Children.Should().NotBeSameAs(beforeCollapse);
         rangeNode.Children.Should().NotBeEmpty();
     }

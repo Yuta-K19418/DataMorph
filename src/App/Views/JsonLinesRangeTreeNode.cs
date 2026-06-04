@@ -7,15 +7,14 @@ namespace DataMorph.App.Views;
 
 /// <summary>
 /// Represents a 1,000-line range within a large JSON Lines file.
-/// On first <see cref="Children"/> access (lazy), reads line bytes from
-/// <see cref="RowByteCache"/> and constructs child line nodes for that range.
+/// Children are loaded on demand via <see cref="EnsureChildrenLoaded"/>,
+/// called by <see cref="DelegateTreeBuilder{T}"/> on first expansion.
 /// </summary>
 internal sealed class JsonLinesRangeTreeNode : TreeNode
 {
     private readonly RowByteCache _cache;
     private readonly int _startIndex;
     private readonly int _count;
-    private bool _childrenLoaded;
 
     public JsonLinesRangeTreeNode(RowByteCache cache, int startIndex, int count)
     {
@@ -30,31 +29,45 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
             : $"Lines {startIndex + 1}-{startIndex + count}";
     }
 
-    /// <inheritdoc/>
-    public override IList<ITreeNode> Children
-    {
-        get
-        {
-            if (!_childrenLoaded)
-            {
-                LoadChildren();
-                _childrenLoaded = true;
-            }
+    /// <summary>
+    /// Whether children have been loaded at least once.
+    /// Used by <see cref="DelegateTreeBuilder{ITreeNode}"/> to determine expand-arrow visibility
+    /// without touching <see cref="Children"/> (which would trigger premature loading).
+    /// </summary>
+    internal bool IsChildrenLoaded { get; private set; }
 
-            return base.Children;
+    /// <inheritdoc/>
+    /// <remarks>
+    /// No lazy loading — <see cref="DelegateTreeBuilder{ITreeNode}"/> controls load timing
+    /// via <see cref="EnsureChildrenLoaded"/> to prevent <c>TreeView.AddObject()</c> from
+    /// triggering eager child retrieval.
+    /// </remarks>
+    public override IList<ITreeNode> Children => base.Children;
+
+    /// <summary>
+    /// Loads children from the cache if not already loaded.
+    /// Called by the <see cref="DelegateTreeBuilder{ITreeNode}"/> child getter on expansion.
+    /// </summary>
+    internal void EnsureChildrenLoaded()
+    {
+        if (IsChildrenLoaded)
+        {
+            return;
         }
-        set => base.Children = value;
+
+        LoadChildren();
+        IsChildrenLoaded = true;
     }
 
     /// <summary>
-    /// Clears loaded children and resets the lazy-load flag so that
-    /// the next <see cref="Children"/> access re-reads from the cache.
+    /// Clears loaded children and resets the loaded flag so that
+    /// the expand arrow re-appears on the next render and children are re-loaded on re-expansion.
     /// Called by <c>JsonLinesTreeView</c>'s Accepted event handler when a range node is collapsed.
     /// </summary>
     internal void ClearChildren()
     {
         base.Children = [];
-        _childrenLoaded = false;
+        IsChildrenLoaded = false;
     }
 
     private void LoadChildren()

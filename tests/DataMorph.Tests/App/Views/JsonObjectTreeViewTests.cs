@@ -15,6 +15,8 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     {
         _app = Application.Create();
         _app.Init(DriverRegistry.Names.ANSI);
+        Assert.NotNull(_app.Driver);
+        _app.Driver.SetScreenSize(80, 25);
     }
 
     public void Dispose() => _app.Dispose();

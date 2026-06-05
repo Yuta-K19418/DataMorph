@@ -39,6 +39,8 @@ public sealed class FileDialogHandlerTests : IDisposable
     {
         var app = Application.Create();
         app.Init(DriverRegistry.Names.ANSI);
+        Assert.NotNull(app.Driver);
+        app.Driver.SetScreenSize(80, 25);
         return app;
     }
 

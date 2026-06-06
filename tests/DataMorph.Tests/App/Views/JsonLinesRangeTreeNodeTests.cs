@@ -237,8 +237,8 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     }
 
     [Theory]
-    [InlineData("{\"a\":1}", typeof(JsonObjectTreeNode), "Line 1: {...}")]
-    [InlineData("[1,2]", typeof(JsonArrayTreeNode), "Line 1: [...]")]
+    [InlineData("{\"a\":1}", typeof(JsonObjectTreeNode), "Line 1: {Object: 1 properties}")]
+    [InlineData("[1,2]", typeof(JsonArrayTreeNode), "Line 1: [Array: 2 items]")]
     [InlineData("42", typeof(JsonValueTreeNode), "Line 1: 42")]
     public void CreateLineNode_ByTokenType_CreatesCorrectNodeAndLabel(
         string json, Type expectedType, string expectedLabel)

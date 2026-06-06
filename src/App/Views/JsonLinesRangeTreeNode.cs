@@ -89,10 +89,9 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
     /// </summary>
     internal static ITreeNode CreateLineNode(ReadOnlyMemory<byte> lineBytes, int lineIndex)
     {
-        var lineNumber = lineIndex + 1;
-        string withLine(string text) => $"Line {lineNumber}: {text}";
+        var prefix = $"Line {lineIndex + 1}: ";
         ITreeNode invalidNode() =>
-            new JsonValueTreeNode(withLine("[Invalid JSON]")) { ValueKind = JsonValueKind.Undefined };
+            new JsonValueTreeNode($"{prefix}[Invalid JSON]") { ValueKind = JsonValueKind.Undefined };
 
         if (lineBytes.IsEmpty)
         {
@@ -110,19 +109,15 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
 
             if (reader.TokenType == JsonTokenType.StartObject)
             {
-                return new JsonObjectTreeNode(lineBytes)
+                return new JsonObjectTreeNode(lineBytes, prefix)
                 {
-                    LineNumber = lineNumber,
-                    Text = withLine("{...}"),
+                    LineNumber = lineIndex + 1,
                 };
             }
 
             if (reader.TokenType == JsonTokenType.StartArray)
             {
-                return new JsonArrayTreeNode(lineBytes)
-                {
-                    Text = withLine("[...]"),
-                };
+                return new JsonArrayTreeNode(lineBytes, prefix);
             }
         }
         catch (JsonException)
@@ -130,7 +125,7 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
             return invalidNode();
         }
 
-        return new JsonValueTreeNode(withLine(reader.GetPrimitiveDisplay()))
+        return new JsonValueTreeNode($"{prefix}{reader.GetPrimitiveDisplay()}")
         {
             ValueKind = reader.TokenType.ToJsonValueKind(),
         };

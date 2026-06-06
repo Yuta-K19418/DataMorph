@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 using Terminal.Gui.Views;
 
@@ -12,16 +13,19 @@ namespace DataMorph.App.Views;
 /// </summary>
 internal sealed class JsonLinesRangeTreeNode : TreeNode
 {
-    private readonly RowByteCache _cache;
+    private readonly IRowIndexer _indexer;
+    private readonly RowReader _reader;
     private readonly int _startIndex;
     private readonly int _count;
 
-    public JsonLinesRangeTreeNode(RowByteCache cache, int startIndex, int count)
+    public JsonLinesRangeTreeNode(IRowIndexer indexer, RowReader reader, int startIndex, int count)
     {
-        ArgumentNullException.ThrowIfNull(cache);
+        ArgumentNullException.ThrowIfNull(indexer);
+        ArgumentNullException.ThrowIfNull(reader);
         ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        _cache = cache;
+        _indexer = indexer;
+        _reader = reader;
         _startIndex = startIndex;
         _count = count;
         Text = count == 0
@@ -45,7 +49,7 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
     public override IList<ITreeNode> Children => base.Children;
 
     /// <summary>
-    /// Loads children from the cache if not already loaded.
+    /// Loads children from the reader if not already loaded.
     /// Called by the <see cref="DelegateTreeBuilder{ITreeNode}"/> child getter on expansion.
     /// </summary>
     internal void EnsureChildrenLoaded()
@@ -61,11 +65,13 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
 
     private void LoadChildren()
     {
+        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(_startIndex);
+        var allBytes = _reader.ReadLineBytes(byteOffset, rowOffset, _count);
         List<ITreeNode> children = [];
 
-        for (var i = 0; i < _count; i++)
+        for (var i = 0; i < allBytes.Count; i++)
         {
-            var bytes = _cache.GetRow(_startIndex + i);
+            var bytes = allBytes[i];
             if (bytes.IsEmpty)
             {
                 continue;

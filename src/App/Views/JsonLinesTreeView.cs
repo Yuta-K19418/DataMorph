@@ -1,3 +1,4 @@
+using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 using Terminal.Gui.Views;
@@ -13,17 +14,20 @@ namespace DataMorph.App.Views;
 internal sealed class JsonLinesTreeView : MorphTreeView
 {
     private const int RangeSize = 1_000;
-    private readonly RowByteCache _cache;
+    private readonly RowReader _reader;
 
-    private JsonLinesTreeView(RowByteCache cache, Action onTableModeToggle)
+    private JsonLinesTreeView(RowReader reader, Action onTableModeToggle)
         : base(onTableModeToggle)
     {
-        _cache = cache;
+        _reader = reader;
         TreeBuilder = new DelegateTreeBuilder<ITreeNode>(
             // canExpand = branch/leaf (shows expand/collapse icon); IsExpanded = current expansion state (open/closed).
             canExpand: node =>
-                // JsonLinesRangeTreeNode is always a branch by design; other nodes are branches only when they have children.
-                node is JsonLinesRangeTreeNode || node.Children.Count > 0,
+                // Type-based check only — never access Children here.
+                // JsonLinesRangeTreeNode: used for files > 1,000 lines; always expandable by design as it contains ≥ 1 line.
+                // JsonObjectTreeNode/JsonArrayTreeNode: line nodes loaded directly; Children is not accessed
+                // to preserve lazy loading (accessing Children triggers full JSON parse immediately).
+                node is JsonLinesRangeTreeNode or JsonObjectTreeNode or JsonArrayTreeNode,
             childGetter: node =>
             {
                 if (node is JsonLinesRangeTreeNode r)
@@ -56,14 +60,16 @@ internal sealed class JsonLinesTreeView : MorphTreeView
         }
 
         var rowCount = (int)totalRows;
-        var cache = new RowByteCache(indexer);
-        var view = new JsonLinesTreeView(cache, onTableModeToggle);
+        var reader = new RowReader(indexer.FilePath);
+        var view = new JsonLinesTreeView(reader, onTableModeToggle);
 
         if (rowCount <= RangeSize)
         {
-            for (var i = 0; i < rowCount; i++)
+            var (byteOffset, rowOffset) = indexer.GetCheckPoint(0);
+            var allBytes = reader.ReadLineBytes(byteOffset, rowOffset, rowCount);
+            for (var i = 0; i < allBytes.Count; i++)
             {
-                var bytes = cache.GetRow(i);
+                var bytes = allBytes[i];
                 if (bytes.IsEmpty)
                 {
                     continue;
@@ -79,7 +85,7 @@ internal sealed class JsonLinesTreeView : MorphTreeView
         while (start < rowCount)
         {
             var count = Math.Min(RangeSize, rowCount - start);
-            view.AddObject(new JsonLinesRangeTreeNode(cache, start, count));
+            view.AddObject(new JsonLinesRangeTreeNode(indexer, reader, start, count));
             start += RangeSize;
         }
 
@@ -91,7 +97,7 @@ internal sealed class JsonLinesTreeView : MorphTreeView
     {
         if (disposing)
         {
-            _cache.Dispose();
+            _reader.Dispose();
         }
 
         base.Dispose(disposing);

@@ -262,31 +262,51 @@ public sealed class RowReader : IDisposable
 
     private (bool lineCompleted, int bytesConsumed) FindNextLineLength(long startOffset)
     {
-        const int maxSearch = 1024 * 1024; // Search up to 1 MB
+        const int initialSize = 4096;
+        const int maxSearch = 1024 * 1024;
         var remaining = _mmap.Length - startOffset;
         if (remaining <= 0)
         {
             return (false, 0);
         }
 
-        var searchLength = (int)Math.Min(maxSearch, remaining);
-        var buffer = ArrayPool<byte>.Shared.Rent(searchLength);
+        var firstRead = (int)Math.Min(initialSize, remaining);
+        var buffer = ArrayPool<byte>.Shared.Rent(firstRead);
         try
         {
-            var span = buffer.AsSpan(0, searchLength);
+            var span = buffer.AsSpan(0, firstRead);
             _mmap.Read(startOffset, span);
 
             var index = span.IndexOf((byte)'\n');
-            if (index == -1)
+            if (index != -1)
             {
-                return (false, searchLength);
+                return (true, index + 1);
             }
 
-            return (true, index + 1);
+            if (remaining == firstRead)
+            {
+                return (false, firstRead);
+            }
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        // Line exceeds 4KB — fall back to 1MB search
+        var searchLength = (int)Math.Min(maxSearch, remaining);
+        var bigBuffer = ArrayPool<byte>.Shared.Rent(searchLength);
+        try
+        {
+            var span = bigBuffer.AsSpan(0, searchLength);
+            _mmap.Read(startOffset, span);
+
+            var index = span.IndexOf((byte)'\n');
+            return index == -1 ? (false, searchLength) : (true, index + 1);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(bigBuffer);
         }
     }
 

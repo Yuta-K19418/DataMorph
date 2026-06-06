@@ -1,6 +1,5 @@
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
-using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
@@ -20,7 +19,6 @@ internal sealed class JsonLinesTreeView : MorphTreeView
         : base(onTableModeToggle)
     {
         _cache = cache;
-        Accepted += HandleAccepted;
         TreeBuilder = new DelegateTreeBuilder<ITreeNode>(
             // canExpand = branch/leaf (shows expand/collapse icon); IsExpanded = current expansion state (open/closed).
             canExpand: node =>
@@ -86,21 +84,6 @@ internal sealed class JsonLinesTreeView : MorphTreeView
         }
 
         return view;
-    }
-
-    /// <summary>
-    /// Handles the Accepted event to clear children of collapsed range nodes,
-    /// freeing memory while preserving lazy-load behavior on re-expansion.
-    /// Runs after MorphTreeView's handler which performs the actual expand/collapse toggle.
-    /// </summary>
-    private void HandleAccepted(object? sender, CommandEventArgs e)
-    {
-        var node = SelectedObject;
-
-        if (node is JsonLinesRangeTreeNode rangeNode && !IsExpanded(rangeNode))
-        {
-            rangeNode.ClearChildren();
-        }
     }
 
     /// <inheritdoc/>

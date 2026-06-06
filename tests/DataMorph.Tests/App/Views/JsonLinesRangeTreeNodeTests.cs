@@ -231,27 +231,6 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     }
 
     [Fact]
-    public void ClearChildren_ResetsLoadedFlag_ChildrenReloadOnNextAccess()
-    {
-        // Arrange
-        using var cache = CreateCache("{\"a\":1}\n{\"b\":2}");
-        var node = new JsonLinesRangeTreeNode(cache, 0, 2);
-
-        // Act — load children via EnsureChildrenLoaded
-        node.EnsureChildrenLoaded();
-        var beforeClear = node.Children;
-        beforeClear.Should().HaveCount(2);
-
-        node.ClearChildren();
-        node.EnsureChildrenLoaded();
-        var afterClear = node.Children;
-
-        // Assert — children are reloaded after ClearChildren
-        afterClear.Should().NotBeSameAs(beforeClear);
-        afterClear.Should().HaveCount(2);
-    }
-
-    [Fact]
     public void IsChildrenLoaded_InitiallyFalse()
     {
         // Arrange
@@ -295,21 +274,6 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
 
         // Assert — second call does not reload
         secondChildren.Should().BeSameAs(firstChildren);
-    }
-
-    [Fact]
-    public void IsChildrenLoaded_AfterClearChildren_IsFalse()
-    {
-        // Arrange
-        using var cache = CreateCache("{\"a\":1}");
-        var node = new JsonLinesRangeTreeNode(cache, 0, 1);
-
-        // Act
-        node.EnsureChildrenLoaded();
-        node.ClearChildren();
-
-        // Assert
-        node.IsChildrenLoaded.Should().BeFalse();
     }
 
     [Fact]

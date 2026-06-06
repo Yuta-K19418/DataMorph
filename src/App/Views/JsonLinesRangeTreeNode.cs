@@ -59,17 +59,6 @@ internal sealed class JsonLinesRangeTreeNode : TreeNode
         IsChildrenLoaded = true;
     }
 
-    /// <summary>
-    /// Clears loaded children and resets the loaded flag so that
-    /// the expand arrow re-appears on the next render and children are re-loaded on re-expansion.
-    /// Called by <c>JsonLinesTreeView</c>'s Accepted event handler when a range node is collapsed.
-    /// </summary>
-    internal void ClearChildren()
-    {
-        base.Children = [];
-        IsChildrenLoaded = false;
-    }
-
     private void LoadChildren()
     {
         List<ITreeNode> children = [];

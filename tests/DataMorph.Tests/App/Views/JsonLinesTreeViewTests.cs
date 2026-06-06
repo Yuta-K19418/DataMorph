@@ -222,41 +222,6 @@ public sealed class JsonLinesTreeViewTests : IDisposable
     }
 
     [Fact]
-    public void HandleAccepted_WhenRangeNodeCollapsed_ClearsAndRecreatesChildren()
-    {
-        // Arrange
-        using var app = CreateTestApp();
-        var lines = Enumerable.Range(0, 1001)
-            .Select(i => $"{{\"id\":{i}}}");
-        var filePath = CreateTempFile(string.Join("\n", lines));
-        var indexer = new RowIndexer(filePath);
-        indexer.BuildIndex();
-        using var view = JsonLinesTreeView.Create(indexer, () => { });
-        var objects = view.Objects;
-        objects.Should().NotBeNull();
-        var rangeNode = objects.OfType<JsonLinesRangeTreeNode>().First();
-
-        // Expand the range node via Accept command — lazy loads children
-        view.SelectedObject = rangeNode;
-        view.InvokeCommand(Command.Accept);
-        var beforeCollapse = rangeNode.Children;
-        beforeCollapse.Should().NotBeEmpty();
-
-        // Act — collapse
-        view.InvokeCommand(Command.Accept);
-
-        // Assert — ClearChildren() was called: Children is now empty
-        rangeNode.Children.Should().BeEmpty();
-
-        // Act — simulate re-expansion via TreeBuilder's childGetter
-        rangeNode.EnsureChildrenLoaded();
-
-        // Assert — children are reloaded as a new instance
-        rangeNode.Children.Should().NotBeSameAs(beforeCollapse);
-        rangeNode.Children.Should().NotBeEmpty();
-    }
-
-    [Fact]
     public void HandleAccepted_NonRangeNode_DoesNotThrow()
     {
         // Arrange

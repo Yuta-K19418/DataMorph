@@ -122,18 +122,21 @@ public sealed class RowIndexer : RowIndexerBase
     /// Returns the file byte offset and row offset from that checkpoint.
     /// This method is thread-safe.
     /// </summary>
-    /// <param name="targetRow">The zero-based row index to seek to.</param>
+    /// <param name="targetRow">The zero-based row index to seek to. Must be non-negative.</param>
     /// <returns>
     /// A tuple of (byteOffset, rowOffset) where byteOffset is the file position in bytes
     /// and rowOffset is the number of rows to advance from the checkpoint.
     /// </returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="targetRow"/> is negative.</exception>
     public override (long byteOffset, int rowOffset) GetCheckPoint(long targetRow)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(targetRow);
+
         lock (_lock)
         {
             var idealCheckPointIndex = (int)(targetRow / CheckPointInterval);
             // Clamp to the last available checkpoint (handles partial indexing or beyond-EOF requests)
-            var actualCheckPointIndex = Math.Min(idealCheckPointIndex, _checkpoints.Count - 1);
+            var actualCheckPointIndex = Math.Clamp(idealCheckPointIndex, 0, _checkpoints.Count - 1);
             var byteOffset = _checkpoints[actualCheckPointIndex];
             // Calculate the row number that the actual checkpoint represents
             var actualCheckPointRow = (long)actualCheckPointIndex * CheckPointInterval;

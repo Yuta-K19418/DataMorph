@@ -120,17 +120,20 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithInvalidJsonLine_ThrowsInvalidDataException()
+    public void ReadLineBytes_WithInvalidJsonLine_ReturnsBytesAsIs()
     {
         // Arrange
         WriteTestContent("invalid json\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
 
         // Assert
-        act.Should().Throw<InvalidDataException>();
+        // Without validation, raw bytes are returned as-is
+        lines.Should().ContainSingle();
+        var lineString = Encoding.UTF8.GetString(lines[0].Span);
+        lineString.Should().Be("invalid json");
     }
 
     [Fact]
@@ -164,7 +167,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithIncompleteLineAtEOF_ReturnsEmptyList()
+    public void ReadLineBytes_WithIncompleteLineAtEOF_ReturnsBytesAsIs()
     {
         // Arrange
         // Incomplete JSON line without newline at EOF
@@ -175,8 +178,10 @@ public sealed class RowReaderTests : IDisposable
         var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
 
         // Assert
-        // According to the current implementation, incomplete lines are not returned.
-        lines.Should().BeEmpty();
+        // Incomplete lines at EOF return raw bytes as-is
+        lines.Should().ContainSingle();
+        var lineString = Encoding.UTF8.GetString(lines[0].Span);
+        lineString.Should().Be("{\"incomplete\":");
     }
 
     [Fact]
@@ -280,20 +285,23 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_SkipLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    public void ReadLineBytes_SkipLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ReturnsAdjacentLine()
     {
         // Arrange
-        // First line has unclosed quote with literal newline, second line should be readable
+        // First line has unclosed quote with literal newline — without validation,
+        // the newline splits the content into two "lines" at the byte level.
+        // The skip loop skips the first byte-level line, so we read the second.
         var content = "{\"text\":\"line1\n{\"text\":\"valid line\",\"id\":2}\n";
         WriteTestContent(content);
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        // Skip first line, read second line
-        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
 
         // Assert
-        act.Should().Throw<InvalidDataException>();
+        lines.Should().ContainSingle();
+        var lineString = Encoding.UTF8.GetString(lines[0].Span);
+        lineString.Should().Be("{\"text\":\"valid line\",\"id\":2}");
     }
 
     [Fact]
@@ -338,21 +346,24 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_SkipLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    public void ReadLineBytes_SkipLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ReturnsAdjacentLine()
     {
         // Arrange
-        // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice
+        // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice.
+        // Without validation, the embedded newline splits the content at the byte level.
         var malformedValue = new string('a', 1_100_000);
         var content = $"{{\"text\":\"{malformedValue}\n{{\"id\":0}}\n";
         WriteTestContent(content);
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        // Skipping the first (malformed) line triggers ValidateJsonLine, which throws
-        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+        // Skip the first byte-level line (up to embedded newline), read next
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
 
         // Assert
-        act.Should().Throw<InvalidDataException>();
+        lines.Should().ContainSingle();
+        var lineString = Encoding.UTF8.GetString(lines[0].Span);
+        lineString.Should().Be("{\"id\":0}");
     }
 
     [Fact]
@@ -396,18 +407,22 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_ReadLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    public void ReadLineBytes_ReadLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ReturnsBothLinesAsIs()
     {
         // Arrange
+        // Malformed: unclosed quote with literal newline — without validation,
+        // both byte-level lines are returned as-is.
         var content = "{\"text\":\"malformed\n{\"text\":\"valid\",\"id\":2}\n";
         WriteTestContent(content);
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
-        act.Should().Throw<InvalidDataException>();
+        lines.Should().HaveCount(2);
+        Encoding.UTF8.GetString(lines[0].Span).Should().Be("{\"text\":\"malformed");
+        Encoding.UTF8.GetString(lines[1].Span).Should().Be("{\"text\":\"valid\",\"id\":2}");
     }
 
     [Fact]
@@ -453,20 +468,24 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_ReadLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ThrowsInvalidDataException()
+    public void ReadLineBytes_ReadLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ReturnsBothLinesAsIs()
     {
         // Arrange
-        // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice
+        // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice.
+        // Without validation, both byte-level lines are returned as-is.
         var malformedValue = new string('a', 1_100_000);
         var content = $"{{\"text\":\"{malformedValue}\n{{\"id\":0}}\n";
         WriteTestContent(content);
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
-        act.Should().Throw<InvalidDataException>();
+        lines.Should().HaveCount(2);
+        var firstLine = Encoding.UTF8.GetString(lines[0].Span);
+        firstLine.Should().Be($"{{\"text\":\"{malformedValue}");
+        Encoding.UTF8.GetString(lines[1].Span).Should().Be("{\"id\":0}");
     }
 
     [Fact]

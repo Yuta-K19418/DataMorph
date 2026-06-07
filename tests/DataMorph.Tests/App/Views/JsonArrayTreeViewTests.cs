@@ -4,6 +4,7 @@ using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonArray;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
+using Terminal.Gui.Input;
 
 namespace DataMorph.Tests.App.Views;
 
@@ -23,6 +24,7 @@ public sealed class JsonArrayTreeViewTests : IDisposable
                     File.Delete(file);
                 }
             }
+
             _disposed = true;
         }
     }
@@ -164,14 +166,14 @@ public sealed class JsonArrayTreeViewTests : IDisposable
     }
 
     [Fact]
-    public void Create_SmallArray_SkipsEmptyBytes_WhenCacheReturnsEmpty()
+    public void Create_SmallArray_SkipsEmptyBytes_WhenReaderReturnsFewerElements()
     {
         // Arrange
         using var app = CreateTestApp();
         var filePath = CreateTempFile("[1, 2]");
         var realIndexer = new RowIndexer(filePath);
         realIndexer.BuildIndex();
-        // Stub says TotalRows=3 but file only has 2 elements → GetRow(2) returns Empty
+        // Stub says TotalRows=3 but file only has 2 elements → ReadElementBytes returns only 2 elements
         var stubIndexer = new StubRowIndexer(realIndexer, 3);
 
         // Act
@@ -181,6 +183,63 @@ public sealed class JsonArrayTreeViewTests : IDisposable
         var objects = view.Objects;
         objects.Should().NotBeNull();
         objects.ToList().Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Create_LargeArray_RangeNodesAreNotEagerlyLoaded()
+    {
+        // Arrange — 1001 elements triggers range mode
+        var elements = Enumerable.Range(0, 1001)
+            .Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        var filePath = CreateTempFile($"[{string.Join(",", elements)}]");
+        using var app = CreateTestApp();
+        var indexer = new RowIndexer(filePath);
+        indexer.BuildIndex();
+
+        // Act
+        using var view = JsonArrayTreeView.Create(indexer, () => { });
+
+        // Assert — DelegateTreeBuilder prevents eager loading via AddObject()
+        var objects = view.Objects;
+        objects.Should().NotBeNull();
+        objects.OfType<JsonArrayRangeTreeNode>().Should().OnlyContain(n => !n.IsChildrenLoaded);
+    }
+
+    [Fact]
+    public void Create_WithNullOnTableModeToggle_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var filePath = CreateTempFile("[1]");
+        using var app = CreateTestApp();
+        var indexer = new RowIndexer(filePath);
+        indexer.BuildIndex();
+
+        // Act
+        var act = () => JsonArrayTreeView.Create(indexer, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void HandleAccepted_NonRangeNode_DoesNotThrow()
+    {
+        // Arrange
+        var filePath = CreateTempFile("[{\"a\":1}]");
+        using var app = CreateTestApp();
+        var indexer = new RowIndexer(filePath);
+        indexer.BuildIndex();
+        using var view = JsonArrayTreeView.Create(indexer, () => { });
+        var objects = view.Objects;
+        objects.Should().NotBeNull();
+        var elementNode = objects.First();
+        view.SelectedObject = elementNode;
+
+        // Act — Accept on a non-range node should not throw
+        var act = () => view.InvokeCommand(Command.Accept);
+
+        // Assert
+        act.Should().NotThrow();
     }
 
     /// <summary>

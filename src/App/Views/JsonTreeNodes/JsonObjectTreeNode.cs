@@ -16,10 +16,11 @@ internal sealed class JsonObjectTreeNode : TreeNode
     /// Initializes a new instance of the <see cref="JsonObjectTreeNode"/> class.
     /// </summary>
     /// <param name="rawJson">The raw JSON bytes representing this object.</param>
-    public JsonObjectTreeNode(ReadOnlyMemory<byte> rawJson)
+    /// <param name="prefix">Optional prefix prepended to the display text (e.g. "Line N: ").</param>
+    public JsonObjectTreeNode(ReadOnlyMemory<byte> rawJson, string prefix = "")
     {
         _rawJson = rawJson;
-        Text = FormatDisplayText();
+        Text = $"{prefix}{FormatDisplayText()}";
     }
 
     /// <summary>

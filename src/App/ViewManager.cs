@@ -230,13 +230,11 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        var view = new Views.JsonLinesTreeView(indexer, () => _ = ToggleJsonLinesModeAsync())
-        {
-            X = 0,
-            Y = 1, // Start below MenuBar
-            Width = Dim.Fill(),
-            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
-        };
+        var view = Views.JsonLinesTreeView.Create(indexer, () => _ = ToggleJsonLinesModeAsync());
+        view.X = 0;
+        view.Y = 1; // Start below MenuBar
+        view.Width = Dim.Fill();
+        view.Height = Dim.Fill() - 1; // Leave room for StatusBar at the bottom
         SwapView(view);
         RefreshStatusBarHints();
     }

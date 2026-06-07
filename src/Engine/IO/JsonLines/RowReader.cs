@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Text.Json;
 
 namespace DataMorph.Engine.IO.JsonLines;
 
@@ -40,7 +39,6 @@ public sealed class RowReader : IDisposable
     /// <param name="linesToRead">Maximum number of lines to read.</param>
     /// <returns>A list of raw JSON line bytes.</returns>
     /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
-    /// <exception cref="InvalidDataException">The JSON line data is invalid.</exception>
     /// <exception cref="NotSupportedException">The JSON line exceeds the supported size limit.</exception>
     public IReadOnlyList<ReadOnlyMemory<byte>> ReadLineBytes(
         long byteOffset,
@@ -95,22 +93,6 @@ public sealed class RowReader : IDisposable
                 throw new NotSupportedException("JSON line exceeds maximum supported size.");
             }
 
-            var lineBuffer = ArrayPool<byte>.Shared.Rent((int)totalLineBytes);
-            try
-            {
-                var lineSpan = lineBuffer.AsSpan(0, (int)totalLineBytes);
-                _mmap.Read(skipLineStartOffset, lineSpan);
-                var trimmedSpan = TrimNewline(lineSpan);
-                if (trimmedSpan.Length > 0)
-                {
-                    ValidateJsonLine(trimmedSpan);
-                }
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(lineBuffer);
-            }
-
             skipLineStartOffset += totalLineBytes;
             skipIncompleteBytes = 0;
             skipped++;
@@ -151,10 +133,6 @@ public sealed class RowReader : IDisposable
                 var lineSpan = lineBuffer.AsSpan(0, (int)totalLineBytes);
                 _mmap.Read(currentOffset, lineSpan);
                 var trimmedSpan = TrimNewline(lineSpan);
-                if (trimmedSpan.Length > 0)
-                {
-                    ValidateJsonLine(trimmedSpan);
-                }
 
                 var lineBytes = new byte[trimmedSpan.Length];
                 trimmedSpan.CopyTo(lineBytes);
@@ -214,79 +192,56 @@ public sealed class RowReader : IDisposable
             return;
         }
 
-        try
-        {
-            ValidateJsonLine(lastTrimmedSpan);
-            result.Add(lastLineBytes.AsMemory(0, lastTrimmedSpan.Length));
-        }
-        catch (InvalidDataException)
-        {
-            // An incomplete last line is dropped regardless of cause so that
-            // valid preceding lines are still returned to the caller.
-        }
-    }
-
-    private static void ValidateJsonLine(ReadOnlySpan<byte> lineBytes)
-    {
-        // Skip validation for empty lines (should not happen with JSON Lines)
-        if (lineBytes.Length == 0)
-        {
-            return;
-        }
-
-        try
-        {
-            var reader = new Utf8JsonReader(lineBytes);
-            // Read at least one token to validate JSON structure
-            // If the line is not valid JSON, Utf8JsonReader will throw
-            if (!reader.Read())
-            {
-                // Empty JSON is not valid for JSON Lines
-                throw new InvalidDataException("Empty JSON line");
-            }
-
-            // Consume the rest of the JSON to ensure it's well‑formed
-            while (reader.Read())
-            {
-                // Just read through to validate
-            }
-        }
-        catch (JsonException ex)
-        {
-            throw new InvalidDataException(
-                $"Invalid JSON line at byte position {ex.BytePositionInLine}",
-                ex
-            );
-        }
+        result.Add(lastLineBytes.AsMemory(0, lastTrimmedSpan.Length));
     }
 
     private (bool lineCompleted, int bytesConsumed) FindNextLineLength(long startOffset)
     {
-        const int maxSearch = 1024 * 1024; // Search up to 1 MB
+        const int initialSize = 4096;
+        const int maxSearch = 1024 * 1024;
         var remaining = _mmap.Length - startOffset;
         if (remaining <= 0)
         {
             return (false, 0);
         }
 
-        var searchLength = (int)Math.Min(maxSearch, remaining);
-        var buffer = ArrayPool<byte>.Shared.Rent(searchLength);
+        var firstRead = (int)Math.Min(initialSize, remaining);
+        var buffer = ArrayPool<byte>.Shared.Rent(firstRead);
         try
         {
-            var span = buffer.AsSpan(0, searchLength);
+            var span = buffer.AsSpan(0, firstRead);
             _mmap.Read(startOffset, span);
 
             var index = span.IndexOf((byte)'\n');
-            if (index == -1)
+            if (index != -1)
             {
-                return (false, searchLength);
+                return (true, index + 1);
             }
 
-            return (true, index + 1);
+            if (remaining == firstRead)
+            {
+                return (false, firstRead);
+            }
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
+        }
+
+        // Line exceeds 4KB — fall back to 1MB search
+        var searchLength = (int)Math.Min(maxSearch, remaining);
+        var bigBuffer = ArrayPool<byte>.Shared.Rent(searchLength);
+        try
+        {
+            var span = bigBuffer.AsSpan(0, searchLength);
+            _mmap.Read(startOffset, span);
+
+            var index = span.IndexOf((byte)'\n');
+            return index == -1 ? (false, searchLength) : (true, index + 1);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(bigBuffer);
         }
     }
 

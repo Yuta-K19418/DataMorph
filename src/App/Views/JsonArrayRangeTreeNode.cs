@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonArray;
 using Terminal.Gui.Views;
 
@@ -7,22 +8,24 @@ namespace DataMorph.App.Views;
 
 /// <summary>
 /// Represents a 1,000-item range within a large JSON Array.
-/// On first <see cref="Children"/> access (lazy), reads element bytes from
-/// <see cref="ElementByteCache"/> and constructs child element nodes for that range.
+/// Children are loaded on demand via <see cref="EnsureChildrenLoaded"/>,
+/// called by <see cref="DelegateTreeBuilder{ITreeNode}"/> on first expansion.
 /// </summary>
 internal sealed class JsonArrayRangeTreeNode : TreeNode
 {
-    private readonly ElementByteCache _cache;
+    private readonly IRowIndexer _indexer;
+    private readonly ElementReader _reader;
     private readonly int _startIndex;
     private readonly int _count;
-    private bool _childrenLoaded;
 
-    public JsonArrayRangeTreeNode(ElementByteCache cache, int startIndex, int count)
+    public JsonArrayRangeTreeNode(IRowIndexer indexer, ElementReader reader, int startIndex, int count)
     {
-        ArgumentNullException.ThrowIfNull(cache);
+        ArgumentNullException.ThrowIfNull(indexer);
+        ArgumentNullException.ThrowIfNull(reader);
         ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
         ArgumentOutOfRangeException.ThrowIfNegative(count);
-        _cache = cache;
+        _indexer = indexer;
+        _reader = reader;
         _startIndex = startIndex;
         _count = count;
         Text = count == 0
@@ -30,28 +33,45 @@ internal sealed class JsonArrayRangeTreeNode : TreeNode
             : $"[{startIndex} - {startIndex + count - 1}]";
     }
 
+    /// <summary>
+    /// Whether children have been loaded at least once.
+    /// Used by <see cref="DelegateTreeBuilder{ITreeNode}"/> to determine expand-arrow visibility
+    /// without touching <see cref="Children"/> (which would trigger premature loading).
+    /// </summary>
+    internal bool IsChildrenLoaded { get; private set; }
+
     /// <inheritdoc/>
-    public override IList<ITreeNode> Children
+    /// <remarks>
+    /// No lazy loading — <see cref="DelegateTreeBuilder{ITreeNode}"/> controls load timing
+    /// via <see cref="EnsureChildrenLoaded"/> to prevent <c>TreeView.AddObject()</c> from
+    /// triggering eager child retrieval.
+    /// </remarks>
+    public override IList<ITreeNode> Children => base.Children;
+
+    /// <summary>
+    /// Loads children from the reader if not already loaded.
+    /// Called by the <see cref="DelegateTreeBuilder{ITreeNode}"/> child getter on expansion.
+    /// </summary>
+    internal void EnsureChildrenLoaded()
     {
-        get
+        if (IsChildrenLoaded)
         {
-            if (!_childrenLoaded)
-            {
-                LoadChildren();
-                _childrenLoaded = true;
-            }
-            return base.Children;
+            return;
         }
-        set => base.Children = value;
+
+        LoadChildren();
+        IsChildrenLoaded = true;
     }
 
     private void LoadChildren()
     {
+        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(_startIndex);
+        var allBytes = _reader.ReadElementBytes(byteOffset, rowOffset, _count);
         List<ITreeNode> children = [];
 
-        for (var i = 0; i < _count; i++)
+        for (var i = 0; i < allBytes.Count; i++)
         {
-            var bytes = _cache.GetRow(_startIndex + i);
+            var bytes = allBytes[i];
             if (bytes.IsEmpty)
             {
                 continue;

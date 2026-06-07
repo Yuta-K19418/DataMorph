@@ -100,7 +100,7 @@ public sealed partial class DataRowIndexerTests
     }
 
     [Fact]
-    public void GetCheckPoint_WithNegativeRow_ReturnsFirstCheckpoint()
+    public void GetCheckPoint_WithNegativeRow_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
         File.WriteAllText(_testFilePath, "col1,col2\nval1,val2\nval3,val4");
@@ -108,12 +108,10 @@ public sealed partial class DataRowIndexerTests
         indexer.BuildIndex();
 
         // Act
-        var (byteOffset, rowOffset) = indexer.GetCheckPoint(-1);
+        var act = () => indexer.GetCheckPoint(-1);
 
         // Assert
-        // Header length: "col1,col2\n" = 10 bytes
-        byteOffset.Should().Be(10); // First checkpoint after header
-        rowOffset.Should().Be(-1); // Negative offset from checkpoint
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]

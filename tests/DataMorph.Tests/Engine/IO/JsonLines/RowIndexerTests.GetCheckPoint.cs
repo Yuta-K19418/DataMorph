@@ -172,6 +172,21 @@ public sealed partial class RowIndexerTests
     }
 
     [Fact]
+    public void GetCheckPoint_WithNegativeTargetRow_ThrowsArgumentOutOfRangeException()
+    {
+        // Arrange
+        File.WriteAllText(_testFilePath, "{\"id\": 1}\n{\"id\": 2}\n{\"id\": 3}");
+        var indexer = new RowIndexer(_testFilePath);
+        indexer.BuildIndex();
+
+        // Act
+        var act = () => indexer.GetCheckPoint(-1);
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
     public void GetCheckPoint_WithLargeFile_ReturnsValidCheckpoints()
     {
         // Arrange: Create file with 10,000 rows to ensure multiple checkpoints

@@ -40,7 +40,7 @@ internal sealed class JsonObjectTreeView : MorphTreeView
 
     /// <summary>
     /// Creates a single tree node for a top-level key-value pair.
-    /// Mirrors <see cref="JsonArrayRangeTreeNode.CreateElementNode"/>:
+    /// Mirrors <see cref="JsonRangeTreeNodes.JsonArrayRangeTreeNode.CreateElementNode"/>:
     /// reads the first token from <paramref name="valueBytes"/> and dispatches to the
     /// appropriate node type (<see cref="JsonObjectTreeNode"/>,
     /// <see cref="JsonArrayTreeNode"/>, or <see cref="JsonValueTreeNode"/>),

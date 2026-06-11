@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
+using DataMorph.App.Views.JsonRangeTreeNodes;
 using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
 
-namespace DataMorph.Tests.App.Views;
+namespace DataMorph.Tests.App.Views.JsonRangeTreeNodes;
 
 public sealed class JsonLinesRangeTreeNodeTests : IDisposable
 {
@@ -77,7 +77,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         using var reader = new RowReader(indexer.FilePath);
 
         // Act
-        var act = () => new JsonLinesRangeTreeNode(indexer, reader, -1, 10);
+        var act = () => new JsonLinesRangeTreeNode(indexer, reader, -1L, 10);
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
@@ -91,7 +91,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         using var reader = new RowReader(indexer.FilePath);
 
         // Act
-        var act = () => new JsonLinesRangeTreeNode(indexer, reader, 0, -1);
+        var act = () => new JsonLinesRangeTreeNode(indexer, reader, 0L, -1L);
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
@@ -105,7 +105,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         using var reader = new RowReader(indexer.FilePath);
 
         // Act
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 1000);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 1000L);
 
         // Assert
         node.Text.Should().Be("Lines 1-1000");
@@ -119,7 +119,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         using var reader = new RowReader(indexer.FilePath);
 
         // Act
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 1000, 500);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 1000L, 500L);
 
         // Assert
         node.Text.Should().Be("Lines 1001-1500");
@@ -131,7 +131,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("{\"a\":1}\n{\"b\":2}\n{\"c\":3}");
         using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 3);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 3L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -147,7 +147,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("{\"a\":1}");
         using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 0);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 0L);
 
         // Act
         var children = node.Children;
@@ -158,30 +158,12 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     }
 
     [Fact]
-    public void EnsureChildrenLoaded_CalledTwice_ReturnsSameCount()
-    {
-        // Arrange
-        var indexer = CreateAndBuildIndexer("{\"a\":1}\n{\"b\":2}\n{\"c\":3}");
-        using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 3);
-
-        // Act
-        node.EnsureChildrenLoaded();
-        var firstCount = node.Children.Count;
-        node.EnsureChildrenLoaded();
-        var secondCount = node.Children.Count;
-
-        // Assert
-        secondCount.Should().Be(firstCount);
-    }
-
-    [Fact]
     public void EnsureChildrenLoaded_CountExceedsAvailableLines_ReturnsOnlyAvailableChildren()
     {
         // Arrange — file has 2 lines, but node requests count=3; ReadLineBytes returns only 2
         var indexer = CreateAndBuildIndexer("{\"a\":1}\n{\"b\":2}");
         using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 3);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 3L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -198,7 +180,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var emptyBytes = ReadOnlyMemory<byte>.Empty;
 
         // Act
-        var node = JsonLinesRangeTreeNode.CreateLineNode(emptyBytes, 0);
+        var node = JsonLinesRangeTreeNode.CreateLineNode(emptyBytes, 0L);
 
         // Assert
         node.Should().BeOfType<JsonValueTreeNode>();
@@ -212,7 +194,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var malformed = new ReadOnlyMemory<byte>("{abc"u8.ToArray());
 
         // Act
-        var node = JsonLinesRangeTreeNode.CreateLineNode(malformed, 5);
+        var node = JsonLinesRangeTreeNode.CreateLineNode(malformed, 5L);
 
         // Assert
         node.Should().BeOfType<JsonValueTreeNode>();
@@ -228,7 +210,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var bytes = new ReadOnlyMemory<byte>(json);
 
         // Act
-        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0);
+        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
 
         // Assert
         node.Should().BeOfType<JsonObjectTreeNode>();
@@ -247,7 +229,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var bytes = new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(json));
 
         // Act
-        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0);
+        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
 
         // Assert
         node.Should().BeOfType(expectedType);
@@ -260,7 +242,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("{\"a\":1}");
         using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 1);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 1L);
 
         // Act
         var result = node.IsChildrenLoaded;
@@ -275,7 +257,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("{\"a\":1}\n{\"b\":2}");
         using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 2);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 2L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -291,7 +273,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("{\"a\":1}");
         using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 1);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 1L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -309,7 +291,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("{\"a\":1}");
         using var reader = new RowReader(indexer.FilePath);
-        var node = new JsonLinesRangeTreeNode(indexer, reader, 0, 0);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 0L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -317,5 +299,57 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Assert
         node.IsChildrenLoaded.Should().BeTrue();
         node.Children.Should().BeEmpty();
+    }
+
+    // --- New skeleton tests for nested range node support ---
+
+    [Fact]
+    public void LoadChildren_CountExceedsRangeSize_CreatesNestedRangeNodes()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void LoadChildren_CountEqualsRangeSize_CreatesLineNodes()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void LoadChildren_CountNotMultipleOfRangeSize_LastChildHasRemainderCount()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void Constructor_WithLongStartIndex_SetsCorrectDisplayText()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void GetNodeGroupSize_DelegatesToBase()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
     }
 }

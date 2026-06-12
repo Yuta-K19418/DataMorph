@@ -8,7 +8,7 @@ namespace DataMorph.App.Views.JsonRangeTreeNodes;
 
 /// <summary>
 /// Represents a range within a large JSON Lines file.
-/// When <c>_count &gt; <see cref="RangeTreeNodeBase.RangeSize"/></c>, children are nested
+/// When <c>_count &gt; <see cref="RangePartitionPolicy.RangeSize"/></c>, children are nested
 /// <see cref="JsonLinesRangeTreeNode"/> instances; otherwise, children are individual line nodes.
 /// Children are loaded on demand via <see cref="RangeTreeNodeBase.EnsureChildrenLoaded"/>.
 /// </summary>
@@ -33,13 +33,6 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
             ? $"Lines {startIndex + 1} (empty)"
             : $"Lines {startIndex + 1}-{startIndex + count}";
     }
-
-    /// <summary>
-    /// Exposes <see cref="RangeTreeNodeBase.GetNodeGroupSize"/> for external callers
-    /// such as <see cref="JsonLinesTreeView"/>.
-    /// </summary>
-    internal static new long GetNodeGroupSize(long fileSize) =>
-        RangeTreeNodeBase.GetNodeGroupSize(fileSize);
 
     /// <summary>
     /// Creates a line node for display from raw JSON bytes.
@@ -67,10 +60,7 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
 
             if (reader.TokenType == JsonTokenType.StartObject)
             {
-                return new JsonObjectTreeNode(lineBytes, prefix)
-                {
-                    LineNumber = (int)(lineIndex + 1),
-                };
+                return new JsonObjectTreeNode(lineBytes, prefix);
             }
 
             if (reader.TokenType == JsonTokenType.StartArray)
@@ -96,6 +86,48 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
     /// </remarks>
     protected override void LoadChildren()
     {
-        throw new NotImplementedException();
+        if (_count > RangePartitionPolicy.RangeSize)
+        {
+            AddNestedRangeNodes();
+            return;
+        }
+
+        AddDirectChildren();
+    }
+
+    private void AddNestedRangeNodes()
+    {
+        var childStart = _startIndex;
+        var remaining = _count;
+        List<ITreeNode> children = [];
+
+        while (remaining > 0)
+        {
+            var childCount = Math.Min(remaining, RangePartitionPolicy.RangeSize);
+            children.Add(new JsonLinesRangeTreeNode(_indexer, _reader, childStart, childCount));
+            childStart += childCount;
+            remaining -= childCount;
+        }
+
+        Children = children;
+    }
+
+    private void AddDirectChildren()
+    {
+        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(_startIndex);
+        var lines = _reader.ReadLineBytes(byteOffset, rowOffset, (int)_count);
+        List<ITreeNode> children = [];
+
+        for (var i = 0; i < lines.Count; i++)
+        {
+            if (lines[i].IsEmpty)
+            {
+                continue;
+            }
+
+            children.Add(CreateLineNode(lines[i], _startIndex + i));
+        }
+
+        Children = children;
     }
 }

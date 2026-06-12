@@ -202,22 +202,6 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         node.Text.Should().StartWith("Line 6:");
     }
 
-    [Fact]
-    public void CreateLineNode_SetsLineNumberOnJsonObjectTreeNode()
-    {
-        // Arrange
-        var json = "{\"a\":1}"u8.ToArray();
-        var bytes = new ReadOnlyMemory<byte>(json);
-
-        // Act
-        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
-
-        // Assert
-        node.Should().BeOfType<JsonObjectTreeNode>();
-        var objNode = (JsonObjectTreeNode)node;
-        objNode.LineNumber.Should().Be(1);
-    }
-
     [Theory]
     [InlineData("{\"a\":1}", typeof(JsonObjectTreeNode), "Line 1: {Object: 1 properties}")]
     [InlineData("[1,2]", typeof(JsonArrayTreeNode), "Line 1: [Array: 2 items]")]
@@ -301,55 +285,102 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         node.Children.Should().BeEmpty();
     }
 
-    // --- New skeleton tests for nested range node support ---
+    // --- Nested range node support ---
 
     [Fact]
     public void LoadChildren_CountExceedsRangeSize_CreatesNestedRangeNodes()
     {
         // Arrange
+        var indexer = CreateAndBuildIndexer("{\"a\":1}");
+        using var reader = new RowReader(indexer.FilePath);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 2500L);
 
         // Act
+        node.EnsureChildrenLoaded();
 
         // Assert
+        var children = node.Children;
+        children.Should().HaveCount(3);
+        children.Should().OnlyContain(c => c is JsonLinesRangeTreeNode);
     }
 
     [Fact]
     public void LoadChildren_CountEqualsRangeSize_CreatesLineNodes()
     {
-        // Arrange
+        // Arrange — 1000 lines, exactly at RangeSize boundary → line nodes, not nested range nodes
+        var lines = Enumerable.Range(0, 1000).Select(i => $"{{\"id\":{i}}}");
+        var indexer = CreateAndBuildIndexer(string.Join("\n", lines));
+        using var reader = new RowReader(indexer.FilePath);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 1000L);
 
         // Act
+        node.EnsureChildrenLoaded();
 
         // Assert
+        var children = node.Children;
+        children.Should().HaveCount(1000);
+        children.Should().NotContain(c => c is JsonLinesRangeTreeNode);
     }
 
     [Fact]
     public void LoadChildren_CountNotMultipleOfRangeSize_LastChildHasRemainderCount()
     {
-        // Arrange
+        // Arrange — 2500 count → 3 children: 1000 + 1000 + 500
+        var indexer = CreateAndBuildIndexer("{\"a\":1}");
+        using var reader = new RowReader(indexer.FilePath);
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 2500L);
 
         // Act
+        node.EnsureChildrenLoaded();
 
         // Assert
+        var children = node.Children;
+        children.Should().HaveCount(3);
+        children[0].Text.Should().Be("Lines 1-1000");
+        children[1].Text.Should().Be("Lines 1001-2000");
+        children[2].Text.Should().Be("Lines 2001-2500");
     }
 
     [Fact]
     public void Constructor_WithLongStartIndex_SetsCorrectDisplayText()
     {
         // Arrange
+        var indexer = CreateAndBuildIndexer("{\"a\":1}");
+        using var reader = new RowReader(indexer.FilePath);
 
         // Act
+        var node = new JsonLinesRangeTreeNode(indexer, reader, 2_000_000_000L, 1000L);
 
         // Assert
+        node.Text.Should().Be("Lines 2000000001-2000001000");
     }
 
     [Fact]
-    public void GetNodeGroupSize_DelegatesToBase()
+    public void CreateLineNode_WithNewlineOnlyBytes_CreatesInvalidNode()
     {
-        // Arrange
+        // Arrange — a bare newline (blank line content) is not valid JSON
+        var bytes = new ReadOnlyMemory<byte>("\n"u8.ToArray());
 
         // Act
+        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
 
         // Assert
+        node.Should().BeOfType<JsonValueTreeNode>();
+        node.Text.Should().Contain("[Invalid JSON]");
+    }
+
+    [Fact]
+    public void CreateLineNode_WithUtf8Bom_CreatesInvalidNode()
+    {
+        // Arrange — BOM (EF BB BF) prefix is not a valid JSON token
+        var bytes = new ReadOnlyMemory<byte>([0xEF, 0xBB, 0xBF, .. "{\"a\":1}"u8]);
+
+        // Act
+        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
+
+        // Assert — reader cannot parse the BOM-prefixed bytes, so the line is treated as invalid
+        node.Should().BeOfType<JsonValueTreeNode>();
+        node.Text.Should().StartWith("Line 1:");
+        node.Text.Should().Contain("[Invalid JSON]");
     }
 }

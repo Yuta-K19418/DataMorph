@@ -1,89 +1,46 @@
+using AwesomeAssertions;
+using DataMorph.App.Views.JsonRangeTreeNodes;
+using DataMorph.App.Views.JsonTreeNodes;
+using Terminal.Gui.Views;
+
 namespace DataMorph.Tests.App.Views.JsonRangeTreeNodes;
 
 public sealed class RangeTreeNodeBaseTests
 {
-    // Note: GetNodeGroupSize is protected static on RangeTreeNodeBase.
-    // Tests access it via the internal static wrapper on derived classes
-    // (e.g., JsonLinesRangeTreeNode.GetNodeGroupSize or JsonArrayRangeTreeNode.GetNodeGroupSize).
-
     [Fact]
-    public void GetNodeGroupSize_SmallFile_ReturnsRangeSize()
+    public void EnsureChildrenLoaded_OnSuccess_IsIdempotent()
     {
-        // Arrange — 50KB file, estimated ~500 rows, well below 1,000,000 threshold
+        // Arrange
+        var node = new StubRangeNode { ChildrenToAdd = 4 };
 
         // Act
+        node.EnsureChildrenLoaded();
+        node.EnsureChildrenLoaded();
 
-        // Assert
+        // Assert — LoadChildren runs once; second call is a no-op
+        node.IsChildrenLoaded.Should().BeTrue();
+        node.Children.Should().HaveCount(4);
     }
 
-    [Fact]
-    public void GetNodeGroupSize_MediumFile_ReturnsRangeSize()
+    private sealed class StubRangeNode : RangeTreeNodeBase
     {
-        // Arrange — 50MB file, estimated ~500,000 rows, still below 1,000,000 threshold
+        internal StubRangeNode()
+        {
+            Text = "stub";
+        }
 
-        // Act
+        internal int ChildrenToAdd { get; set; }
 
-        // Assert
+        protected override void LoadChildren()
+        {
+            List<ITreeNode> children = [];
+
+            for (var i = 0; i < ChildrenToAdd; i++)
+            {
+                children.Add(new JsonValueTreeNode($"child {i}"));
+            }
+
+            Children = children;
+        }
     }
-
-    [Fact]
-    public void GetNodeGroupSize_AtExactThreshold_ReturnsRangeSize()
-    {
-        // Arrange — 100MB file, estimated ~1,000,000 rows (exactly at threshold)
-
-        // Act
-
-        // Assert
-    }
-
-    [Fact]
-    public void GetNodeGroupSize_JustAboveThreshold_ReturnsSuperRangeSize()
-    {
-        // Arrange — 100MB + 200 bytes, estimated ~1,000,002 rows (just above threshold)
-
-        // Act
-
-        // Assert
-    }
-
-    [Fact]
-    public void GetNodeGroupSize_LargeFile_ReturnsSuperRangeSize()
-    {
-        // Arrange — 1GB file, estimated ~10,000,000 rows, above 1,000,000 threshold
-
-        // Act
-
-        // Assert
-    }
-
-    [Fact]
-    public void GetNodeGroupSize_10GBFile_ReturnsCorrectSuperRangeSize()
-    {
-        // Arrange — 10GB file, estimated ~100,000,000 rows
-
-        // Act
-
-        // Assert
-    }
-
-    [Fact]
-    public void GetNodeGroupSize_100GBFile_ReturnsCorrectSuperRangeSize()
-    {
-        // Arrange — 100GB file, estimated ~1,000,000,000 rows
-
-        // Act
-
-        // Assert
-    }
-
-    [Fact]
-    public void GetNodeGroupSize_ZeroFileSize_ReturnsRangeSize()
-    {
-        // Arrange — 0-byte file
-
-        // Act
-
-        // Assert
-    }
-
 }

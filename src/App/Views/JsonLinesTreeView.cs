@@ -73,7 +73,31 @@ internal sealed class JsonLinesTreeView : MorphTreeView
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(onTableModeToggle);
         ArgumentNullException.ThrowIfNull(uiThreadInvoke);
-        throw new NotImplementedException();
+
+        var nodeGroupSize = RangePartitionPolicy.GetNodeGroupSize(indexer.FileSize);
+        var view = new JsonLinesTreeView(
+            indexer, new RowReader(indexer.FilePath), onTableModeToggle, uiThreadInvoke, nodeGroupSize);
+
+        if (indexer.IsIndexingCompleted)
+        {
+            view.BuildInitialNodes(indexer.TotalRows);
+            return view;
+        }
+
+        view.StartProgressiveLoading();
+
+        return view;
+    }
+
+    private void StartProgressiveLoading()
+    {
+        _indexer.ProgressChanged += _progressHandler;
+        _indexer.BuildIndexCompleted += _completedHandler;
+
+        if (_indexer.IsIndexingCompleted)
+        {
+            _completedHandler();
+        }
     }
 
     /// <summary>
@@ -86,7 +110,39 @@ internal sealed class JsonLinesTreeView : MorphTreeView
     /// </param>
     private void AddNodesBatch(bool isFinal)
     {
-        throw new NotImplementedException();
+        var currentRows = _indexer.TotalRows;
+        var totalSuperRangeNodes = currentRows / _nodeGroupSize;
+        var from = Volatile.Read(ref _addedSuperRangeNodeCount);
+
+        if (from < totalSuperRangeNodes)
+        {
+            from = Interlocked.Exchange(ref _addedSuperRangeNodeCount, totalSuperRangeNodes);
+
+            for (var g = from; g < totalSuperRangeNodes; g++)
+            {
+                var startIndex = g * _nodeGroupSize;
+                _uiThreadInvoke(() =>
+                    AddObject(new JsonLinesRangeTreeNode(_indexer, _reader, startIndex, _nodeGroupSize)));
+            }
+        }
+
+        if (!isFinal)
+        {
+            return;
+        }
+
+        if (Interlocked.Exchange(ref _finalHandled, 1) != 0)
+        {
+            return;
+        }
+
+        var remainder = currentRows % _nodeGroupSize;
+        if (remainder > 0)
+        {
+            _uiThreadInvoke(() =>
+                AddObject(new JsonLinesRangeTreeNode(
+                    _indexer, _reader, totalSuperRangeNodes * _nodeGroupSize, remainder)));
+        }
     }
 
     /// <summary>
@@ -96,7 +152,35 @@ internal sealed class JsonLinesTreeView : MorphTreeView
     /// <param name="totalRows">The actual total number of rows from the completed indexer.</param>
     private void BuildInitialNodes(long totalRows)
     {
-        throw new NotImplementedException();
+        if (totalRows <= 0)
+        {
+            return;
+        }
+
+        if (totalRows <= RangePartitionPolicy.RangeSize)
+        {
+            var (byteOffset, rowOffset) = _indexer.GetCheckPoint(0);
+            var lines = _reader.ReadLineBytes(byteOffset, rowOffset, (int)totalRows);
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (lines[i].IsEmpty)
+                {
+                    continue;
+                }
+
+                AddObject(JsonLinesRangeTreeNode.CreateLineNode(lines[i], i));
+            }
+
+            return;
+        }
+
+        var totalRangeNodes = (totalRows + _nodeGroupSize - 1) / _nodeGroupSize;
+        for (var g = 0L; g < totalRangeNodes; g++)
+        {
+            var startIndex = g * _nodeGroupSize;
+            var count = Math.Min(_nodeGroupSize, totalRows - startIndex);
+            AddObject(new JsonLinesRangeTreeNode(_indexer, _reader, startIndex, count));
+        }
     }
 
     /// <inheritdoc/>

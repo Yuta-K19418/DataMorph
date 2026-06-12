@@ -8,7 +8,7 @@ namespace DataMorph.App.Views.JsonRangeTreeNodes;
 
 /// <summary>
 /// Represents a range within a large JSON Array.
-/// When <c>_count &gt; <see cref="RangeTreeNodeBase.RangeSize"/></c>, children are nested
+/// When <c>_count &gt; <see cref="RangePartitionPolicy.RangeSize"/></c>, children are nested
 /// <see cref="JsonArrayRangeTreeNode"/> instances; otherwise, children are individual element nodes.
 /// Children are loaded on demand via <see cref="RangeTreeNodeBase.EnsureChildrenLoaded"/>.
 /// </summary>
@@ -33,13 +33,6 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
             ? $"[{startIndex} - (empty)]"
             : $"[{startIndex} - {startIndex + count - 1}]";
     }
-
-    /// <summary>
-    /// Exposes <see cref="RangeTreeNodeBase.GetNodeGroupSize"/> for external callers
-    /// such as <see cref="JsonArrayTreeView"/>.
-    /// </summary>
-    internal static new long GetNodeGroupSize(long fileSize) =>
-        RangeTreeNodeBase.GetNodeGroupSize(fileSize);
 
     /// <summary>
     /// Creates an element node for display from raw JSON bytes.
@@ -77,16 +70,16 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
                 node.Text = withIndex(node.Text);
                 return node;
             }
+
+            return new JsonValueTreeNode(withIndex(reader.GetPrimitiveDisplay()))
+            {
+                ValueKind = reader.TokenType.ToJsonValueKind(),
+            };
         }
         catch (JsonException)
         {
             return invalidNode();
         }
-
-        return new JsonValueTreeNode(withIndex(reader.GetPrimitiveDisplay()))
-        {
-            ValueKind = reader.TokenType.ToJsonValueKind(),
-        };
     }
 
     /// <inheritdoc/>
@@ -96,6 +89,48 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     /// </remarks>
     protected override void LoadChildren()
     {
-        throw new NotImplementedException();
+        if (_count > RangePartitionPolicy.RangeSize)
+        {
+            AddNestedRangeNodes();
+            return;
+        }
+
+        AddDirectChildren();
+    }
+
+    private void AddNestedRangeNodes()
+    {
+        var childStart = _startIndex;
+        var remaining = _count;
+        List<ITreeNode> children = [];
+
+        while (remaining > 0)
+        {
+            var childCount = Math.Min(remaining, RangePartitionPolicy.RangeSize);
+            children.Add(new JsonArrayRangeTreeNode(_indexer, _reader, childStart, childCount));
+            childStart += childCount;
+            remaining -= childCount;
+        }
+
+        Children = children;
+    }
+
+    private void AddDirectChildren()
+    {
+        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(_startIndex);
+        var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)_count);
+        List<ITreeNode> children = [];
+
+        for (var i = 0; i < elements.Count; i++)
+        {
+            if (elements[i].IsEmpty)
+            {
+                continue;
+            }
+
+            children.Add(CreateElementNode(elements[i], _startIndex + i));
+        }
+
+        Children = children;
     }
 }

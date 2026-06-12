@@ -387,55 +387,74 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         node.Children.Should().BeEmpty();
     }
 
-    // --- New skeleton tests for nested range node support ---
+    // --- Nested range node support ---
 
     [Fact]
     public void LoadChildren_CountExceedsRangeSize_CreatesNestedRangeNodes()
     {
         // Arrange
+        var indexer = CreateAndBuildIndexer("[1]");
+        using var reader = new ElementReader(indexer.FilePath);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 2500L);
 
         // Act
+        node.EnsureChildrenLoaded();
 
         // Assert
+        var children = node.Children;
+        children.Should().HaveCount(3);
+        children.Should().OnlyContain(c => c is JsonArrayRangeTreeNode);
     }
 
     [Fact]
     public void LoadChildren_CountEqualsRangeSize_CreatesElementNodes()
     {
-        // Arrange
+        // Arrange — 1000 elements, exactly at RangeSize boundary → element nodes, not nested range nodes
+        var elements = Enumerable.Range(0, 1000)
+            .Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        var indexer = CreateAndBuildIndexer($"[{string.Join(",", elements)}]");
+        using var reader = new ElementReader(indexer.FilePath);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1000L);
 
         // Act
+        node.EnsureChildrenLoaded();
 
         // Assert
+        var children = node.Children;
+        children.Should().HaveCount(1000);
+        children.Should().NotContain(c => c is JsonArrayRangeTreeNode);
     }
 
     [Fact]
     public void LoadChildren_CountNotMultipleOfRangeSize_LastChildHasRemainderCount()
     {
-        // Arrange
+        // Arrange — 2500 count → 3 children: 1000 + 1000 + 500
+        var indexer = CreateAndBuildIndexer("[1]");
+        using var reader = new ElementReader(indexer.FilePath);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 2500L);
 
         // Act
+        node.EnsureChildrenLoaded();
 
         // Assert
+        var children = node.Children;
+        children.Should().HaveCount(3);
+        children[0].Text.Should().Be("[0 - 999]");
+        children[1].Text.Should().Be("[1000 - 1999]");
+        children[2].Text.Should().Be("[2000 - 2499]");
     }
 
     [Fact]
     public void Constructor_WithLongStartIndex_SetsCorrectDisplayText()
     {
         // Arrange
+        var indexer = CreateAndBuildIndexer("[1]");
+        using var reader = new ElementReader(indexer.FilePath);
 
         // Act
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 2_000_000_000L, 1000L);
 
         // Assert
-    }
-
-    [Fact]
-    public void GetNodeGroupSize_DelegatesToBase()
-    {
-        // Arrange
-
-        // Act
-
-        // Assert
+        node.Text.Should().Be("[2000000000 - 2000000999]");
     }
 }

@@ -102,7 +102,7 @@ internal static class JsonTreeNodeHelper
     )
     {
         var objectBytes = ExtractNestedBytes(ref reader, rawJson);
-        return new JsonObjectTreeNode(objectBytes) { Text = $"{label}: {{...}}" };
+        return new JsonObjectTreeNode(objectBytes, $"{label}: ");
     }
 
     private static JsonArrayTreeNode CreateNestedArrayNode(
@@ -112,7 +112,7 @@ internal static class JsonTreeNodeHelper
     )
     {
         var arrayBytes = ExtractNestedBytes(ref reader, rawJson);
-        return new JsonArrayTreeNode(arrayBytes) { Text = $"{label}: [...]" };
+        return new JsonArrayTreeNode(arrayBytes, $"{label}: ");
     }
 
     private static JsonValueTreeNode CreateNumberNode(ref Utf8JsonReader reader, string label)

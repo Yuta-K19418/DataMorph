@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
+using DataMorph.App.Views.JsonRangeTreeNodes;
 using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonArray;
 
-namespace DataMorph.Tests.App.Views;
+namespace DataMorph.Tests.App.Views.JsonRangeTreeNodes;
 
 public sealed class JsonArrayRangeTreeNodeTests : IDisposable
 {
@@ -77,7 +77,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         using var reader = new ElementReader(indexer.FilePath);
 
         // Act
-        var act = () => new JsonArrayRangeTreeNode(indexer, reader, -1, 10);
+        var act = () => new JsonArrayRangeTreeNode(indexer, reader, -1L, 10L);
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
@@ -91,7 +91,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         using var reader = new ElementReader(indexer.FilePath);
 
         // Act
-        var act = () => new JsonArrayRangeTreeNode(indexer, reader, 0, -1);
+        var act = () => new JsonArrayRangeTreeNode(indexer, reader, 0L, -1L);
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
@@ -105,7 +105,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         using var reader = new ElementReader(indexer.FilePath);
 
         // Act
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 1000);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1000L);
 
         // Assert
         node.Text.Should().Be("[0 - 999]");
@@ -119,10 +119,10 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         using var reader = new ElementReader(indexer.FilePath);
 
         // Act
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 1000, 500);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 1000L, 500L);
 
         // Assert
-        node.Text.Should().Be("[1000 - 1499]");
+        node.Text.Should().Be("[1,000 - 1,499]");
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[1, 2, 3]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 3);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 3L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -147,7 +147,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[1]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 0);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 0L);
 
         // Act
         var children = node.Children;
@@ -163,7 +163,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[{\"a\":1}]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 1);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -181,7 +181,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[[1,2]]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 1);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -199,7 +199,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[42]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 1);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -217,7 +217,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[null, 1]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 2);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 2L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -236,7 +236,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         var emptyBytes = ReadOnlyMemory<byte>.Empty;
 
         // Act
-        var elementNode = JsonArrayRangeTreeNode.CreateElementNode(emptyBytes, 0);
+        var elementNode = JsonArrayRangeTreeNode.CreateElementNode(emptyBytes, 0L);
 
         // Assert
         elementNode.Should().BeOfType<JsonValueTreeNode>();
@@ -250,7 +250,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         var malformed = new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes("{abc"));
 
         // Act
-        var node = JsonArrayRangeTreeNode.CreateElementNode(malformed, 5);
+        var node = JsonArrayRangeTreeNode.CreateElementNode(malformed, 5L);
 
         // Assert
         node.Should().BeOfType<JsonValueTreeNode>();
@@ -265,7 +265,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         var truncated = new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes("{"));
 
         // Act
-        var node = JsonArrayRangeTreeNode.CreateElementNode(truncated, 3);
+        var node = JsonArrayRangeTreeNode.CreateElementNode(truncated, 3L);
 
         // Assert
         node.Should().BeOfType<JsonValueTreeNode>();
@@ -279,7 +279,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[1, 2, 3]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 3);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 3L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -297,7 +297,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange — file has 2 elements, but node requests count=3; ReadElementBytes returns only 2
         var indexer = CreateAndBuildIndexer("[1, 2]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 3);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 3L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -313,7 +313,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange — node has count > 0 but EnsureChildrenLoaded() is never called
         var indexer = CreateAndBuildIndexer("[1, 2, 3]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 3);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 3L);
 
         // Act
         var children = node.Children;
@@ -328,7 +328,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[1]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 1);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1L);
 
         // Act
         var result = node.IsChildrenLoaded;
@@ -343,7 +343,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[1, 2]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 2);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 2L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -359,7 +359,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[1]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 1);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -377,7 +377,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Arrange
         var indexer = CreateAndBuildIndexer("[1]");
         using var reader = new ElementReader(indexer.FilePath);
-        var node = new JsonArrayRangeTreeNode(indexer, reader, 0, 0);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 0L);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -385,5 +385,76 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         // Assert
         node.IsChildrenLoaded.Should().BeTrue();
         node.Children.Should().BeEmpty();
+    }
+
+    // --- Nested range node support ---
+
+    [Fact]
+    public void LoadChildren_CountExceedsRangeSize_CreatesNestedRangeNodes()
+    {
+        // Arrange
+        var indexer = CreateAndBuildIndexer("[1]");
+        using var reader = new ElementReader(indexer.FilePath);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 2500L);
+
+        // Act
+        node.EnsureChildrenLoaded();
+
+        // Assert
+        var children = node.Children;
+        children.Should().HaveCount(3);
+        children.Should().OnlyContain(c => c is JsonArrayRangeTreeNode);
+    }
+
+    [Fact]
+    public void LoadChildren_CountEqualsRangeSize_CreatesElementNodes()
+    {
+        // Arrange — 1000 elements, exactly at RangeSize boundary → element nodes, not nested range nodes
+        var elements = Enumerable.Range(0, 1000)
+            .Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        var indexer = CreateAndBuildIndexer($"[{string.Join(",", elements)}]");
+        using var reader = new ElementReader(indexer.FilePath);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 1000L);
+
+        // Act
+        node.EnsureChildrenLoaded();
+
+        // Assert
+        var children = node.Children;
+        children.Should().HaveCount(1000);
+        children.Should().NotContain(c => c is JsonArrayRangeTreeNode);
+    }
+
+    [Fact]
+    public void LoadChildren_CountNotMultipleOfRangeSize_LastChildHasRemainderCount()
+    {
+        // Arrange — 2500 count → 3 children: 1000 + 1000 + 500
+        var indexer = CreateAndBuildIndexer("[1]");
+        using var reader = new ElementReader(indexer.FilePath);
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 2500L);
+
+        // Act
+        node.EnsureChildrenLoaded();
+
+        // Assert
+        var children = node.Children;
+        children.Should().HaveCount(3);
+        children[0].Text.Should().Be("[0 - 999]");
+        children[1].Text.Should().Be("[1,000 - 1,999]");
+        children[2].Text.Should().Be("[2,000 - 2,499]");
+    }
+
+    [Fact]
+    public void Constructor_WithLongStartIndex_SetsCorrectDisplayText()
+    {
+        // Arrange
+        var indexer = CreateAndBuildIndexer("[1]");
+        using var reader = new ElementReader(indexer.FilePath);
+
+        // Act
+        var node = new JsonArrayRangeTreeNode(indexer, reader, 2_000_000_000L, 1000L);
+
+        // Assert
+        node.Text.Should().Be("[2,000,000,000 - 2,000,000,999]");
     }
 }

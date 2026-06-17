@@ -136,6 +136,6 @@ internal sealed class JsonArrayTreeNode : TreeNode
             }
         }
 
-        return $"[Array: {elementCount} items]";
+        return FormattableString.Invariant($"[Array: {elementCount:N0} items]");
     }
 }

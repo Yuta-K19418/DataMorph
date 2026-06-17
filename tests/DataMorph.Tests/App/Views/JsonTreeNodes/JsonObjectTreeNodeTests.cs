@@ -53,21 +53,6 @@ public sealed class JsonObjectTreeNodeTests
     }
 
     [Fact]
-    public void LineNumber_WhenInitialized_StoresCorrectValue()
-    {
-        // Arrange
-        var json = "{}";
-        var rawJson = Encoding.UTF8.GetBytes(json);
-        var expectedLineNumber = 42;
-
-        // Act
-        var node = new JsonObjectTreeNode(rawJson) { LineNumber = expectedLineNumber };
-
-        // Assert
-        node.LineNumber.Should().Be(expectedLineNumber);
-    }
-
-    [Fact]
     public void Children_OnFirstAccess_LoadsChildNodes()
     {
         // Arrange

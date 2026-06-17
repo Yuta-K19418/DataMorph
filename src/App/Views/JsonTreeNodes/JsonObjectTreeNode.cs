@@ -23,11 +23,6 @@ internal sealed class JsonObjectTreeNode : TreeNode
         Text = $"{prefix}{FormatDisplayText()}";
     }
 
-    /// <summary>
-    /// Gets or initializes the line number of this root-level JSON object.
-    /// </summary>
-    public int? LineNumber { get; init; }
-
     /// <inheritdoc/>
     public override IList<ITreeNode> Children
     {
@@ -147,6 +142,6 @@ internal sealed class JsonObjectTreeNode : TreeNode
             }
         }
 
-        return $"{{Object: {propertyCount} properties}}";
+        return FormattableString.Invariant($"{{Object: {propertyCount:N0} properties}}");
     }
 }

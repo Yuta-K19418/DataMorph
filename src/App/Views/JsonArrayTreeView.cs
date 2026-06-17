@@ -1,86 +1,79 @@
-using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.App.Views.JsonRangeTreeNodes;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonArray;
-using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
 
 /// <summary>
-/// <see cref="MorphTreeView"/> subclass for JSON Array files.
-/// Creates <see cref="ElementReader"/> and populates the tree root directly.
-/// For ≤ 1,000 items, element nodes are added directly via <see cref="JsonArrayRangeTreeNode.CreateElementNode"/>.
-/// For ≥ 1,001 items, 1,000-item <see cref="JsonArrayRangeTreeNode"/> instances are created instead.
+/// <see cref="RangeTreeViewBase"/> subclass for JSON Array files.
+/// Creates <see cref="ElementReader"/> and populates the tree root.
+/// Supports lazy loading with progressive node addition for large files.
 /// </summary>
-internal sealed class JsonArrayTreeView : MorphTreeView
+internal sealed class JsonArrayTreeView : RangeTreeViewBase
 {
-    private const int RangeSize = 1_000;
     private readonly ElementReader _reader;
 
-    private JsonArrayTreeView(ElementReader reader, Action onTableModeToggle)
-        : base(onTableModeToggle)
+    private JsonArrayTreeView(
+        IRowIndexer indexer,
+        ElementReader reader,
+        Action onTableModeToggle,
+        Action<Action> uiThreadInvoke,
+        long nodeGroupSize)
+        : base(indexer, onTableModeToggle, uiThreadInvoke, nodeGroupSize)
     {
         _reader = reader;
-        TreeBuilder = new DelegateTreeBuilder<ITreeNode>(
-            // canExpand = branch/leaf (shows expand/collapse icon); IsExpanded = current expansion state (open/closed).
-            canExpand: node =>
-                // Type-based check only — never access Children here.
-                // JsonArrayRangeTreeNode: used for arrays > 1,000 elements; always expandable by design as it contains ≥ 1 element.
-                // JsonObjectTreeNode/JsonArrayTreeNode: accessing Children would trigger an
-                // immediate JSON parse of the element, bypassing lazy loading.
-                node is JsonArrayRangeTreeNode or JsonObjectTreeNode or JsonArrayTreeNode,
-            childGetter: node =>
-            {
-                if (node is JsonArrayRangeTreeNode r)
-                {
-                    r.EnsureChildrenLoaded();
-                }
-
-                return node.Children;
-            }
-        );
     }
 
-    internal static JsonArrayTreeView Create(IRowIndexer indexer, Action onTableModeToggle)
+    /// <summary>
+    /// Factory method that creates a <see cref="JsonArrayTreeView"/> for the given JSON Array file.
+    /// </summary>
+    /// <param name="indexer">The row indexer for the JSON Array file.</param>
+    /// <param name="onTableModeToggle">Callback invoked when the user presses 't'.</param>
+    /// <param name="uiThreadInvoke">Marshals actions to the UI thread for thread-safe <c>AddObject</c> calls.</param>
+    /// <returns>A new <see cref="JsonArrayTreeView"/> instance populated with element or range nodes.</returns>
+    internal static JsonArrayTreeView Create(
+        IRowIndexer indexer,
+        Action onTableModeToggle,
+        Action<Action> uiThreadInvoke)
     {
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(onTableModeToggle);
-        var reader = new ElementReader(indexer.FilePath);
-        var view = new JsonArrayTreeView(reader, onTableModeToggle);
-        var totalRows = indexer.TotalRows;
+        ArgumentNullException.ThrowIfNull(uiThreadInvoke);
 
-        if (totalRows > int.MaxValue)
+        var nodeGroupSize = RangePartitionPolicy.GetNodeGroupSize(indexer.FileSize);
+        var view = new JsonArrayTreeView(
+            indexer, new ElementReader(indexer.FilePath), onTableModeToggle, uiThreadInvoke, nodeGroupSize);
+
+        if (indexer.IsIndexingCompleted)
         {
-            throw new NotSupportedException($"JSON Arrays exceeding {int.MaxValue} elements are not supported.");
-        }
-
-        if (totalRows <= RangeSize)
-        {
-            var (byteOffset, rowOffset) = indexer.GetCheckPoint(0);
-            var allBytes = reader.ReadElementBytes(byteOffset, rowOffset, (int)totalRows);
-
-            for (var i = 0; i < allBytes.Count; i++)
-            {
-                var bytes = allBytes[i];
-                if (bytes.IsEmpty)
-                {
-                    continue;
-                }
-
-                view.AddObject(JsonArrayRangeTreeNode.CreateElementNode(bytes, i));
-            }
-
+            view.BuildInitialNodes(indexer.TotalRows);
             return view;
         }
 
-        var start = 0;
-        while (start < totalRows)
-        {
-            var count = Math.Min(RangeSize, totalRows - start);
-            view.AddObject(new JsonArrayRangeTreeNode(indexer, reader, start, (int)count));
-            start += RangeSize;
-        }
+        view.StartProgressiveLoading();
 
         return view;
+    }
+
+    /// <inheritdoc/>
+    protected override RangeTreeNodeBase CreateRangeNode(long startIndex, long count) =>
+        new JsonArrayRangeTreeNode(Indexer, _reader, startIndex, count);
+
+    /// <inheritdoc/>
+    protected override void AddSmallFileNodes(long totalRows)
+    {
+        var (byteOffset, rowOffset) = Indexer.GetCheckPoint(0);
+        var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)totalRows);
+
+        for (var i = 0; i < elements.Count; i++)
+        {
+            if (elements[i].IsEmpty)
+            {
+                continue;
+            }
+
+            AddObject(JsonArrayRangeTreeNode.CreateElementNode(elements[i], i));
+        }
     }
 
     /// <inheritdoc/>

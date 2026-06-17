@@ -40,7 +40,7 @@ internal sealed class JsonObjectTreeView : MorphTreeView
 
     /// <summary>
     /// Creates a single tree node for a top-level key-value pair.
-    /// Mirrors <see cref="JsonArrayRangeTreeNode.CreateElementNode"/>:
+    /// Mirrors <see cref="JsonRangeTreeNodes.JsonArrayRangeTreeNode.CreateElementNode"/>:
     /// reads the first token from <paramref name="valueBytes"/> and dispatches to the
     /// appropriate node type (<see cref="JsonObjectTreeNode"/>,
     /// <see cref="JsonArrayTreeNode"/>, or <see cref="JsonValueTreeNode"/>),
@@ -51,9 +51,9 @@ internal sealed class JsonObjectTreeView : MorphTreeView
     /// <returns>A tree node representing the key-value pair.</returns>
     internal static ITreeNode CreateKeyNode(string key, ReadOnlyMemory<byte> valueBytes)
     {
-        string withKey(string text) => $"{key}: {text}";
+        var prefix = $"{key}: ";
         ITreeNode invalidNode() =>
-            new JsonValueTreeNode(withKey("[Invalid JSON]")) { ValueKind = JsonValueKind.Undefined };
+            new JsonValueTreeNode($"{prefix}[Invalid JSON]") { ValueKind = JsonValueKind.Undefined };
 
         if (valueBytes.IsEmpty)
         {
@@ -71,19 +71,15 @@ internal sealed class JsonObjectTreeView : MorphTreeView
 
             if (reader.TokenType == JsonTokenType.StartObject)
             {
-                var node = new JsonObjectTreeNode(valueBytes);
-                node.Text = withKey(node.Text);
-                return node;
+                return new JsonObjectTreeNode(valueBytes, prefix);
             }
 
             if (reader.TokenType == JsonTokenType.StartArray)
             {
-                var node = new JsonArrayTreeNode(valueBytes);
-                node.Text = withKey(node.Text);
-                return node;
+                return new JsonArrayTreeNode(valueBytes, prefix);
             }
 
-            return new JsonValueTreeNode(withKey(reader.GetPrimitiveDisplay()))
+            return new JsonValueTreeNode($"{prefix}{reader.GetPrimitiveDisplay()}")
             {
                 ValueKind = reader.TokenType.ToJsonValueKind(),
             };

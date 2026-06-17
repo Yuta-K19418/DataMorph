@@ -1,43 +1,27 @@
-using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.App.Views.JsonRangeTreeNodes;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.JsonLines;
-using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
 
 /// <summary>
-/// A <see cref="MorphTreeView"/> that displays JSON Lines data as a hierarchical tree.
+/// A <see cref="RangeTreeViewBase"/> that displays JSON Lines data as a hierarchical tree.
 /// Creates TreeNode instances from raw JSON bytes provided by the Engine layer.
-/// For files with ≤ 1,000 lines, line nodes are added directly.
-/// For larger files, lines are grouped into <see cref="JsonLinesRangeTreeNode"/> ranges of 1,000.
+/// Supports lazy loading with progressive node addition for large files.
 /// </summary>
-internal sealed class JsonLinesTreeView : MorphTreeView
+internal sealed class JsonLinesTreeView : RangeTreeViewBase
 {
-    private const int RangeSize = 1_000;
     private readonly RowReader _reader;
 
-    private JsonLinesTreeView(RowReader reader, Action onTableModeToggle)
-        : base(onTableModeToggle)
+    private JsonLinesTreeView(
+        IRowIndexer indexer,
+        RowReader reader,
+        Action onTableModeToggle,
+        Action<Action> uiThreadInvoke,
+        long nodeGroupSize)
+        : base(indexer, onTableModeToggle, uiThreadInvoke, nodeGroupSize)
     {
         _reader = reader;
-        TreeBuilder = new DelegateTreeBuilder<ITreeNode>(
-            // canExpand = branch/leaf (shows expand/collapse icon); IsExpanded = current expansion state (open/closed).
-            canExpand: node =>
-                // Type-based check only — never access Children here.
-                // JsonLinesRangeTreeNode: used for files > 1,000 lines; always expandable by design as it contains ≥ 1 line.
-                // JsonObjectTreeNode/JsonArrayTreeNode: line nodes loaded directly; Children is not accessed
-                // to preserve lazy loading (accessing Children triggers full JSON parse immediately).
-                node is JsonLinesRangeTreeNode or JsonObjectTreeNode or JsonArrayTreeNode,
-            childGetter: node =>
-            {
-                if (node is JsonLinesRangeTreeNode r)
-                {
-                    r.EnsureChildrenLoaded();
-                }
-
-                return node.Children;
-            }
-        );
     }
 
     /// <summary>
@@ -45,51 +29,51 @@ internal sealed class JsonLinesTreeView : MorphTreeView
     /// </summary>
     /// <param name="indexer">The row indexer for the JSON Lines file.</param>
     /// <param name="onTableModeToggle">Callback invoked when the user presses 't'.</param>
+    /// <param name="uiThreadInvoke">Marshals actions to the UI thread for thread-safe <c>AddObject</c> calls.</param>
     /// <returns>A new <see cref="JsonLinesTreeView"/> instance populated with line or range nodes.</returns>
-    internal static JsonLinesTreeView Create(IRowIndexer indexer, Action onTableModeToggle)
+    internal static JsonLinesTreeView Create(
+        IRowIndexer indexer,
+        Action onTableModeToggle,
+        Action<Action> uiThreadInvoke)
     {
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(onTableModeToggle);
-        var totalRows = indexer.TotalRows;
+        ArgumentNullException.ThrowIfNull(uiThreadInvoke);
 
-        if (totalRows > int.MaxValue)
+        var nodeGroupSize = RangePartitionPolicy.GetNodeGroupSize(indexer.FileSize);
+        var view = new JsonLinesTreeView(
+            indexer, new RowReader(indexer.FilePath), onTableModeToggle, uiThreadInvoke, nodeGroupSize);
+
+        if (indexer.IsIndexingCompleted)
         {
-            throw new NotSupportedException(
-                $"JSON Lines files exceeding {int.MaxValue} lines are not supported."
-            );
-        }
-
-        var rowCount = (int)totalRows;
-        var reader = new RowReader(indexer.FilePath);
-        var view = new JsonLinesTreeView(reader, onTableModeToggle);
-
-        if (rowCount <= RangeSize)
-        {
-            var (byteOffset, rowOffset) = indexer.GetCheckPoint(0);
-            var allBytes = reader.ReadLineBytes(byteOffset, rowOffset, rowCount);
-            for (var i = 0; i < allBytes.Count; i++)
-            {
-                var bytes = allBytes[i];
-                if (bytes.IsEmpty)
-                {
-                    continue;
-                }
-
-                view.AddObject(JsonLinesRangeTreeNode.CreateLineNode(bytes, i));
-            }
-
+            view.BuildInitialNodes(indexer.TotalRows);
             return view;
         }
 
-        var start = 0;
-        while (start < rowCount)
-        {
-            var count = Math.Min(RangeSize, rowCount - start);
-            view.AddObject(new JsonLinesRangeTreeNode(indexer, reader, start, count));
-            start += RangeSize;
-        }
+        view.StartProgressiveLoading();
 
         return view;
+    }
+
+    /// <inheritdoc/>
+    protected override RangeTreeNodeBase CreateRangeNode(long startIndex, long count) =>
+        new JsonLinesRangeTreeNode(Indexer, _reader, startIndex, count);
+
+    /// <inheritdoc/>
+    protected override void AddSmallFileNodes(long totalRows)
+    {
+        var (byteOffset, rowOffset) = Indexer.GetCheckPoint(0);
+        var lines = _reader.ReadLineBytes(byteOffset, rowOffset, (int)totalRows);
+
+        for (var i = 0; i < lines.Count; i++)
+        {
+            if (lines[i].IsEmpty)
+            {
+                continue;
+            }
+
+            AddObject(JsonLinesRangeTreeNode.CreateLineNode(lines[i], i));
+        }
     }
 
     /// <inheritdoc/>

@@ -230,7 +230,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        var view = Views.JsonLinesTreeView.Create(indexer, () => _ = ToggleJsonLinesModeAsync());
+        var view = Views.JsonLinesTreeView.Create(indexer, () => _ = ToggleJsonLinesModeAsync(), _uiThreadInvoke);
         view.X = 0;
         view.Y = 1; // Start below MenuBar
         view.Width = Dim.Fill();
@@ -253,7 +253,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        var view = Views.JsonArrayTreeView.Create(indexer, () => _ = ToggleJsonArrayModeAsync());
+        var view = Views.JsonArrayTreeView.Create(indexer, () => _ = ToggleJsonArrayModeAsync(), _uiThreadInvoke);
         view.X = 0;
         view.Y = 1; // Start below MenuBar
         view.Width = Dim.Fill();

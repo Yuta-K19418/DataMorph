@@ -11,7 +11,7 @@ public sealed class RangeTreeNodeBaseTests
     public void EnsureChildrenLoaded_OnSuccess_IsIdempotent()
     {
         // Arrange
-        var node = new StubRangeNode { ChildrenToAdd = 4 };
+        var node = new StubRangeNode(4);
 
         // Act
         node.EnsureChildrenLoaded();
@@ -24,18 +24,19 @@ public sealed class RangeTreeNodeBaseTests
 
     private sealed class StubRangeNode : RangeTreeNodeBase
     {
-        internal StubRangeNode()
+        internal StubRangeNode(int count) : base(0, count)
         {
             Text = "stub";
         }
 
-        internal int ChildrenToAdd { get; set; }
+        protected override RangeTreeNodeBase CreateRangeNode(long startIndex, long count) =>
+            new StubRangeNode((int)count);
 
-        protected override void LoadChildren()
+        protected override void AddDirectChildren()
         {
             List<ITreeNode> children = [];
 
-            for (var i = 0; i < ChildrenToAdd; i++)
+            for (var i = 0; i < Count; i++)
             {
                 children.Add(new JsonValueTreeNode($"child {i}"));
             }

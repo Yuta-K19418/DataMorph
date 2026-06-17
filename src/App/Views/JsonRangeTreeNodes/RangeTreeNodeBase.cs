@@ -15,6 +15,17 @@ namespace DataMorph.App.Views.JsonRangeTreeNodes;
 /// </remarks>
 internal abstract class RangeTreeNodeBase : TreeNode
 {
+    protected RangeTreeNodeBase(long startIndex, long count)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        StartIndex = startIndex;
+        Count = count;
+    }
+
+    protected long StartIndex { get; }
+    protected long Count { get; }
+
     /// <summary>
     /// Whether children have been loaded at least once.
     /// Used by <see cref="DelegateTreeBuilder{ITreeNode}"/> to determine expand-arrow visibility
@@ -44,9 +55,40 @@ internal abstract class RangeTreeNodeBase : TreeNode
     }
 
     /// <summary>
-    /// Loads children for this range node. Implemented by derived classes.
-    /// When the range's count exceeds <see cref="RangePartitionPolicy.RangeSize"/>, creates nested range nodes;
-    /// otherwise, creates individual line/element nodes.
+    /// Creates a child range node covering [<paramref name="startIndex"/>, <paramref name="startIndex"/> + <paramref name="count"/>).
     /// </summary>
-    protected abstract void LoadChildren();
+    protected abstract RangeTreeNodeBase CreateRangeNode(long startIndex, long count);
+
+    /// <summary>
+    /// Populates <c>Children</c> with individual leaf nodes for the current range.
+    /// </summary>
+    protected abstract void AddDirectChildren();
+
+    private void LoadChildren()
+    {
+        if (Count > RangePartitionPolicy.RangeSize)
+        {
+            AddNestedRangeNodes();
+            return;
+        }
+
+        AddDirectChildren();
+    }
+
+    private void AddNestedRangeNodes()
+    {
+        var childStart = StartIndex;
+        var remaining = Count;
+        List<ITreeNode> children = [];
+
+        while (remaining > 0)
+        {
+            var childCount = Math.Min(remaining, RangePartitionPolicy.RangeSize);
+            children.Add(CreateRangeNode(childStart, childCount));
+            childStart += childCount;
+            remaining -= childCount;
+        }
+
+        Children = children;
+    }
 }

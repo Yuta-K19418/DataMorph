@@ -8,7 +8,7 @@ namespace DataMorph.App.Views.JsonRangeTreeNodes;
 
 /// <summary>
 /// Represents a range within a large JSON Array.
-/// When <c>_count &gt; <see cref="RangePartitionPolicy.RangeSize"/></c>, children are nested
+/// When <c>Count &gt; <see cref="RangePartitionPolicy.RangeSize"/></c>, children are nested
 /// <see cref="JsonArrayRangeTreeNode"/> instances; otherwise, children are individual element nodes.
 /// Children are loaded on demand via <see cref="RangeTreeNodeBase.EnsureChildrenLoaded"/>.
 /// </summary>
@@ -16,19 +16,14 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
 {
     private readonly IRowIndexer _indexer;
     private readonly ElementReader _reader;
-    private readonly long _startIndex;
-    private readonly long _count;
 
     internal JsonArrayRangeTreeNode(IRowIndexer indexer, ElementReader reader, long startIndex, long count)
+        : base(startIndex, count)
     {
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(reader);
-        ArgumentOutOfRangeException.ThrowIfNegative(startIndex);
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
         _indexer = indexer;
         _reader = reader;
-        _startIndex = startIndex;
-        _count = count;
         Text = count == 0
             ? $"[{startIndex} - (empty)]"
             : $"[{startIndex} - {startIndex + count - 1}]";
@@ -83,42 +78,17 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     }
 
     /// <inheritdoc/>
+    protected override RangeTreeNodeBase CreateRangeNode(long startIndex, long count) =>
+        new JsonArrayRangeTreeNode(_indexer, _reader, startIndex, count);
+
+    /// <inheritdoc/>
     /// <remarks>
-    /// When <c>_count &gt; RangeSize</c>, creates nested <see cref="JsonArrayRangeTreeNode"/> children;
-    /// otherwise, reads element bytes and creates individual element nodes.
+    /// Reads element bytes and creates individual element nodes for the current range.
     /// </remarks>
-    protected override void LoadChildren()
+    protected override void AddDirectChildren()
     {
-        if (_count > RangePartitionPolicy.RangeSize)
-        {
-            AddNestedRangeNodes();
-            return;
-        }
-
-        AddDirectChildren();
-    }
-
-    private void AddNestedRangeNodes()
-    {
-        var childStart = _startIndex;
-        var remaining = _count;
-        List<ITreeNode> children = [];
-
-        while (remaining > 0)
-        {
-            var childCount = Math.Min(remaining, RangePartitionPolicy.RangeSize);
-            children.Add(new JsonArrayRangeTreeNode(_indexer, _reader, childStart, childCount));
-            childStart += childCount;
-            remaining -= childCount;
-        }
-
-        Children = children;
-    }
-
-    private void AddDirectChildren()
-    {
-        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(_startIndex);
-        var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)_count);
+        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(StartIndex);
+        var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)Count);
         List<ITreeNode> children = [];
 
         for (var i = 0; i < elements.Count; i++)
@@ -128,7 +98,7 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
                 continue;
             }
 
-            children.Add(CreateElementNode(elements[i], _startIndex + i));
+            children.Add(CreateElementNode(elements[i], StartIndex + i));
         }
 
         Children = children;

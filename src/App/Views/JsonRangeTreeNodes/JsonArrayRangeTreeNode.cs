@@ -34,9 +34,9 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     /// </summary>
     internal static ITreeNode CreateElementNode(ReadOnlyMemory<byte> bytes, long index)
     {
-        string withIndex(string text) => FormattableString.Invariant($"[{index:N0}]: {text}");
+        var prefix = FormattableString.Invariant($"[{index:N0}]: ");
         ITreeNode invalidNode() =>
-            new JsonValueTreeNode(withIndex("[Invalid JSON]")) { ValueKind = JsonValueKind.Undefined };
+            new JsonValueTreeNode($"{prefix}[Invalid JSON]") { ValueKind = JsonValueKind.Undefined };
 
         if (bytes.IsEmpty)
         {
@@ -54,19 +54,15 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
 
             if (reader.TokenType == JsonTokenType.StartObject)
             {
-                var node = new JsonObjectTreeNode(bytes);
-                node.Text = withIndex(node.Text);
-                return node;
+                return new JsonObjectTreeNode(bytes, prefix);
             }
 
             if (reader.TokenType == JsonTokenType.StartArray)
             {
-                var node = new JsonArrayTreeNode(bytes);
-                node.Text = withIndex(node.Text);
-                return node;
+                return new JsonArrayTreeNode(bytes, prefix);
             }
 
-            return new JsonValueTreeNode(withIndex(reader.GetPrimitiveDisplay()))
+            return new JsonValueTreeNode($"{prefix}{reader.GetPrimitiveDisplay()}")
             {
                 ValueKind = reader.TokenType.ToJsonValueKind(),
             };

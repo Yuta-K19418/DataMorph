@@ -57,12 +57,12 @@ internal sealed class JsonLinesTreeView : RangeTreeViewBase
 
     /// <inheritdoc/>
     protected override RangeTreeNodeBase CreateRangeNode(long startIndex, long count) =>
-        new JsonLinesRangeTreeNode(_indexer, _reader, startIndex, count);
+        new JsonLinesRangeTreeNode(Indexer, _reader, startIndex, count);
 
     /// <inheritdoc/>
     protected override void AddSmallFileNodes(long totalRows)
     {
-        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(0);
+        var (byteOffset, rowOffset) = Indexer.GetCheckPoint(0);
         var lines = _reader.ReadLineBytes(byteOffset, rowOffset, (int)totalRows);
 
         for (var i = 0; i < lines.Count; i++)

@@ -57,12 +57,12 @@ internal sealed class JsonArrayTreeView : RangeTreeViewBase
 
     /// <inheritdoc/>
     protected override RangeTreeNodeBase CreateRangeNode(long startIndex, long count) =>
-        new JsonArrayRangeTreeNode(_indexer, _reader, startIndex, count);
+        new JsonArrayRangeTreeNode(Indexer, _reader, startIndex, count);
 
     /// <inheritdoc/>
     protected override void AddSmallFileNodes(long totalRows)
     {
-        var (byteOffset, rowOffset) = _indexer.GetCheckPoint(0);
+        var (byteOffset, rowOffset) = Indexer.GetCheckPoint(0);
         var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)totalRows);
 
         for (var i = 0; i < elements.Count; i++)

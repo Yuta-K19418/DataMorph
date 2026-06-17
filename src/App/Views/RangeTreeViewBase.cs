@@ -11,7 +11,6 @@ namespace DataMorph.App.Views;
 /// </summary>
 internal abstract class RangeTreeViewBase : MorphTreeView
 {
-    protected readonly IRowIndexer _indexer;
     private readonly Action<Action> _uiThreadInvoke;
     private readonly long _nodeGroupSize;
     private readonly Action<long, long> _progressHandler;
@@ -26,7 +25,7 @@ internal abstract class RangeTreeViewBase : MorphTreeView
         long nodeGroupSize)
         : base(onTableModeToggle)
     {
-        _indexer = indexer;
+        Indexer = indexer;
         _uiThreadInvoke = uiThreadInvoke;
         _nodeGroupSize = nodeGroupSize;
         _progressHandler = (_, _) => AddNodesBatch(isFinal: false);
@@ -51,12 +50,14 @@ internal abstract class RangeTreeViewBase : MorphTreeView
         );
     }
 
+    protected IRowIndexer Indexer { get; }
+
     internal void StartProgressiveLoading()
     {
-        _indexer.ProgressChanged += _progressHandler;
-        _indexer.BuildIndexCompleted += _completedHandler;
+        Indexer.ProgressChanged += _progressHandler;
+        Indexer.BuildIndexCompleted += _completedHandler;
 
-        if (_indexer.IsIndexingCompleted)
+        if (Indexer.IsIndexingCompleted)
         {
             _completedHandler();
         }
@@ -86,7 +87,7 @@ internal abstract class RangeTreeViewBase : MorphTreeView
 
     private void AddNodesBatch(bool isFinal)
     {
-        var currentRows = _indexer.TotalRows;
+        var currentRows = Indexer.TotalRows;
         var totalSuperRangeNodes = currentRows / _nodeGroupSize;
         var from = Volatile.Read(ref _addedSuperRangeNodeCount);
 
@@ -128,8 +129,8 @@ internal abstract class RangeTreeViewBase : MorphTreeView
     {
         if (disposing)
         {
-            _indexer.ProgressChanged -= _progressHandler;
-            _indexer.BuildIndexCompleted -= _completedHandler;
+            Indexer.ProgressChanged -= _progressHandler;
+            Indexer.BuildIndexCompleted -= _completedHandler;
         }
 
         base.Dispose(disposing);

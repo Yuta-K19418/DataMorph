@@ -25,7 +25,7 @@ public sealed class JsonTreeNodeHelperTests
         // Assert
         node.Should().NotBeNull();
         node.Should().BeOfType<JsonObjectTreeNode>();
-        node.Text.Should().Be("obj: {...}");
+        node.Text.Should().Be("obj: {Object: 1 properties}");
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public sealed class JsonTreeNodeHelperTests
         // Assert
         node.Should().NotBeNull();
         node.Should().BeOfType<JsonArrayTreeNode>();
-        node.Text.Should().Be("arr: [...]");
+        node.Text.Should().Be("arr: [Array: 3 items]");
     }
 
     [Fact]

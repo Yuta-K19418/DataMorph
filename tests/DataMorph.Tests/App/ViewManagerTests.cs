@@ -27,6 +27,7 @@ public sealed class ViewManagerTests : IDisposable
                     File.Delete(file);
                 }
             }
+
             _disposed = true;
         }
     }

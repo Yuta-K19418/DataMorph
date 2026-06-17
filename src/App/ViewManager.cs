@@ -442,6 +442,7 @@ internal sealed class ViewManager : IDisposable
             _container.Remove(_currentView);
             _currentView.Dispose();
         }
+
         _currentView = newView;
         _container.Add(_currentView);
         _container.SetNeedsDraw();

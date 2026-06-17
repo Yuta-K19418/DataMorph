@@ -35,6 +35,7 @@ internal sealed class JsonObjectTreeView : MorphTreeView
         {
             view.AddObject(CreateKeyNode(key, valueBytes));
         }
+
         return view;
     }
 

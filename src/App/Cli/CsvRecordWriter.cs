@@ -84,6 +84,7 @@ internal struct CsvRecordWriter : IRecordWriter
         {
             return;
         }
+
         await _writer.FlushAsync(ct).ConfigureAwait(false);
     }
 

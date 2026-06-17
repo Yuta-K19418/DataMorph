@@ -39,8 +39,10 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
             {
                 continue;
             }
+
             result.Add(item);
         }
+
         return result;
     }
 
@@ -50,10 +52,12 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         {
             return true;
         }
+
         if (node is ClassDeclarationSyntax classDecl && classDecl.AttributeLists.Count > 0)
         {
             return true;
         }
+
         return false;
     }
 
@@ -68,6 +72,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
                 return formatInfo;
             }
         }
+
         return null;
     }
 
@@ -108,6 +113,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
                 return true;
             }
         }
+
         return false;
     }
 

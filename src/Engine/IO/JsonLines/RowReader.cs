@@ -167,6 +167,7 @@ public sealed class RowReader : IDisposable
                 span = span[..^1];
             }
         }
+
         return span;
     }
 

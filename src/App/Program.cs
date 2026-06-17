@@ -52,5 +52,6 @@ if (tuiOptions.HasAny)
 {
     mainWindow.ScheduleStartupLoad(tuiOptions);
 }
+
 app.Run(mainWindow);
 return (int)ExitCode.Success;

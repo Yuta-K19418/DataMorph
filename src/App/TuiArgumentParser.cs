@@ -38,6 +38,7 @@ internal static class TuiArgumentParser
                 {
                     return Results.Failure<TuiStartupOptions>(consumeResult.Error);
                 }
+
                 inputFile = args[argsIndex++];
                 continue;
             }
@@ -50,6 +51,7 @@ internal static class TuiArgumentParser
                 {
                     return Results.Failure<TuiStartupOptions>(consumeResult.Error);
                 }
+
                 recipeFile = args[argsIndex++];
                 continue;
             }

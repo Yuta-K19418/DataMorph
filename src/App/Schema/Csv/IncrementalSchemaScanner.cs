@@ -134,6 +134,7 @@ internal sealed class IncrementalSchemaScanner : IncrementalSchemaScannerBase
             {
                 columnName = $"Column{i + 1}";
             }
+
             processedNames[i] = columnName;
         }
 

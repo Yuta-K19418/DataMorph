@@ -258,6 +258,7 @@ public sealed class IndexTaskManagerTests : IDisposable
             {
                 Thread.Sleep(1);
             }
+
             WasCancelled = true;
             IsIndexingCompleted = true;
             BuildIndexCompleted?.Invoke();

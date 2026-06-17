@@ -57,6 +57,7 @@ internal struct JsonLinesRecordReader : IRecordReader
                 {
                     continue;
                 }
+
                 return new ValueTask<bool>(true);
             }
 

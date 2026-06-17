@@ -233,6 +233,7 @@ internal sealed class AppKeyHandler : IDisposable
             {
                 return;
             }
+
             current = current.SuperView;
         }
 

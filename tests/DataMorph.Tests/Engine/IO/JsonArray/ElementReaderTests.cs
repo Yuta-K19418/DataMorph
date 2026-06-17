@@ -25,6 +25,7 @@ public sealed class ElementReaderTests : IDisposable
             {
                 File.Delete(_testFilePath);
             }
+
             _disposed = true;
         }
     }

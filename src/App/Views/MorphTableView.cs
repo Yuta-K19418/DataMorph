@@ -99,6 +99,7 @@ internal abstract class MorphTableView : TableView
             {
                 tableToDispose = d;
             }
+
             Table = null;
 
             // Clear selection state (critical to prevent RenderRow crash)

@@ -15,7 +15,6 @@ public sealed class RowIndexer : RowIndexerBase
     private long _totalRows;
     private long _bytesRead;
 
-
     private const int BufferSize = 1024 * 1024; // 1MB
     private const int CheckPointInterval = 1000;
 

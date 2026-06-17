@@ -40,6 +40,7 @@ internal struct CsvRecordReader : IRecordReader
         {
             return new ValueTask<bool>(false);
         }
+
         return _reader.MoveNextAsync(ct);
     }
 
@@ -55,6 +56,7 @@ internal struct CsvRecordReader : IRecordReader
         {
             return false;
         }
+
         return FilterEvaluator.EvaluateCsvFilters(_reader.Current, _filters);
     }
 
@@ -71,6 +73,7 @@ internal struct CsvRecordReader : IRecordReader
         {
             return _reader.Current[sourceIndex].Span;
         }
+
         return [];
     }
 

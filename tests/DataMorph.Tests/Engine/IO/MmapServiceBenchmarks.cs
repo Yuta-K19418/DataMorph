@@ -31,6 +31,7 @@ public class MmapServiceBenchmarks : IDisposable
         {
             sum += b;
         }
+
         return sum;
     }
 
@@ -44,6 +45,7 @@ public class MmapServiceBenchmarks : IDisposable
         {
             sum += b;
         }
+
         return sum;
     }
 
@@ -57,6 +59,7 @@ public class MmapServiceBenchmarks : IDisposable
         {
             sum += b;
         }
+
         return sum;
     }
 
@@ -72,8 +75,10 @@ public class MmapServiceBenchmarks : IDisposable
             {
                 sum += b;
             }
+
             return sum;
         }
+
         return 0;
     }
 

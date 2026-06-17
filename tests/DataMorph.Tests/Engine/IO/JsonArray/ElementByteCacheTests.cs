@@ -48,6 +48,7 @@ public sealed class ElementByteCacheTests : IDisposable
         {
             File.Delete(_testFilePath);
         }
+
         _disposed = true;
     }
 

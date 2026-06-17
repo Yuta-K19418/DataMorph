@@ -142,6 +142,6 @@ internal sealed class JsonObjectTreeNode : TreeNode
             }
         }
 
-        return $"{{Object: {propertyCount} properties}}";
+        return FormattableString.Invariant($"{{Object: {propertyCount:N0} properties}}");
     }
 }

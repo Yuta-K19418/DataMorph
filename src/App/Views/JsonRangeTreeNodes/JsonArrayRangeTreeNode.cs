@@ -34,7 +34,7 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     /// </summary>
     internal static ITreeNode CreateElementNode(ReadOnlyMemory<byte> bytes, long index)
     {
-        string withIndex(string text) => $"[{index}]: {text}";
+        string withIndex(string text) => FormattableString.Invariant($"[{index:N0}]: {text}");
         ITreeNode invalidNode() =>
             new JsonValueTreeNode(withIndex("[Invalid JSON]")) { ValueKind = JsonValueKind.Undefined };
 

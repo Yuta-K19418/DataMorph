@@ -35,7 +35,7 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
     /// </summary>
     internal static ITreeNode CreateLineNode(ReadOnlyMemory<byte> lineBytes, long lineIndex)
     {
-        var prefix = $"Line {lineIndex + 1}: ";
+        var prefix = FormattableString.Invariant($"Line {lineIndex + 1:N0}: ");
         ITreeNode invalidNode() =>
             new JsonValueTreeNode($"{prefix}[Invalid JSON]") { ValueKind = JsonValueKind.Undefined };
 

@@ -122,7 +122,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         var node = new JsonArrayRangeTreeNode(indexer, reader, 1000L, 500L);
 
         // Assert
-        node.Text.Should().Be("[1000 - 1499]");
+        node.Text.Should().Be("[1,000 - 1,499]");
     }
 
     [Fact]
@@ -440,8 +440,8 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         var children = node.Children;
         children.Should().HaveCount(3);
         children[0].Text.Should().Be("[0 - 999]");
-        children[1].Text.Should().Be("[1000 - 1999]");
-        children[2].Text.Should().Be("[2000 - 2499]");
+        children[1].Text.Should().Be("[1,000 - 1,999]");
+        children[2].Text.Should().Be("[2,000 - 2,499]");
     }
 
     [Fact]
@@ -455,6 +455,6 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
         var node = new JsonArrayRangeTreeNode(indexer, reader, 2_000_000_000L, 1000L);
 
         // Assert
-        node.Text.Should().Be("[2000000000 - 2000000999]");
+        node.Text.Should().Be("[2,000,000,000 - 2,000,000,999]");
     }
 }

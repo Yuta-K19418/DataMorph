@@ -136,8 +136,8 @@ public sealed partial class JsonArrayTreeViewTests
         var list = objects.ToList();
         list.Should().HaveCount(3);
         list[0].Text.Should().Be("[0 - 999]");
-        list[1].Text.Should().Be("[1000 - 1999]");
-        list[2].Text.Should().Be("[2000 - 2499]");
+        list[1].Text.Should().Be("[1,000 - 1,999]");
+        list[2].Text.Should().Be("[2,000 - 2,499]");
     }
 
     [Fact]
@@ -240,9 +240,9 @@ public sealed partial class JsonArrayTreeViewTests
         var list = objects.ToList();
         list.Should().HaveCount(3);
         list.Should().OnlyContain(o => o is JsonArrayRangeTreeNode);
-        list[0].Text.Should().Be("[0 - 1999]");
-        list[1].Text.Should().Be("[2000 - 3999]");
-        list[2].Text.Should().Be("[4000 - 4999]");
+        list[0].Text.Should().Be("[0 - 1,999]");
+        list[1].Text.Should().Be("[2,000 - 3,999]");
+        list[2].Text.Should().Be("[4,000 - 4,999]");
     }
 
     [Fact]
@@ -321,8 +321,8 @@ public sealed partial class JsonArrayTreeViewTests
         var listAfterProgress = objectsAfterProgress.ToList();
         listAfterProgress.Should().HaveCount(3);
         listAfterProgress[0].Text.Should().Be("[0 - 999]");
-        listAfterProgress[1].Text.Should().Be("[1000 - 1999]");
-        listAfterProgress[2].Text.Should().Be("[2000 - 2999]");
+        listAfterProgress[1].Text.Should().Be("[1,000 - 1,999]");
+        listAfterProgress[2].Text.Should().Be("[2,000 - 2,999]");
 
         // Simulate BuildIndexCompleted — remainder node added
         stubIndexer.RaiseBuildIndexCompleted();
@@ -331,7 +331,7 @@ public sealed partial class JsonArrayTreeViewTests
         objects.Should().NotBeNull();
         var list = objects.ToList();
         list.Should().HaveCount(4);
-        list[3].Text.Should().Be("[3000 - 3499]");
+        list[3].Text.Should().Be("[3,000 - 3,499]");
     }
 
     [Fact]
@@ -390,7 +390,7 @@ public sealed partial class JsonArrayTreeViewTests
         objects.Should().NotBeNull();
         var list = objects.ToList();
         list.Should().HaveCount(4);
-        list.Count(o => o is JsonArrayRangeTreeNode r && r.Text == "[3000 - 3499]")
+        list.Count(o => o is JsonArrayRangeTreeNode r && r.Text == "[3,000 - 3,499]")
             .Should().Be(1);
     }
 

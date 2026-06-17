@@ -108,7 +108,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 1000L);
 
         // Assert
-        node.Text.Should().Be("Lines 1-1000");
+        node.Text.Should().Be("Lines 1 - 1,000");
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var node = new JsonLinesRangeTreeNode(indexer, reader, 1000L, 500L);
 
         // Assert
-        node.Text.Should().Be("Lines 1001-1500");
+        node.Text.Should().Be("Lines 1,001 - 1,500");
     }
 
     [Fact]
@@ -336,9 +336,9 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         // Assert
         var children = node.Children;
         children.Should().HaveCount(3);
-        children[0].Text.Should().Be("Lines 1-1000");
-        children[1].Text.Should().Be("Lines 1001-2000");
-        children[2].Text.Should().Be("Lines 2001-2500");
+        children[0].Text.Should().Be("Lines 1 - 1,000");
+        children[1].Text.Should().Be("Lines 1,001 - 2,000");
+        children[2].Text.Should().Be("Lines 2,001 - 2,500");
     }
 
     [Fact]
@@ -352,7 +352,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         var node = new JsonLinesRangeTreeNode(indexer, reader, 2_000_000_000L, 1000L);
 
         // Assert
-        node.Text.Should().Be("Lines 2000000001-2000001000");
+        node.Text.Should().Be("Lines 2,000,000,001 - 2,000,001,000");
     }
 
     [Fact]

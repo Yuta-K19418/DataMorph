@@ -135,9 +135,9 @@ public sealed partial class JsonLinesTreeViewTests
         objects.Should().NotBeNull();
         var list = objects.ToList();
         list.Should().HaveCount(3);
-        list[0].Text.Should().Be("Lines 1-1000");
-        list[1].Text.Should().Be("Lines 1001-2000");
-        list[2].Text.Should().Be("Lines 2001-2500");
+        list[0].Text.Should().Be("Lines 1 - 1,000");
+        list[1].Text.Should().Be("Lines 1,001 - 2,000");
+        list[2].Text.Should().Be("Lines 2,001 - 2,500");
     }
 
     [Fact]
@@ -221,9 +221,9 @@ public sealed partial class JsonLinesTreeViewTests
         var list = objects.ToList();
         list.Should().HaveCount(3);
         list.Should().OnlyContain(o => o is JsonLinesRangeTreeNode);
-        list[0].Text.Should().Be("Lines 1-2000");
-        list[1].Text.Should().Be("Lines 2001-4000");
-        list[2].Text.Should().Be("Lines 4001-5000");
+        list[0].Text.Should().Be("Lines 1 - 2,000");
+        list[1].Text.Should().Be("Lines 2,001 - 4,000");
+        list[2].Text.Should().Be("Lines 4,001 - 5,000");
     }
 
     [Fact]
@@ -324,9 +324,9 @@ public sealed partial class JsonLinesTreeViewTests
         objectsAfterProgress.Should().NotBeNull();
         var listAfterProgress = objectsAfterProgress.ToList();
         listAfterProgress.Should().HaveCount(3);
-        listAfterProgress[0].Text.Should().Be("Lines 1-1000");
-        listAfterProgress[1].Text.Should().Be("Lines 1001-2000");
-        listAfterProgress[2].Text.Should().Be("Lines 2001-3000");
+        listAfterProgress[0].Text.Should().Be("Lines 1 - 1,000");
+        listAfterProgress[1].Text.Should().Be("Lines 1,001 - 2,000");
+        listAfterProgress[2].Text.Should().Be("Lines 2,001 - 3,000");
 
         // Simulate BuildIndexCompleted — remainder node added
         stubIndexer.RaiseBuildIndexCompleted();
@@ -335,7 +335,7 @@ public sealed partial class JsonLinesTreeViewTests
         objects.Should().NotBeNull();
         var list = objects.ToList();
         list.Should().HaveCount(4);
-        list[3].Text.Should().Be("Lines 3001-3500");
+        list[3].Text.Should().Be("Lines 3,001 - 3,500");
     }
 
     [Fact]
@@ -394,7 +394,7 @@ public sealed partial class JsonLinesTreeViewTests
         objects.Should().NotBeNull();
         var list = objects.ToList();
         list.Should().HaveCount(4);
-        list.Count(o => o is JsonLinesRangeTreeNode r && r.Text == "Lines 3001-3500")
+        list.Count(o => o is JsonLinesRangeTreeNode r && r.Text == "Lines 3,001 - 3,500")
             .Should().Be(1);
     }
 

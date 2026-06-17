@@ -25,8 +25,8 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
         _indexer = indexer;
         _reader = reader;
         Text = count == 0
-            ? $"[{startIndex} - (empty)]"
-            : $"[{startIndex} - {startIndex + count - 1}]";
+            ? FormattableString.Invariant($"[{startIndex:N0} - (empty)]")
+            : FormattableString.Invariant($"[{startIndex:N0} - {startIndex + count - 1:N0}]");
     }
 
     /// <summary>

@@ -124,6 +124,7 @@ internal sealed class MainWindow : Window
             _state.Dispose();
             _viewManager.Dispose();
         }
+
         base.Dispose(disposing);
     }
 

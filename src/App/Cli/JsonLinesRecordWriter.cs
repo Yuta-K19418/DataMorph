@@ -29,6 +29,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
             _bufferWriter.Dispose();
             throw;
         }
+
         _disposed = false;
     }
 
@@ -99,6 +100,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         {
             return;
         }
+
         await _stream.FlushAsync(ct).ConfigureAwait(false);
     }
 
@@ -176,6 +178,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
             await _jsonWriter.DisposeAsync().ConfigureAwait(false);
             _jsonWriter = null;
         }
+
         _bufferWriter?.Dispose();
         _bufferWriter = null;
         if (_stream is not null)
@@ -183,6 +186,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
             await _stream.DisposeAsync().ConfigureAwait(false);
             _stream = null;
         }
+
         _disposed = true;
     }
 }

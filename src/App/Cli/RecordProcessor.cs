@@ -35,6 +35,7 @@ internal static class RecordProcessor
                     writer.WriteCellSpan(i, reader.GetCellSpan(i));
                     continue;
                 }
+
                 var span = transform switch
                 {
                     FillSpec fill => fill.Value.AsSpan(),

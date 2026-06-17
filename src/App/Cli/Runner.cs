@@ -50,6 +50,7 @@ internal static class Runner
                 await logger.WriteErrorAsync($"Error building output schema: {outputSchemaResult.Error}");
                 return ExitCode.Failure;
             }
+
             var outputSchema = outputSchemaResult.Value;
 
             // Dispatch to generated static monomorphization logic

@@ -87,6 +87,7 @@ public abstract class SlidingWindowLruCache<TRow>
         {
             return;
         }
+
         var rows = LoadRows(byteOffset, rowOffsetToSkip, windowEnd - windowStart + 1);
         var rowsArray = rows.ToArray();
 

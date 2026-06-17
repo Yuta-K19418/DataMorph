@@ -84,6 +84,7 @@ internal sealed class JsonArrayTreeNode : TreeNode
             {
                 children.Add(elementNode);
             }
+
             elementIndex++;
         }
 

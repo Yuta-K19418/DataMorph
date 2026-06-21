@@ -67,7 +67,9 @@ internal sealed class ViewManager : IDisposable
                 hints.Add("t:Tree/Table");
             }
 
-            if (GetCurrentView() is MorphTableView)
+            var currentView = GetCurrentView();
+            if ((currentView is MorphTableView && _state.CurrentMode != ViewMode.FocusedTable)
+                || currentView is MorphTreeView)
             {
                 hints.Add("x:Menu");
             }
@@ -474,6 +476,20 @@ internal sealed class ViewManager : IDisposable
     {
         return _container.SubViews.OfType<StatusBar>().FirstOrDefault();
     }
+
+    /// <summary>
+    /// Orchestrates the DrillDown transition: delegates schema extraction to ModeController,
+    /// then switches to FocusedTable view on the UI thread.
+    /// </summary>
+    internal async Task DrillDownAsync(DrillDownRequest request) =>
+        throw new NotImplementedException();
+
+    /// <summary>
+    /// Creates FocusedTableSource and FocusedTableView, then switches to the FocusedTable view.
+    /// </summary>
+    [SuppressMessage("Reliability", "CA2000", Justification = "Owned by container via SwapView.")]
+    internal void SwitchToFocusedTable(DrillDownState drillDown) =>
+        throw new NotImplementedException();
 
     /// <inheritdoc/>
     public void Dispose()

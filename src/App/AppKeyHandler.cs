@@ -160,31 +160,38 @@ internal sealed class AppKeyHandler : IDisposable
 
     internal bool HandleActionMenu()
     {
-        if (_viewManager.GetCurrentView() is not MorphTableView mt)
+        var currentView = _viewManager.GetCurrentView();
+
+        if (currentView is MorphTableView mt)
         {
-            return false;
+            if (mt.Table is null || mt.GetRawColumnName is null
+                || mt.OnMorphAction is null || mt.Value is null)
+            {
+                return false;
+            }
+
+            var format = FormatDetector.Detect(_state.CurrentFilePath);
+            if (format.IsFailure)
+            {
+                _app.Invoke(() => _viewManager.ShowError(format.Error));
+                return false;
+            }
+
+            var handler = new ColumnActionHandler(
+                _app, mt.Table, mt.Value.SelectedCell.X,
+                mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
+
+            using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
+            _app.Run(dialog);
+            return true;
         }
 
-        if (mt.Table is null || mt.GetRawColumnName is null
-            || mt.OnMorphAction is null || mt.Value is null)
+        if (currentView is MorphTreeView)
         {
-            return false;
+            throw new NotImplementedException();
         }
 
-        var format = FormatDetector.Detect(_state.CurrentFilePath);
-        if (format.IsFailure)
-        {
-            _app.Invoke(() => _viewManager.ShowError(format.Error));
-            return false;
-        }
-
-        var handler = new ColumnActionHandler(
-            _app, mt.Table, mt.Value.SelectedCell.X,
-            mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
-
-        using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
-        _app.Run(dialog);
-        return true;
+        return false;
     }
 
     /// <summary>

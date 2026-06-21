@@ -186,4 +186,54 @@ public sealed class JsonArrayTreeNodeTests
         children[0].As<JsonValueTreeNode>().Text.Should().Be("[Invalid JSON Array]");
         children[0].As<JsonValueTreeNode>().ValueKind.Should().Be(JsonValueKind.Undefined);
     }
+
+    [Fact]
+    public void KeyName_IsSetViaInitializer_ReturnsExpectedKeyName()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void RecordPosition_IsSetViaInitializer_ReturnsExpectedRecordPosition()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void RawJson_ReturnsUnderlyingBytes()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void LoadChildren_WithRecordPosition_PropagatesRecordPositionToChildObjectNodes()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void LoadChildren_WithRecordPosition_PropagatesRecordPositionToChildArrayNodes()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

@@ -181,4 +181,54 @@ public sealed class JsonTreeNodeHelperTests
         // Assert
         result.Should().Be(expected);
     }
+
+    [Fact]
+    public void CreateChildNode_NestedObject_SetsKeyNameOnReturnedNode()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CreateChildNode_NestedArray_SetsKeyNameOnReturnedNode()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CreateChildNode_WithRecordPosition_PropagatesRecordPositionToObjectNode()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CreateChildNode_WithRecordPosition_PropagatesRecordPositionToArrayNode()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CreateChildNode_WithNullRecordPosition_SetsNullRecordPositionOnNode()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

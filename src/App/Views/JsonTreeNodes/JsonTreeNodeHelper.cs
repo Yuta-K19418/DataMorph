@@ -15,17 +15,19 @@ internal static class JsonTreeNodeHelper
     /// <param name="reader">The JSON reader positioned at a value token.</param>
     /// <param name="label">The display label prefix (e.g. "name" or "[0]").</param>
     /// <param name="rawJson">The raw JSON bytes for extracting nested structures.</param>
+    /// <param name="recordPosition">Ancestor root record position to propagate to child nodes.</param>
     /// <returns>A tree node representing the current token, or null if unrecognized.</returns>
     internal static ITreeNode? CreateChildNode(
         ref Utf8JsonReader reader,
         string label,
-        ReadOnlyMemory<byte> rawJson
+        ReadOnlyMemory<byte> rawJson,
+        long? recordPosition = null
     )
     {
         return reader.TokenType switch
         {
-            JsonTokenType.StartObject => CreateNestedObjectNode(ref reader, label, rawJson),
-            JsonTokenType.StartArray => CreateNestedArrayNode(ref reader, label, rawJson),
+            JsonTokenType.StartObject => CreateNestedObjectNode(ref reader, label, rawJson, recordPosition),
+            JsonTokenType.StartArray => CreateNestedArrayNode(ref reader, label, rawJson, recordPosition),
             JsonTokenType.String => new JsonValueTreeNode(
                 $"{label}: \"{EscapeString(reader.GetString() ?? string.Empty)}\""
             )
@@ -67,21 +69,31 @@ internal static class JsonTreeNodeHelper
     private static JsonObjectTreeNode CreateNestedObjectNode(
         ref Utf8JsonReader reader,
         string label,
-        ReadOnlyMemory<byte> rawJson
+        ReadOnlyMemory<byte> rawJson,
+        long? recordPosition
     )
     {
         var objectBytes = JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
-        return new JsonObjectTreeNode(objectBytes, $"{label}: ");
+        return new JsonObjectTreeNode(objectBytes, $"{label}: ")
+        {
+            KeyName = label,
+            RecordPosition = recordPosition,
+        };
     }
 
     private static JsonArrayTreeNode CreateNestedArrayNode(
         ref Utf8JsonReader reader,
         string label,
-        ReadOnlyMemory<byte> rawJson
+        ReadOnlyMemory<byte> rawJson,
+        long? recordPosition
     )
     {
         var arrayBytes = JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
-        return new JsonArrayTreeNode(arrayBytes, $"{label}: ");
+        return new JsonArrayTreeNode(arrayBytes, $"{label}: ")
+        {
+            KeyName = label,
+            RecordPosition = recordPosition,
+        };
     }
 
     private static JsonValueTreeNode CreateNumberNode(ref Utf8JsonReader reader, string label)

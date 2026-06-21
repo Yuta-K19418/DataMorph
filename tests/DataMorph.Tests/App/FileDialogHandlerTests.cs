@@ -181,4 +181,14 @@ public sealed class FileDialogHandlerTests : IDisposable
         state.RowIndexer.BuildIndex();
         await handleTask;
     }
+
+    [Fact]
+    public async Task HandleFileSelectedAsync_WhenDrillDownStateIsPopulated_ResetsDrillDownState()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

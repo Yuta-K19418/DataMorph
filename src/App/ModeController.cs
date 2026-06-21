@@ -87,4 +87,13 @@ internal sealed class ModeController
             return Results.Failure($"Invalid JSON Lines format: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// Executes the DrillDown command for the given request.
+    /// Parses the selected node's bytes in memory, infers schema, and stores results in AppState.
+    /// </summary>
+    /// <param name="request">The DrillDown request carrying the selected node bytes and context.</param>
+    /// <returns>A <see cref="Result"/> indicating success or the reason for failure.</returns>
+    public ValueTask<Result> DrillDownAsync(DrillDownRequest request) =>
+        throw new NotImplementedException();
 }

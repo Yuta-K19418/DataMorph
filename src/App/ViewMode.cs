@@ -41,6 +41,11 @@ internal enum ViewMode
     JsonObjectTree,
 
     /// <summary>
+    /// Focused table view displaying the DrillDown result as rows.
+    /// </summary>
+    FocusedTable,
+
+    /// <summary>
     /// Placeholder view displaying loaded file information.
     /// Will be replaced by CsvTable, JsonTable views in future issues.
     /// </summary>

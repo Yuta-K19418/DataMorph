@@ -60,6 +60,7 @@ internal sealed class FileDialogHandler(
         _state.CurrentFilePath = path;
         _state.ActionStack = [];
         _state.RenewCtsWithCancel();
+        _state.DrillDown = null;
 
         // JSON Object: scan keys via TopLevelScanner, then switch to tree view directly.
         // No IRowIndexer is needed — keys are not rows.

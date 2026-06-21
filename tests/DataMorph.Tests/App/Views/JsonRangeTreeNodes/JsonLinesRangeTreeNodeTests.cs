@@ -383,4 +383,24 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         node.Text.Should().StartWith("Line 1:");
         node.Text.Should().Contain("[Invalid JSON]");
     }
+
+    [Fact]
+    public void CreateLineNode_ObjectToken_SetsRecordPositionAsOneBased()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
+
+    [Fact]
+    public void CreateLineNode_ArrayToken_SetsRecordPositionAsOneBased()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+    }
 }

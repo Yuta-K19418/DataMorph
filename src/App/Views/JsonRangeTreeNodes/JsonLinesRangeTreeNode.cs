@@ -55,12 +55,12 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
 
             if (reader.TokenType == JsonTokenType.StartObject)
             {
-                return new JsonObjectTreeNode(lineBytes, prefix);
+                return new JsonObjectTreeNode(lineBytes, prefix) { RecordPosition = lineIndex + 1 };
             }
 
             if (reader.TokenType == JsonTokenType.StartArray)
             {
-                return new JsonArrayTreeNode(lineBytes, prefix);
+                return new JsonArrayTreeNode(lineBytes, prefix) { RecordPosition = lineIndex + 1 };
             }
 
             return new JsonValueTreeNode($"{prefix}{reader.GetPrimitiveDisplay()}")

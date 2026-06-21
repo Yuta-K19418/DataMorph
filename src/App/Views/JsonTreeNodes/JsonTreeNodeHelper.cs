@@ -53,19 +53,6 @@ internal static class JsonTreeNodeHelper
     }
 
     /// <summary>
-    /// Extracts the raw bytes of a nested JSON structure (object or array) by tracking
-    /// brace/bracket depth. Delegates to the shared <see cref="JsonByteExtractor"/>;
-    /// retained as a thin pass-through so existing callers under test keep compiling.
-    /// </summary>
-    /// <param name="reader">The JSON reader positioned at a StartObject or StartArray token.</param>
-    /// <param name="rawJson">The full raw JSON bytes.</param>
-    /// <returns>A slice of the raw bytes covering the nested structure.</returns>
-    internal static ReadOnlyMemory<byte> ExtractNestedBytes(
-        ref Utf8JsonReader reader,
-        ReadOnlyMemory<byte> rawJson
-    ) => JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
-
-    /// <summary>
     /// Escapes special characters in a string for tree node display.
     /// </summary>
     internal static string EscapeString(string value)

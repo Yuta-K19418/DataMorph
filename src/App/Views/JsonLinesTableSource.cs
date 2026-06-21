@@ -1,4 +1,5 @@
 using System.Text;
+using DataMorph.Engine.IO.Json;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using Terminal.Gui.Views;
@@ -7,7 +8,7 @@ namespace DataMorph.App.Views;
 
 /// <summary>
 /// Provides virtual table data source for Terminal.Gui's TableView for JSON Lines files.
-/// Delegates to RowByteCache for line retrieval and CellExtractor for cell value parsing.
+/// Delegates to RowByteCache for line retrieval and JsonObjectCellExtractor for cell value parsing.
 /// </summary>
 internal sealed class JsonLinesTableSource : ITableSource, IDisposable
 {
@@ -68,7 +69,7 @@ internal sealed class JsonLinesTableSource : ITableSource, IDisposable
                 return "<null>";
             }
 
-            return CellExtractor.ExtractCell(lineBytes.Span, _columnNameUtf8[col]);
+            return JsonObjectCellExtractor.ExtractCell(lineBytes.Span, _columnNameUtf8[col]);
         }
     }
 

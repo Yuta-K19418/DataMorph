@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DataMorph.Engine.IO.Json;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views.JsonTreeNodes;
@@ -52,8 +53,9 @@ internal static class JsonTreeNodeHelper
     }
 
     /// <summary>
-    /// Extracts the raw bytes of a nested JSON structure (object or array)
-    /// by tracking brace/bracket depth.
+    /// Extracts the raw bytes of a nested JSON structure (object or array) by tracking
+    /// brace/bracket depth. Delegates to the shared <see cref="JsonByteExtractor"/>;
+    /// retained as a thin pass-through so existing callers under test keep compiling.
     /// </summary>
     /// <param name="reader">The JSON reader positioned at a StartObject or StartArray token.</param>
     /// <param name="rawJson">The full raw JSON bytes.</param>
@@ -61,27 +63,7 @@ internal static class JsonTreeNodeHelper
     internal static ReadOnlyMemory<byte> ExtractNestedBytes(
         ref Utf8JsonReader reader,
         ReadOnlyMemory<byte> rawJson
-    )
-    {
-        var startPosition = (int)reader.TokenStartIndex;
-        var depth = 1;
-
-        while (depth > 0 && reader.Read())
-        {
-            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
-            {
-                depth++;
-            }
-
-            if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
-            {
-                depth--;
-            }
-        }
-
-        var endPosition = (int)reader.TokenStartIndex + 1;
-        return rawJson.Slice(startPosition, endPosition - startPosition);
-    }
+    ) => JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
 
     /// <summary>
     /// Escapes special characters in a string for tree node display.
@@ -101,7 +83,7 @@ internal static class JsonTreeNodeHelper
         ReadOnlyMemory<byte> rawJson
     )
     {
-        var objectBytes = ExtractNestedBytes(ref reader, rawJson);
+        var objectBytes = JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
         return new JsonObjectTreeNode(objectBytes, $"{label}: ");
     }
 
@@ -111,7 +93,7 @@ internal static class JsonTreeNodeHelper
         ReadOnlyMemory<byte> rawJson
     )
     {
-        var arrayBytes = ExtractNestedBytes(ref reader, rawJson);
+        var arrayBytes = JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
         return new JsonArrayTreeNode(arrayBytes, $"{label}: ");
     }
 

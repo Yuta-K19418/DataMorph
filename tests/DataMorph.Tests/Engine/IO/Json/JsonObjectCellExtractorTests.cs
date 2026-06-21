@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO.JsonLines;
+using DataMorph.Engine.IO.Json;
 
-namespace DataMorph.Tests.Engine.IO.JsonLines;
+namespace DataMorph.Tests.Engine.IO.Json;
 
-public sealed class CellExtractorTests
+public sealed class JsonObjectCellExtractorTests
 {
     [Fact]
     public void ExtractCell_StringValue_ReturnsUnquotedString()
@@ -13,7 +13,7 @@ public sealed class CellExtractorTests
         var columnName = "name"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("Alice");
@@ -27,7 +27,7 @@ public sealed class CellExtractorTests
         var columnName = "id"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("42");
@@ -41,7 +41,7 @@ public sealed class CellExtractorTests
         var columnName = "price"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("3.14");
@@ -55,7 +55,7 @@ public sealed class CellExtractorTests
         var columnName = "active"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("True");
@@ -69,7 +69,7 @@ public sealed class CellExtractorTests
         var columnName = "active"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("False");
@@ -83,7 +83,7 @@ public sealed class CellExtractorTests
         var columnName = "value"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("<null>");
@@ -97,7 +97,7 @@ public sealed class CellExtractorTests
         var columnName = "address"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("{...}");
@@ -111,7 +111,7 @@ public sealed class CellExtractorTests
         var columnName = "tags"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("[...]");
@@ -125,7 +125,7 @@ public sealed class CellExtractorTests
         var columnName = "name"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("<null>");
@@ -139,7 +139,7 @@ public sealed class CellExtractorTests
         var columnName = "id"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("<error>");
@@ -153,7 +153,7 @@ public sealed class CellExtractorTests
         var columnName = "id"u8;
 
         // Act
-        var result = CellExtractor.ExtractCell(line, columnName);
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
         result.Should().Be("<error>");

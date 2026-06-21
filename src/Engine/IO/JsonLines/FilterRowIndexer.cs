@@ -1,4 +1,5 @@
 using DataMorph.Engine.Filtering;
+using DataMorph.Engine.IO.Json;
 
 namespace DataMorph.Engine.IO.JsonLines;
 
@@ -23,7 +24,7 @@ public sealed class FilterRowIndexer : IFilterRowIndexer
     /// </summary>
     /// <param name="indexer">Completed row indexer for the JSON Lines source file.</param>
     /// <param name="filePath">Path to the JSON Lines source file.</param>
-    /// <param name="columnNamesUtf8">UTF-8 encoded column names for <see cref="CellExtractor"/> lookups.</param>
+    /// <param name="columnNamesUtf8">UTF-8 encoded column names for <see cref="JsonObjectCellExtractor"/> lookups.</param>
     /// <param name="filterSpecs">Resolved filter specifications to apply.</param>
     public FilterRowIndexer(
         IRowIndexer indexer,
@@ -125,7 +126,7 @@ public sealed class FilterRowIndexer : IFilterRowIndexer
                 colIdx < _columnNamesUtf8.Count ? _columnNamesUtf8[colIdx].AsSpan() : ReadOnlySpan<byte>.Empty;
             var rawValue = colNameUtf8.IsEmpty
                 ? []
-                : CellExtractor.ExtractCell(lineBytes, colNameUtf8).AsSpan();
+                : JsonObjectCellExtractor.ExtractCell(lineBytes, colNameUtf8).AsSpan();
 
             if (!FilterEvaluator.EvaluateFilter(rawValue, spec))
             {

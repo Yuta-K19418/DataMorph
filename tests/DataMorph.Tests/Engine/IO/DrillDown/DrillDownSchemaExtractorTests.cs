@@ -1,3 +1,7 @@
+using AwesomeAssertions;
+using DataMorph.Engine.IO.DrillDown;
+using DataMorph.Engine.Types;
+
 namespace DataMorph.Tests.Engine.IO.DrillDown;
 
 public sealed class DrillDownSchemaExtractorTests
@@ -6,69 +10,176 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_ArrayOfObjects_ReturnsUnionOfAllTopLevelKeys()
     {
         // Arrange
+        ReadOnlyMemory<byte> nodeBytes =
+            "[{\"name\": \"Alice\", \"age\": 30}, {\"name\": \"Bob\", \"age\": 25}]"u8.ToArray();
 
         // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "age");
+        result.Value.childValueBytes.Should().HaveCount(2);
     }
 
     [Fact]
     public void ExtractFromNode_ArrayOfObjectsWithVaryingKeys_ReturnsNullableColumnsForMissingKeys()
     {
         // Arrange
+        ReadOnlyMemory<byte> nodeBytes =
+            "[{\"name\": \"Alice\", \"role\": \"admin\"}, {\"name\": \"Bob\"}]"u8.ToArray();
 
         // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.schema.Columns.Single(c => c.Name == "role").IsNullable.Should().BeTrue();
+        result.Value.schema.Columns.Single(c => c.Name == "name").IsNullable.Should().BeFalse();
     }
 
     [Fact]
     public void ExtractFromNode_ArrayWithNonObjectElement_ReturnsFailure()
     {
         // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "[{\"name\": \"Alice\"}, 42]"u8.ToArray();
 
         // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
     }
 
     [Fact]
     public void ExtractFromNode_EmptyArray_ReturnsFailure()
     {
         // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "[]"u8.ToArray();
 
         // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
     }
 
     [Fact]
     public void ExtractFromNode_ArrayOfEmptyObjects_ReturnsFailure()
     {
         // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "[{}, {}]"u8.ToArray();
 
         // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("All child objects have no keys");
     }
 
     [Fact]
     public void ExtractFromNode_MalformedJson_ReturnsFailure()
     {
         // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "[invalid]"u8.ToArray();
 
         // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
 
         // Assert
+        result.IsFailure.Should().BeTrue();
     }
 
     [Fact]
     public void ExtractFromNode_SourceFormatMatchesParameter_ReturnsCorrectFormat()
     {
         // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "[{\"key\": \"value\"}]"u8.ToArray();
 
         // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonArray);
 
         // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.schema.SourceFormat.Should().Be(DataFormat.JsonArray);
+    }
+
+    [Fact]
+    public void ExtractFromNode_NullBeforeNonNull_InfersCorrectType()
+    {
+        // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "[{\"age\": null}, {\"age\": 30}]"u8.ToArray();
+
+        // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var ageColumn = result.Value.schema.Columns.Single(c => c.Name == "age");
+        ageColumn.Type.Should().Be(ColumnType.WholeNumber);
+        ageColumn.IsNullable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ExtractFromNode_JsonObjectInput_ReturnsFailure()
+    {
+        // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "{\"key\": \"value\"}"u8.ToArray();
+
+        // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ExtractFromNode_KeyWithAllNullValues_IsNullableWithTextType()
+    {
+        // Arrange
+        ReadOnlyMemory<byte> nodeBytes =
+            "[{\"name\": \"Alice\", \"tag\": null}, {\"name\": \"Bob\", \"tag\": null}]"u8.ToArray();
+
+        // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var tagColumn = result.Value.schema.Columns.Single(c => c.Name == "tag");
+        tagColumn.IsNullable.Should().BeTrue();
+        tagColumn.Type.Should().Be(ColumnType.Text);
+    }
+
+    [Fact]
+    public void ExtractFromNode_KeyWithMixedNullAndNonNull_IsNullable()
+    {
+        // Arrange
+        ReadOnlyMemory<byte> nodeBytes = "[{\"name\": null}, {\"name\": \"Bob\"}]"u8.ToArray();
+
+        // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var nameColumn = result.Value.schema.Columns.Single(c => c.Name == "name");
+        nameColumn.IsNullable.Should().BeTrue();
+        nameColumn.Type.Should().Be(ColumnType.Text);
+    }
+
+    [Fact]
+    public void ExtractFromNode_ChildWithNestedObject_ReturnsCorrectChildBytesCount()
+    {
+        // Arrange
+        ReadOnlyMemory<byte> nodeBytes =
+            "[{\"name\": \"Alice\", \"meta\": {\"dept\": \"Eng\"}}, {\"name\": \"Bob\", \"meta\": {\"dept\": \"HR\"}}]"u8.ToArray();
+
+        // Act
+        var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.childValueBytes.Should().HaveCount(2);
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "meta");
     }
 }

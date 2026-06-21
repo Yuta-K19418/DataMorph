@@ -1,5 +1,6 @@
 using DataMorph.App.Schema.JsonLines;
 using DataMorph.Engine;
+using DataMorph.Engine.IO.DrillDown;
 
 namespace DataMorph.App;
 
@@ -94,6 +95,23 @@ internal sealed class ModeController
     /// </summary>
     /// <param name="request">The DrillDown request carrying the selected node bytes and context.</param>
     /// <returns>A <see cref="Result"/> indicating success or the reason for failure.</returns>
-    public ValueTask<Result> DrillDownAsync(DrillDownRequest request) =>
-        throw new NotImplementedException();
+    public ValueTask<Result> DrillDownAsync(DrillDownRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var result = DrillDownSchemaExtractor.ExtractFromNode(request.NodeBytes, request.Format);
+        if (result.IsFailure)
+        {
+            return ValueTask.FromResult(Results.Failure(result.Error));
+        }
+
+        _state.DrillDown = new DrillDownState(
+            result.Value.childValueBytes,
+            result.Value.schema,
+            request.Format,
+            request.RecordPosition);
+        _state.CurrentMode = ViewMode.FocusedTable;
+
+        return ValueTask.FromResult(Results.Success());
+    }
 }

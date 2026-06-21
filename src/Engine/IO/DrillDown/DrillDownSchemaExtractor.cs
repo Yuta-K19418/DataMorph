@@ -1,3 +1,6 @@
+using System.Text.Json;
+using DataMorph.Engine.IO.Json;
+using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
@@ -17,6 +20,204 @@ public static class DrillDownSchemaExtractor
     /// JSON is malformed.
     /// </summary>
     public static Result<(TableSchema schema, IReadOnlyList<ReadOnlyMemory<byte>> childValueBytes)>
-        ExtractFromNode(ReadOnlyMemory<byte> nodeBytes, DataFormat format) =>
-        throw new NotImplementedException();
+        ExtractFromNode(ReadOnlyMemory<byte> nodeBytes, DataFormat format)
+    {
+        var childBytesResult = ExtractChildBytes(nodeBytes);
+        if (childBytesResult.IsFailure)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<ReadOnlyMemory<byte>>)>(childBytesResult.Error);
+        }
+
+        var schemaResult = BuildSchema(childBytesResult.Value, format);
+        if (schemaResult.IsFailure)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<ReadOnlyMemory<byte>>)>(schemaResult.Error);
+        }
+
+        return Results.Success<(TableSchema, IReadOnlyList<ReadOnlyMemory<byte>>)>(
+            (schemaResult.Value, childBytesResult.Value));
+    }
+
+    private static Result<List<ReadOnlyMemory<byte>>> ExtractChildBytes(ReadOnlyMemory<byte> nodeBytes)
+    {
+        try
+        {
+            return ParseArrayElements(nodeBytes);
+        }
+        catch (JsonException)
+        {
+            return Results.Failure<List<ReadOnlyMemory<byte>>>("Malformed JSON.");
+        }
+    }
+
+    private static Result<List<ReadOnlyMemory<byte>>> ParseArrayElements(ReadOnlyMemory<byte> nodeBytes)
+    {
+        List<ReadOnlyMemory<byte>> children = [];
+        var reader = new Utf8JsonReader(nodeBytes.Span);
+
+        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+        {
+            return Results.Failure<List<ReadOnlyMemory<byte>>>("Node is not a JSON Array.");
+        }
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                break;
+            }
+
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                return Results.Failure<List<ReadOnlyMemory<byte>>>("Array contains non-Object elements.");
+            }
+
+            // ExtractNestedBytes reads through the object and stops at EndObject.
+            // The next Read() advances to the following token, so the loop body only ever sees
+            // StartObject or EndArray.
+            children.Add(JsonByteExtractor.ExtractNestedBytes(ref reader, nodeBytes));
+        }
+
+        if (children.Count == 0)
+        {
+            return Results.Failure<List<ReadOnlyMemory<byte>>>("Array is empty.");
+        }
+
+        return Results.Success(children);
+    }
+
+    private static Result<TableSchema> BuildSchema(List<ReadOnlyMemory<byte>> childValueBytes, DataFormat format)
+    {
+        List<string> keyOrder = [];
+        var keySet = new HashSet<string>(StringComparer.Ordinal);
+        var columnTypes = new Dictionary<string, ColumnType>(StringComparer.Ordinal);
+        var keyObservedCount = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var childBytes in childValueBytes)
+        {
+            var observedKeys = new HashSet<string>(StringComparer.Ordinal);
+            ScanObject(childBytes.Span, keyOrder, keySet, columnTypes, observedKeys);
+            IncrementObservationCounts(observedKeys, keyObservedCount);
+        }
+
+        if (keyOrder.Count == 0)
+        {
+            return Results.Failure<TableSchema>("All child objects have no keys");
+        }
+
+        List<ColumnSchema> columns = [];
+        for (var i = 0; i < keyOrder.Count; i++)
+        {
+            var key = keyOrder[i];
+            var observedCount = keyObservedCount.GetValueOrDefault(key);
+            columns.Add(new ColumnSchema
+            {
+                Name = key,
+                Type = columnTypes.GetValueOrDefault(key, ColumnType.Text),
+                IsNullable = observedCount < childValueBytes.Count,
+                ColumnIndex = i,
+            });
+        }
+
+        return Results.Success(new TableSchema { Columns = columns, SourceFormat = format });
+    }
+
+    private static void IncrementObservationCounts(
+        HashSet<string> observedKeys,
+        Dictionary<string, int> keyObservedCount)
+    {
+        foreach (var key in observedKeys)
+        {
+            keyObservedCount[key] = keyObservedCount.GetValueOrDefault(key) + 1;
+        }
+    }
+
+    private static void ScanObject(
+        ReadOnlySpan<byte> objectBytes,
+        List<string> keyOrder,
+        HashSet<string> keySet,
+        Dictionary<string, ColumnType> columnTypes,
+        HashSet<string> observedKeys)
+    {
+        var reader = new Utf8JsonReader(objectBytes);
+
+        if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+        {
+            return;
+        }
+
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                break;
+            }
+
+            ScanSingleProperty(ref reader, keyOrder, keySet, columnTypes, observedKeys);
+        }
+    }
+
+    private static void ScanSingleProperty(
+        ref Utf8JsonReader reader,
+        List<string> keyOrder,
+        HashSet<string> keySet,
+        Dictionary<string, ColumnType> columnTypes,
+        HashSet<string> observedKeys)
+    {
+        if (reader.TokenType != JsonTokenType.PropertyName)
+        {
+            return;
+        }
+
+        var key = reader.GetString() ?? string.Empty;
+
+        if (!reader.Read())
+        {
+            return;
+        }
+
+        var tokenType = reader.TokenType;
+        var valueSpan = reader.ValueSpan;
+
+        if (tokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+        {
+            reader.Skip();
+        }
+
+        RegisterKeyIfNew(key, keyOrder, keySet);
+
+        if (TypeInferrer.IsNullToken(tokenType))
+        {
+            return;
+        }
+
+        var inferredType = TypeInferrer.InferType(tokenType, valueSpan);
+        observedKeys.Add(key);
+        MergeColumnType(key, inferredType, columnTypes);
+    }
+
+    private static void MergeColumnType(
+        string key,
+        ColumnType inferredType,
+        Dictionary<string, ColumnType> columnTypes)
+    {
+        if (!columnTypes.TryGetValue(key, out var existingType))
+        {
+            columnTypes[key] = inferredType;
+            return;
+        }
+
+        columnTypes[key] = ColumnTypeResolver.Resolve(existingType, inferredType);
+    }
+
+    private static void RegisterKeyIfNew(string key, List<string> keyOrder, HashSet<string> keySet)
+    {
+        if (keySet.Contains(key))
+        {
+            return;
+        }
+
+        keyOrder.Add(key);
+        keySet.Add(key);
+    }
 }

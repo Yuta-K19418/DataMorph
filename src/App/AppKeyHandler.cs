@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Views;
 using DataMorph.App.Views.Dialogs;
+using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -186,9 +187,54 @@ internal sealed class AppKeyHandler : IDisposable
             return true;
         }
 
-        if (currentView is MorphTreeView)
+        if (currentView is MorphTreeView tv)
         {
-            throw new NotImplementedException();
+            if (tv.SelectedObject is not JsonArrayTreeNode arrayNode)
+            {
+                return false;
+            }
+
+            var children = arrayNode.Children;
+            if (children.Count == 0)
+            {
+                return false;
+            }
+
+            if (children.Any(c => c is not JsonObjectTreeNode))
+            {
+                return false;
+            }
+
+            var treeFormat = FormatDetector.Detect(_state.CurrentFilePath);
+            if (treeFormat.IsFailure)
+            {
+                _app.Invoke(() => _viewManager.ShowError(treeFormat.Error));
+                return false;
+            }
+
+            var request = new DrillDownRequest(
+                Format: treeFormat.Value,
+                NodeBytes: arrayNode.RawJson,
+                KeyName: arrayNode.KeyName,
+                RecordPosition: arrayNode.RecordPosition);
+
+            void onDrillDownConfirmed(string actionName)
+            {
+                _ = _viewManager.DrillDownAsync(request).ContinueWith(
+                    t =>
+                    {
+                        if (t.IsFaulted && t.Exception is not null)
+                        {
+                            _app.Invoke(() => _viewManager.ShowError(
+                                t.Exception.InnerException?.Message ?? t.Exception.Message));
+                        }
+                    },
+                    TaskScheduler.Default);
+            }
+
+            using var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
+            _app.Run(dialog);
+            return true;
         }
 
         return false;

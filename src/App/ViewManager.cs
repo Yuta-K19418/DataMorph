@@ -62,7 +62,9 @@ internal sealed class ViewManager : IDisposable
         if (!string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
             var format = FormatDetector.Detect(_state.CurrentFilePath);
-            if (format.IsSuccess && format.Value is DataFormat.JsonLines or DataFormat.JsonArray)
+            if (format.IsSuccess
+                && format.Value is DataFormat.JsonLines or DataFormat.JsonArray
+                && _state.CurrentMode != ViewMode.FocusedTable)
             {
                 hints.Add("t:Tree/Table");
             }
@@ -481,15 +483,51 @@ internal sealed class ViewManager : IDisposable
     /// Orchestrates the DrillDown transition: delegates schema extraction to ModeController,
     /// then switches to FocusedTable view on the UI thread.
     /// </summary>
-    internal async Task DrillDownAsync(DrillDownRequest request) =>
-        throw new NotImplementedException();
+    internal async Task DrillDownAsync(DrillDownRequest request)
+    {
+        var result = await _modeController.DrillDownAsync(request);
+
+        _uiThreadInvoke(() =>
+        {
+            if (result.IsFailure)
+            {
+                ShowError(result.Error);
+                return;
+            }
+
+            if (_state.DrillDown is not { } drillDown)
+            {
+                throw new UnreachableException(
+                    "ModeController.DrillDownAsync must set DrillDown state on success.");
+            }
+
+            SwitchToFocusedTable(drillDown);
+        });
+    }
 
     /// <summary>
     /// Creates FocusedTableSource and FocusedTableView, then switches to the FocusedTable view.
     /// </summary>
     [SuppressMessage("Reliability", "CA2000", Justification = "Owned by container via SwapView.")]
-    internal void SwitchToFocusedTable(DrillDownState drillDown) =>
-        throw new NotImplementedException();
+    internal void SwitchToFocusedTable(DrillDownState drillDown)
+    {
+        var source = new Views.FocusedTableSource(drillDown);
+        var view = new Views.FocusedTableView
+        {
+            X = 0,
+            Y = 1,
+            Width = Dim.Fill(),
+            Height = Dim.Fill() - 1,
+            Table = source,
+            Style = new TableStyle { AlwaysShowHeaders = true },
+        };
+        _state.OnSchemaRefined = null;
+        view.SetSelection(0, 0, false);
+        view.Update();
+        SwapView(view);
+        view.SetFocus();
+        RefreshStatusBarHints();
+    }
 
     /// <inheritdoc/>
     public void Dispose()

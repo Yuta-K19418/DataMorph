@@ -95,14 +95,14 @@ internal sealed class ModeController
     /// </summary>
     /// <param name="request">The DrillDown request carrying the selected node bytes and context.</param>
     /// <returns>A <see cref="Result"/> indicating success or the reason for failure.</returns>
-    public ValueTask<Result> DrillDownAsync(DrillDownRequest request)
+    public Result DrillDown(DrillDownRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         var result = DrillDownSchemaExtractor.ExtractFromNode(request.NodeBytes, request.Format);
         if (result.IsFailure)
         {
-            return ValueTask.FromResult(Results.Failure(result.Error));
+            return Results.Failure(result.Error);
         }
 
         _state.DrillDown = new DrillDownState(
@@ -112,6 +112,6 @@ internal sealed class ModeController
             request.RecordPosition);
         _state.CurrentMode = ViewMode.FocusedTable;
 
-        return ValueTask.FromResult(Results.Success());
+        return Results.Success();
     }
 }

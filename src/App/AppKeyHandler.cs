@@ -228,19 +228,7 @@ internal sealed class AppKeyHandler : IDisposable
                 KeyName: arrayNode.KeyName,
                 RecordPosition: arrayNode.RecordPosition);
 
-            void onDrillDownConfirmed(string actionName)
-            {
-                _ = _viewManager.DrillDownAsync(request).ContinueWith(
-                    t =>
-                    {
-                        if (t.IsFaulted && t.Exception is not null)
-                        {
-                            _app.Invoke(() => _viewManager.ShowError(
-                                t.Exception.InnerException?.Message ?? t.Exception.Message));
-                        }
-                    },
-                    TaskScheduler.Default);
-            }
+            void onDrillDownConfirmed(string actionName) => _viewManager.DrillDown(request);
 
             var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
             _app.Run(dialog);

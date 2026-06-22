@@ -483,9 +483,9 @@ internal sealed class ViewManager : IDisposable
     /// Orchestrates the DrillDown transition: delegates schema extraction to ModeController,
     /// then switches to FocusedTable view on the UI thread.
     /// </summary>
-    internal async Task DrillDownAsync(DrillDownRequest request)
+    internal void DrillDown(DrillDownRequest request)
     {
-        var result = await _modeController.DrillDownAsync(request);
+        var result = _modeController.DrillDown(request);
 
         _uiThreadInvoke(() =>
         {
@@ -498,7 +498,7 @@ internal sealed class ViewManager : IDisposable
             if (_state.DrillDown is not { } drillDown)
             {
                 throw new UnreachableException(
-                    "ModeController.DrillDownAsync must set DrillDown state on success.");
+                    "ModeController.DrillDown must set DrillDown state on success.");
             }
 
             SwitchToFocusedTable(drillDown);

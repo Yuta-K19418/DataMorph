@@ -96,9 +96,14 @@ internal sealed class AppKeyHandler : IDisposable
     /// Handles help overlay shortcut (?).
     /// </summary>
     /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
     private bool HandleHelp()
     {
-        using var dialog = new HelpDialog();
+        var dialog = new HelpDialog();
         _app.Run(dialog);
         return true;
     }
@@ -159,6 +164,11 @@ internal sealed class AppKeyHandler : IDisposable
         return false;
     }
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
     internal bool HandleActionMenu()
     {
         var currentView = _viewManager.GetCurrentView();
@@ -182,7 +192,7 @@ internal sealed class AppKeyHandler : IDisposable
                 _app, mt.Table, mt.Value.SelectedCell.X,
                 mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
 
-            using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
+            var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
             _app.Run(dialog);
             return true;
         }
@@ -232,7 +242,7 @@ internal sealed class AppKeyHandler : IDisposable
                     TaskScheduler.Default);
             }
 
-            using var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
+            var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
             _app.Run(dialog);
             return true;
         }

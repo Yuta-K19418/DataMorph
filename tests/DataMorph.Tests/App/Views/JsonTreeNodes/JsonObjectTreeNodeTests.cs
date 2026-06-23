@@ -210,39 +210,121 @@ public sealed class JsonObjectTreeNodeTests
     public void KeyName_IsSetViaInitializer_ReturnsExpectedKeyName()
     {
         // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"key\": \"value\"}");
 
         // Act
+        var node = new JsonObjectTreeNode(rawJson) { KeyName = "name" };
 
         // Assert
+        node.KeyName.Should().Be("name");
     }
 
     [Fact]
     public void RecordPosition_IsSetViaInitializer_ReturnsExpectedRecordPosition()
     {
         // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"key\": \"value\"}");
 
         // Act
+        var node = new JsonObjectTreeNode(rawJson) { RecordPosition = 42 };
 
         // Assert
+        node.RecordPosition.Should().Be(42);
     }
 
     [Fact]
     public void LoadChildren_WithRecordPosition_PropagatesRecordPositionToChildObjectNodes()
     {
         // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"nested\": {}}");
 
         // Act
+        var node = new JsonObjectTreeNode(rawJson) { RecordPosition = 7 };
+        var children = node.Children;
 
         // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonObjectTreeNode>()
+            .Which.RecordPosition.Should().Be(7);
     }
 
     [Fact]
     public void LoadChildren_WithRecordPosition_PropagatesRecordPositionToChildArrayNodes()
     {
         // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"arr\": []}");
 
         // Act
+        var node = new JsonObjectTreeNode(rawJson) { RecordPosition = 7 };
+        var children = node.Children;
 
         // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonArrayTreeNode>()
+            .Which.RecordPosition.Should().Be(7);
+    }
+
+    [Fact]
+    public void LoadChildren_WithNullRecordPosition_PropagatesNullToChildObjectNodes()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"nested\": {}}");
+
+        // Act
+        var node = new JsonObjectTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonObjectTreeNode>()
+            .Which.RecordPosition.Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadChildren_WithNullRecordPosition_PropagatesNullToChildArrayNodes()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"arr\": []}");
+
+        // Act
+        var node = new JsonObjectTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonArrayTreeNode>()
+            .Which.RecordPosition.Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadChildren_WithNestedObject_SetsKeyNameOnChildObjectNode()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"nested\": {}}");
+
+        // Act
+        var node = new JsonObjectTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonObjectTreeNode>()
+            .Which.KeyName.Should().Be("nested");
+    }
+
+    [Fact]
+    public void LoadChildren_WithNestedArray_SetsKeyNameOnChildArrayNode()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"arr\": []}");
+
+        // Act
+        var node = new JsonObjectTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonArrayTreeNode>()
+            .Which.KeyName.Should().Be("arr");
     }
 }

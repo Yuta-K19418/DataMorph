@@ -1,3 +1,4 @@
+using System.Text;
 using AwesomeAssertions;
 using DataMorph.App.Views.JsonRangeTreeNodes;
 using DataMorph.App.Views.JsonTreeNodes;
@@ -388,19 +389,27 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     public void CreateLineNode_ObjectToken_SetsRecordPositionAsOneBased()
     {
         // Arrange
+        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("{\"a\":1}"));
 
         // Act
+        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 3L);
 
         // Assert
+        node.Should().BeOfType<JsonObjectTreeNode>()
+            .Which.RecordPosition.Should().Be(4L);
     }
 
     [Fact]
     public void CreateLineNode_ArrayToken_SetsRecordPositionAsOneBased()
     {
         // Arrange
+        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("[1,2]"));
 
         // Act
+        var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 3L);
 
         // Assert
+        node.Should().BeOfType<JsonArrayTreeNode>()
+            .Which.RecordPosition.Should().Be(4L);
     }
 }

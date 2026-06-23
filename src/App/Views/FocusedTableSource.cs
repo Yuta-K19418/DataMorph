@@ -11,7 +11,7 @@ namespace DataMorph.App.Views;
 /// </summary>
 internal sealed class FocusedTableSource : ITableSource
 {
-    private readonly IReadOnlyList<ReadOnlyMemory<byte>> _childValueBytes;
+    private readonly IReadOnlyList<JsonRawBytes> _childValueBytes;
     private readonly TableSchema _schema;
     private readonly long? _recordPosition;
     private readonly string[] _columnNames;

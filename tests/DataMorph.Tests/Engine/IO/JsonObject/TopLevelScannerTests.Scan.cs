@@ -6,7 +6,7 @@ namespace DataMorph.Tests.Engine.IO.JsonObject;
 
 public sealed partial class TopLevelScannerTests
 {
-    private static ReadOnlyMemory<byte> Utf8(string s) => Encoding.UTF8.GetBytes(s);
+    private static JsonRawBytes Utf8(string s) => Encoding.UTF8.GetBytes(s);
 
     [Fact]
     public void Scan_WithEmptyObject_ReturnsEmptyList()

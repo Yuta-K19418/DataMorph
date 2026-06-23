@@ -19,26 +19,26 @@ public static class DrillDownSchemaExtractor
     /// Returns <c>Failure</c> when children include non-Objects, the array is empty, or the
     /// JSON is malformed.
     /// </summary>
-    public static Result<(TableSchema schema, IReadOnlyList<ReadOnlyMemory<byte>> childValueBytes)>
-        ExtractFromNode(ReadOnlyMemory<byte> nodeBytes, DataFormat format)
+    public static Result<(TableSchema schema, IReadOnlyList<JsonRawBytes> childValueBytes)>
+        ExtractFromNode(JsonRawBytes nodeBytes, DataFormat format)
     {
         var childBytesResult = ExtractChildBytes(nodeBytes);
         if (childBytesResult.IsFailure)
         {
-            return Results.Failure<(TableSchema, IReadOnlyList<ReadOnlyMemory<byte>>)>(childBytesResult.Error);
+            return Results.Failure<(TableSchema, IReadOnlyList<JsonRawBytes>)>(childBytesResult.Error);
         }
 
         var schemaResult = BuildSchema(childBytesResult.Value, format);
         if (schemaResult.IsFailure)
         {
-            return Results.Failure<(TableSchema, IReadOnlyList<ReadOnlyMemory<byte>>)>(schemaResult.Error);
+            return Results.Failure<(TableSchema, IReadOnlyList<JsonRawBytes>)>(schemaResult.Error);
         }
 
-        return Results.Success<(TableSchema, IReadOnlyList<ReadOnlyMemory<byte>>)>(
+        return Results.Success<(TableSchema, IReadOnlyList<JsonRawBytes>)>(
             (schemaResult.Value, childBytesResult.Value));
     }
 
-    private static Result<List<ReadOnlyMemory<byte>>> ExtractChildBytes(ReadOnlyMemory<byte> nodeBytes)
+    private static Result<List<JsonRawBytes>> ExtractChildBytes(JsonRawBytes nodeBytes)
     {
         try
         {
@@ -46,18 +46,18 @@ public static class DrillDownSchemaExtractor
         }
         catch (JsonException)
         {
-            return Results.Failure<List<ReadOnlyMemory<byte>>>("Malformed JSON.");
+            return Results.Failure<List<JsonRawBytes>>("Malformed JSON.");
         }
     }
 
-    private static Result<List<ReadOnlyMemory<byte>>> ParseArrayElements(ReadOnlyMemory<byte> nodeBytes)
+    private static Result<List<JsonRawBytes>> ParseArrayElements(JsonRawBytes nodeBytes)
     {
-        List<ReadOnlyMemory<byte>> children = [];
+        List<JsonRawBytes> children = [];
         var reader = new Utf8JsonReader(nodeBytes.Span);
 
         if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
         {
-            return Results.Failure<List<ReadOnlyMemory<byte>>>("Node is not a JSON Array.");
+            return Results.Failure<List<JsonRawBytes>>("Node is not a JSON Array.");
         }
 
         while (reader.Read())
@@ -69,7 +69,7 @@ public static class DrillDownSchemaExtractor
 
             if (reader.TokenType != JsonTokenType.StartObject)
             {
-                return Results.Failure<List<ReadOnlyMemory<byte>>>("Array contains non-Object elements.");
+                return Results.Failure<List<JsonRawBytes>>("Array contains non-Object elements.");
             }
 
             // ExtractNestedBytes reads through the object and stops at EndObject.
@@ -80,13 +80,13 @@ public static class DrillDownSchemaExtractor
 
         if (children.Count == 0)
         {
-            return Results.Failure<List<ReadOnlyMemory<byte>>>("Array is empty.");
+            return Results.Failure<List<JsonRawBytes>>("Array is empty.");
         }
 
         return Results.Success(children);
     }
 
-    private static Result<TableSchema> BuildSchema(List<ReadOnlyMemory<byte>> childValueBytes, DataFormat format)
+    private static Result<TableSchema> BuildSchema(List<JsonRawBytes> childValueBytes, DataFormat format)
     {
         List<string> keyOrder = [];
         var keySet = new HashSet<string>(StringComparer.Ordinal);

@@ -42,7 +42,7 @@ public sealed class ElementByteCacheBenchmarks : IDisposable
     {
         // Arrange — create a fresh cache for each benchmark run
         using var cache = new ElementByteCache(_indexer);
-        ReadOnlyMemory<byte> result = default;
+        JsonRawBytes result = default;
 
         // Act — sequential GetRow(0.._elementCount) calls
         for (var i = 0; i < _elementCount; i++)
@@ -59,7 +59,7 @@ public sealed class ElementByteCacheBenchmarks : IDisposable
     {
         // Arrange — create a fresh cache for each benchmark run
         using var cache = new ElementByteCache(_indexer);
-        ReadOnlyMemory<byte> result = default;
+        JsonRawBytes result = default;
 
         // Act — random GetRow calls within 0.._elementCount using a simple LCG pattern
         var index = 0;

@@ -234,7 +234,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
     public void CreateElementNode_WithEmptyBytes_CreatesJsonValueTreeNodeWithErrorText()
     {
         // Arrange
-        var emptyBytes = ReadOnlyMemory<byte>.Empty;
+        var emptyBytes = JsonRawBytes.Empty;
 
         // Act
         var elementNode = JsonArrayRangeTreeNode.CreateElementNode(emptyBytes, 0L);
@@ -248,7 +248,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
     public void CreateElementNode_WithMalformedJson_CreatesJsonValueTreeNodeWithErrorText()
     {
         // Arrange
-        var malformed = new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes("{abc"));
+        var malformed = new JsonRawBytes(System.Text.Encoding.UTF8.GetBytes("{abc"));
 
         // Act
         var node = JsonArrayRangeTreeNode.CreateElementNode(malformed, 5L);
@@ -263,7 +263,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
     public void CreateElementNode_WithTruncatedObject_CreatesJsonValueTreeNodeWithErrorText()
     {
         // Arrange
-        var truncated = new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes("{"));
+        var truncated = new JsonRawBytes(System.Text.Encoding.UTF8.GetBytes("{"));
 
         // Act
         var node = JsonArrayRangeTreeNode.CreateElementNode(truncated, 3L);
@@ -463,7 +463,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
     public void CreateElementNode_ObjectToken_SetsRecordPositionAsZeroBased()
     {
         // Arrange
-        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("{\"a\":1}"));
+        var bytes = new JsonRawBytes(Encoding.UTF8.GetBytes("{\"a\":1}"));
 
         // Act
         var node = JsonArrayRangeTreeNode.CreateElementNode(bytes, 3L);
@@ -477,7 +477,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
     public void CreateElementNode_ArrayToken_SetsRecordPositionAsZeroBased()
     {
         // Arrange
-        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("[1,2]"));
+        var bytes = new JsonRawBytes(Encoding.UTF8.GetBytes("[1,2]"));
 
         // Act
         var node = JsonArrayRangeTreeNode.CreateElementNode(bytes, 3L);

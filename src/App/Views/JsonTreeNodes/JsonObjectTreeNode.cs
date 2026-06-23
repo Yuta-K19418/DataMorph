@@ -9,7 +9,7 @@ namespace DataMorph.App.Views.JsonTreeNodes;
 /// </summary>
 internal sealed class JsonObjectTreeNode : TreeNode
 {
-    private readonly ReadOnlyMemory<byte> _rawJson;
+    private readonly JsonRawBytes _rawJson;
     private bool _childrenLoaded;
 
     /// <summary>Property name this node represents. Null for root-level nodes.</summary>
@@ -26,7 +26,7 @@ internal sealed class JsonObjectTreeNode : TreeNode
     /// </summary>
     /// <param name="rawJson">The raw JSON bytes representing this object.</param>
     /// <param name="prefix">Optional prefix prepended to the display text (e.g. "Line N: ").</param>
-    public JsonObjectTreeNode(ReadOnlyMemory<byte> rawJson, string prefix = "")
+    public JsonObjectTreeNode(JsonRawBytes rawJson, string prefix = "")
     {
         _rawJson = rawJson;
         Text = $"{prefix}{FormatDisplayText()}";

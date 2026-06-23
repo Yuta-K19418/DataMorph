@@ -15,9 +15,9 @@ internal struct JsonLinesRecordReader : IRecordReader
     private readonly IReadOnlyList<Engine.Filtering.FilterSpec> _filters;
     private RowReader? _rowReader;
     private long _batchStart;
-    private IReadOnlyList<ReadOnlyMemory<byte>> _currentBatch;
+    private IReadOnlyList<JsonRawBytes> _currentBatch;
     private int _batchIndex;
-    private ReadOnlyMemory<byte> _currentLineBytes;
+    private JsonRawBytes _currentLineBytes;
     private bool _disposed;
 
     public JsonLinesRecordReader(RowIndexer rowIndexer, RowReader rowReader, TableSchema inputSchema, BatchOutputSchema outputSchema)

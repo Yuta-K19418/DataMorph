@@ -178,7 +178,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     public void CreateLineNode_WithEmptyBytes_CreatesInvalidNode()
     {
         // Arrange
-        var emptyBytes = ReadOnlyMemory<byte>.Empty;
+        var emptyBytes = JsonRawBytes.Empty;
 
         // Act
         var node = JsonLinesRangeTreeNode.CreateLineNode(emptyBytes, 0L);
@@ -192,7 +192,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     public void CreateLineNode_WithMalformedJson_CreatesInvalidNode()
     {
         // Arrange
-        var malformed = new ReadOnlyMemory<byte>("{abc"u8.ToArray());
+        var malformed = new JsonRawBytes("{abc"u8.ToArray());
 
         // Act
         var node = JsonLinesRangeTreeNode.CreateLineNode(malformed, 5L);
@@ -211,7 +211,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
         string json, Type expectedType, string expectedLabel)
     {
         // Arrange
-        var bytes = new ReadOnlyMemory<byte>(System.Text.Encoding.UTF8.GetBytes(json));
+        var bytes = new JsonRawBytes(System.Text.Encoding.UTF8.GetBytes(json));
 
         // Act
         var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
@@ -360,7 +360,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     public void CreateLineNode_WithNewlineOnlyBytes_CreatesInvalidNode()
     {
         // Arrange — a bare newline (blank line content) is not valid JSON
-        var bytes = new ReadOnlyMemory<byte>("\n"u8.ToArray());
+        var bytes = new JsonRawBytes("\n"u8.ToArray());
 
         // Act
         var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
@@ -374,7 +374,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     public void CreateLineNode_WithUtf8Bom_CreatesInvalidNode()
     {
         // Arrange — BOM (EF BB BF) prefix is not a valid JSON token
-        var bytes = new ReadOnlyMemory<byte>([0xEF, 0xBB, 0xBF, .. "{\"a\":1}"u8]);
+        var bytes = new JsonRawBytes([0xEF, 0xBB, 0xBF, .. "{\"a\":1}"u8]);
 
         // Act
         var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 0L);
@@ -389,7 +389,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     public void CreateLineNode_ObjectToken_SetsRecordPositionAsOneBased()
     {
         // Arrange
-        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("{\"a\":1}"));
+        var bytes = new JsonRawBytes(Encoding.UTF8.GetBytes("{\"a\":1}"));
 
         // Act
         var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 3L);
@@ -403,7 +403,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     public void CreateLineNode_ArrayToken_SetsRecordPositionAsOneBased()
     {
         // Arrange
-        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("[1,2]"));
+        var bytes = new JsonRawBytes(Encoding.UTF8.GetBytes("[1,2]"));
 
         // Act
         var node = JsonLinesRangeTreeNode.CreateLineNode(bytes, 3L);

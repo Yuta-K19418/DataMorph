@@ -18,7 +18,7 @@ public static class SchemaScanner
     /// <param name="initialScanCount">Maximum number of lines to scan (default: 200).</param>
     /// <returns>Result containing the inferred TableSchema, or an error message.</returns>
     public static Result<TableSchema> ScanSchema(
-        IReadOnlyList<ReadOnlyMemory<byte>> lineBytes,
+        IReadOnlyList<JsonRawBytes> lineBytes,
         int initialScanCount = 200
     )
     {

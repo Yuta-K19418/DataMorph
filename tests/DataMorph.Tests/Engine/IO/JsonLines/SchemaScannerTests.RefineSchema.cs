@@ -111,7 +111,7 @@ public sealed partial class SchemaScannerTests
             ],
             SourceFormat = DataFormat.JsonLines,
         };
-        var line = new ReadOnlyMemory<byte>("malformed"u8.ToArray());
+        var line = new JsonRawBytes("malformed"u8.ToArray());
 
         // Act
         var result = SchemaScanner.RefineSchema(initialSchema, line.Span);

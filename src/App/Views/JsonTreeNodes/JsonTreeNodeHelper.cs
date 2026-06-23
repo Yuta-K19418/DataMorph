@@ -20,7 +20,7 @@ internal static class JsonTreeNodeHelper
     internal static ITreeNode? CreateChildNode(
         ref Utf8JsonReader reader,
         string label,
-        ReadOnlyMemory<byte> rawJson,
+        JsonRawBytes rawJson,
         long? recordPosition = null
     )
     {
@@ -69,7 +69,7 @@ internal static class JsonTreeNodeHelper
     private static JsonObjectTreeNode CreateNestedObjectNode(
         ref Utf8JsonReader reader,
         string label,
-        ReadOnlyMemory<byte> rawJson,
+        JsonRawBytes rawJson,
         long? recordPosition
     )
     {
@@ -84,7 +84,7 @@ internal static class JsonTreeNodeHelper
     private static JsonArrayTreeNode CreateNestedArrayNode(
         ref Utf8JsonReader reader,
         string label,
-        ReadOnlyMemory<byte> rawJson,
+        JsonRawBytes rawJson,
         long? recordPosition
     )
     {

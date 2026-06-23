@@ -42,7 +42,7 @@ internal static class FilterEvaluator
     /// <param name="filters">Filter specs to evaluate.</param>
     /// <param name="indexToNameBytes">Pre-built map of source column index to UTF-8-encoded column name bytes.</param>
     internal static bool EvaluateJsonFilters(
-        ReadOnlyMemory<byte> lineBytes,
+        JsonRawBytes lineBytes,
         IReadOnlyList<FilterSpec> filters,
         IReadOnlyDictionary<int, ReadOnlyMemory<byte>> indexToNameBytes
     )

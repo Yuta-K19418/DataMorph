@@ -32,7 +32,7 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     /// <summary>
     /// Creates an element node for display from raw JSON bytes.
     /// </summary>
-    internal static ITreeNode CreateElementNode(ReadOnlyMemory<byte> bytes, long index)
+    internal static ITreeNode CreateElementNode(JsonRawBytes bytes, long index)
     {
         var prefix = FormattableString.Invariant($"[{index:N0}]: ");
         ITreeNode invalidNode() =>

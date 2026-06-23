@@ -7,8 +7,8 @@ namespace DataMorph.Tests.Engine.IO.JsonLines;
 
 public sealed partial class SchemaScannerTests
 {
-    private static ReadOnlyMemory<byte> Line(string json) =>
-        new ReadOnlyMemory<byte>(
+    private static JsonRawBytes Line(string json) =>
+        new JsonRawBytes(
             JsonSerializer.SerializeToUtf8Bytes(JsonDocument.Parse(json).RootElement)
         );
 

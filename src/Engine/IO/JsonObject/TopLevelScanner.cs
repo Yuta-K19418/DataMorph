@@ -18,7 +18,7 @@ public sealed class TopLevelScanner
     /// <param name="filePath">Path to the JSON Object file.</param>
     /// <param name="ct">Cancellation token for cooperative cancellation.</param>
     /// <returns>A read-only list of key-value pairs with raw JSON bytes for each value.</returns>
-    public static IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> Scan(
+    public static IReadOnlyList<(string key, JsonRawBytes value)> Scan(
         string filePath,
         CancellationToken ct = default
     )
@@ -38,7 +38,7 @@ public sealed class TopLevelScanner
             var fileSize = RandomAccess.GetLength(handle);
             var state = new JsonScanState(fileSize);
             var rootCompleted = false;
-            List<(string key, ReadOnlyMemory<byte> value)> result = [];
+            List<(string key, JsonRawBytes value)> result = [];
             var keyIndex = new Dictionary<string, int>();
 
             while (true)
@@ -109,7 +109,7 @@ public sealed class TopLevelScanner
         ref Utf8JsonReader reader,
         ref JsonScanState state,
         byte[] buffer,
-        List<(string key, ReadOnlyMemory<byte> value)> result,
+        List<(string key, JsonRawBytes value)> result,
         Dictionary<string, int> keyIndex
     )
     {
@@ -183,7 +183,7 @@ public sealed class TopLevelScanner
         byte[] buffer,
         int bufferOffset,
         int length,
-        List<(string key, ReadOnlyMemory<byte> value)> result,
+        List<(string key, JsonRawBytes value)> result,
         Dictionary<string, int> keyIndex
     )
     {
@@ -195,7 +195,7 @@ public sealed class TopLevelScanner
             dstOffset: 0,
             count: length
         );
-        var mem = new ReadOnlyMemory<byte>(copy);
+        var mem = new JsonRawBytes(copy);
 
         if (keyIndex.TryGetValue(key, out var idx))
         {

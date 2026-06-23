@@ -8,7 +8,7 @@ namespace DataMorph.Tests.App.Views;
 
 public sealed class FocusedTableSourceTests
 {
-    private static readonly IReadOnlyList<ReadOnlyMemory<byte>> DefaultChildBytes =
+    private static readonly IReadOnlyList<JsonRawBytes> DefaultChildBytes =
     [
         "{\"name\": \"Alice\", \"age\": 30}"u8.ToArray(),
         "{\"name\": \"Bob\", \"age\": 25}"u8.ToArray(),
@@ -25,7 +25,7 @@ public sealed class FocusedTableSourceTests
     };
 
     private static DrillDownState CreateState(
-        IReadOnlyList<ReadOnlyMemory<byte>>? childValueBytes = null,
+        IReadOnlyList<JsonRawBytes>? childValueBytes = null,
         TableSchema? schema = null,
         DataFormat format = DataFormat.JsonLines,
         long? recordPosition = 22) =>

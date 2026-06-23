@@ -1,5 +1,5 @@
 using DataMorph.Engine.Filtering;
-using DataMorph.Engine.IO.JsonLines;
+using DataMorph.Engine.IO.Json;
 using nietras.SeparatedValues;
 using EngineFilterEvaluator = DataMorph.Engine.Filtering.FilterEvaluator;
 
@@ -54,7 +54,7 @@ internal static class FilterEvaluator
                 continue;
             }
 
-            var value = CellExtractor.ExtractCell(lineBytes.Span, sourceColNameBytes.Span);
+            var value = JsonObjectCellExtractor.ExtractCell(lineBytes.Span, sourceColNameBytes.Span);
 
             if (value == "<null>" || value == "<error>")
             {

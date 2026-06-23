@@ -186,4 +186,139 @@ public sealed class JsonArrayTreeNodeTests
         children[0].As<JsonValueTreeNode>().Text.Should().Be("[Invalid JSON Array]");
         children[0].As<JsonValueTreeNode>().ValueKind.Should().Be(JsonValueKind.Undefined);
     }
+
+    [Fact]
+    public void KeyName_IsSetViaInitializer_ReturnsExpectedKeyName()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[1, 2, 3]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson) { KeyName = "tags" };
+
+        // Assert
+        node.KeyName.Should().Be("tags");
+    }
+
+    [Fact]
+    public void RecordPosition_IsSetViaInitializer_ReturnsExpectedRecordPosition()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[1, 2, 3]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson) { RecordPosition = 99 };
+
+        // Assert
+        node.RecordPosition.Should().Be(99);
+    }
+
+    [Fact]
+    public void RawJson_ReturnsUnderlyingBytes()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[1, 2]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson);
+
+        // Assert
+        node.RawJson.ToArray().Should().Equal(rawJson);
+    }
+
+    [Fact]
+    public void LoadChildren_WithRecordPosition_PropagatesRecordPositionToChildObjectNodes()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[{}]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson) { RecordPosition = 5 };
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonObjectTreeNode>()
+            .Which.RecordPosition.Should().Be(5);
+    }
+
+    [Fact]
+    public void LoadChildren_WithRecordPosition_PropagatesRecordPositionToChildArrayNodes()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[[]]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson) { RecordPosition = 5 };
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonArrayTreeNode>()
+            .Which.RecordPosition.Should().Be(5);
+    }
+
+    [Fact]
+    public void LoadChildren_WithNullRecordPosition_PropagatesNullToChildObjectNodes()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[{}]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonObjectTreeNode>()
+            .Which.RecordPosition.Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadChildren_WithNullRecordPosition_PropagatesNullToChildArrayNodes()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[[]]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonArrayTreeNode>()
+            .Which.RecordPosition.Should().BeNull();
+    }
+
+    [Fact]
+    public void LoadChildren_WithNestedObject_SetsKeyNameOnChildObjectNode()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[{}]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert — array element children carry their index label as KeyName (e.g. "[0]")
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonObjectTreeNode>()
+            .Which.KeyName.Should().Be("[0]");
+    }
+
+    [Fact]
+    public void LoadChildren_WithNestedArray_SetsKeyNameOnChildArrayNode()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[[]]");
+
+        // Act
+        var node = new JsonArrayTreeNode(rawJson);
+        var children = node.Children;
+
+        // Assert — array element children carry their index label as KeyName (e.g. "[0]")
+        children.Should().HaveCount(1);
+        children[0].Should().BeOfType<JsonArrayTreeNode>()
+            .Which.KeyName.Should().Be("[0]");
+    }
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using AwesomeAssertions;
 using DataMorph.App.Views.JsonRangeTreeNodes;
 using DataMorph.App.Views.JsonTreeNodes;
@@ -456,5 +457,33 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
 
         // Assert
         node.Text.Should().Be("[2,000,000,000 - 2,000,000,999]");
+    }
+
+    [Fact]
+    public void CreateElementNode_ObjectToken_SetsRecordPositionAsZeroBased()
+    {
+        // Arrange
+        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("{\"a\":1}"));
+
+        // Act
+        var node = JsonArrayRangeTreeNode.CreateElementNode(bytes, 3L);
+
+        // Assert
+        node.Should().BeOfType<JsonObjectTreeNode>()
+            .Which.RecordPosition.Should().Be(3L);
+    }
+
+    [Fact]
+    public void CreateElementNode_ArrayToken_SetsRecordPositionAsZeroBased()
+    {
+        // Arrange
+        var bytes = new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes("[1,2]"));
+
+        // Act
+        var node = JsonArrayRangeTreeNode.CreateElementNode(bytes, 3L);
+
+        // Assert
+        node.Should().BeOfType<JsonArrayTreeNode>()
+            .Which.RecordPosition.Should().Be(3L);
     }
 }

@@ -72,12 +72,12 @@ internal sealed class JsonObjectTreeView : MorphTreeView
 
             if (reader.TokenType == JsonTokenType.StartObject)
             {
-                return new JsonObjectTreeNode(valueBytes, prefix);
+                return new JsonObjectTreeNode(valueBytes, prefix) { KeyName = key };
             }
 
             if (reader.TokenType == JsonTokenType.StartArray)
             {
-                return new JsonArrayTreeNode(valueBytes, prefix);
+                return new JsonArrayTreeNode(valueBytes, prefix) { KeyName = key };
             }
 
             return new JsonValueTreeNode($"{prefix}{reader.GetPrimitiveDisplay()}")

@@ -52,6 +52,12 @@ internal sealed class AppState : IDisposable
     public IReadOnlyList<MorphAction> ActionStack { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the DrillDown session state.
+    /// Null when not in FocusedTable mode.
+    /// </summary>
+    public DrillDownState? DrillDown { get; set; }
+
+    /// <summary>
     /// Renews the cancellation token source by cancelling the current one and creating a new one.
     /// This should be called when loading a new file to ensure the previous file's background scan
     /// is cancelled and does not interfere with the new file.

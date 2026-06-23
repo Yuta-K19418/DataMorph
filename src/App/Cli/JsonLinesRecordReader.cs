@@ -1,6 +1,7 @@
 using System.Text;
 using DataMorph.Engine;
 using DataMorph.Engine.Filtering;
+using DataMorph.Engine.IO.Json;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 
@@ -92,7 +93,7 @@ internal struct JsonLinesRecordReader : IRecordReader
     {
         ThrowIfDisposed();
         var columnNameSpan = _columnNameUtf8Bytes[outputColumnIndex].Span;
-        var value = CellExtractor.ExtractCell(_currentLineBytes.Span, columnNameSpan);
+        var value = JsonObjectCellExtractor.ExtractCell(_currentLineBytes.Span, columnNameSpan);
         return value.AsSpan();
     }
 

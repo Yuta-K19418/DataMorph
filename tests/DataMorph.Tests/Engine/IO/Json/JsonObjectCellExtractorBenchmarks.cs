@@ -1,19 +1,19 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using DataMorph.Engine.IO.JsonLines;
+using DataMorph.Engine.IO.Json;
 
-namespace DataMorph.Tests.Engine.IO.JsonLines;
+namespace DataMorph.Tests.Engine.IO.Json;
 
 /// <summary>
-/// Benchmarks for CellExtractor.ExtractCell.
+/// Benchmarks for JsonObjectJsonObjectCellExtractor.ExtractCell.
 /// Validates zero-allocation per cell access and compares
 /// single-column extraction vs full-row extraction.
 /// </summary>
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.NativeAot80)]
-public sealed class CellExtractorBenchmarks
+public sealed class JsonObjectCellExtractorBenchmarks
 {
-    public CellExtractorBenchmarks()
+    public JsonObjectCellExtractorBenchmarks()
     {
         _allColumns = [_columnId, _columnName, _columnAge, _columnActive, _columnScore];
     }
@@ -35,13 +35,13 @@ public sealed class CellExtractorBenchmarks
     /// Extracts the first column — best-case scan (found immediately).
     /// </summary>
     [Benchmark]
-    public string ExtractCell_FirstColumn() => CellExtractor.ExtractCell(_jsonLine, _columnId);
+    public string ExtractCell_FirstColumn() => JsonObjectCellExtractor.ExtractCell(_jsonLine, _columnId);
 
     /// <summary>
     /// Extracts the last column — worst-case scan (traverses all preceding keys).
     /// </summary>
     [Benchmark]
-    public string ExtractCell_LastColumn() => CellExtractor.ExtractCell(_jsonLine, _columnScore);
+    public string ExtractCell_LastColumn() => JsonObjectCellExtractor.ExtractCell(_jsonLine, _columnScore);
 
     /// <summary>
     /// Extracts all columns — simulates full-row rendering in TableView.
@@ -51,7 +51,7 @@ public sealed class CellExtractorBenchmarks
     {
         foreach (var column in _allColumns)
         {
-            _ = CellExtractor.ExtractCell(_jsonLine, column);
+            _ = JsonObjectCellExtractor.ExtractCell(_jsonLine, column);
         }
     }
 }

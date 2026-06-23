@@ -12,6 +12,15 @@ internal sealed class JsonArrayTreeNode : TreeNode
     private readonly ReadOnlyMemory<byte> _rawJson;
     private bool _childrenLoaded;
 
+    /// <summary>Property name or index-label this node represents (e.g. "tags", "[0]"). Null for root-level array nodes.</summary>
+    public string? KeyName { get; init; }
+
+    /// <summary>Ancestor root record position. Same semantics as JsonObjectTreeNode.RecordPosition.</summary>
+    public long? RecordPosition { get; init; }
+
+    /// <summary>Raw JSON bytes of this node.</summary>
+    internal ReadOnlyMemory<byte> RawJson => _rawJson;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonArrayTreeNode"/> class.
     /// </summary>
@@ -78,7 +87,8 @@ internal sealed class JsonArrayTreeNode : TreeNode
             var elementNode = JsonTreeNodeHelper.CreateChildNode(
                 ref reader,
                 $"[{elementIndex}]",
-                _rawJson
+                _rawJson,
+                RecordPosition
             );
             if (elementNode is not null)
             {

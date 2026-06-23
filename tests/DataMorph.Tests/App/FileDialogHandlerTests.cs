@@ -2,6 +2,8 @@ using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
 using DataMorph.Engine.IO;
+using DataMorph.Engine.Models;
+using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Views;
@@ -180,5 +182,38 @@ public sealed class FileDialogHandlerTests : IDisposable
         Assert.NotNull(state.RowIndexer);
         state.RowIndexer.BuildIndex();
         await handleTask;
+    }
+
+    [Fact]
+    public async Task HandleFileSelectedAsync_WhenDrillDownStateIsPopulated_ResetsDrillDownState()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var schema = new TableSchema
+        {
+            SourceFormat = DataFormat.JsonObject,
+            Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }]
+        };
+        state.DrillDown = new DrillDownState(
+            [ReadOnlyMemory<byte>.Empty],
+            schema,
+            DataFormat.JsonObject,
+            RecordPosition: 1);
+
+        var handler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
+
+        // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_jsonObjectFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
+
+        // Assert
+        state.DrillDown.Should().BeNull();
     }
 }

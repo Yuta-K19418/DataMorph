@@ -3,13 +3,14 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
-namespace DataMorph.Engine.IO.JsonLines;
+namespace DataMorph.Engine.IO.Json;
 
 /// <summary>
-/// Extracts cell values from raw JSON Lines bytes by column name.
+/// Extracts cell values from a raw JSON Object value by property (column) name.
 /// Uses Utf8JsonReader for zero-allocation scanning of top-level properties.
+/// Shared by JSON Lines table sources and the DrillDown FocusedTable source.
 /// </summary>
-public static class CellExtractor
+public static class JsonObjectCellExtractor
 {
     /// <summary>
     /// Extracts a cell value from a raw JSON line by column name.

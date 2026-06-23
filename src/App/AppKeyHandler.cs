@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Views;
 using DataMorph.App.Views.Dialogs;
+using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -95,9 +96,14 @@ internal sealed class AppKeyHandler : IDisposable
     /// Handles help overlay shortcut (?).
     /// </summary>
     /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
     private bool HandleHelp()
     {
-        using var dialog = new HelpDialog();
+        var dialog = new HelpDialog();
         _app.Run(dialog);
         return true;
     }
@@ -158,33 +164,78 @@ internal sealed class AppKeyHandler : IDisposable
         return false;
     }
 
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
     internal bool HandleActionMenu()
     {
-        if (_viewManager.GetCurrentView() is not MorphTableView mt)
+        var currentView = _viewManager.GetCurrentView();
+
+        if (currentView is MorphTableView mt)
         {
-            return false;
+            if (mt.Table is null || mt.GetRawColumnName is null
+                || mt.OnMorphAction is null || mt.Value is null)
+            {
+                return false;
+            }
+
+            var format = FormatDetector.Detect(_state.CurrentFilePath);
+            if (format.IsFailure)
+            {
+                _app.Invoke(() => _viewManager.ShowError(format.Error));
+                return false;
+            }
+
+            var handler = new ColumnActionHandler(
+                _app, mt.Table, mt.Value.SelectedCell.X,
+                mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
+
+            var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
+            _app.Run(dialog);
+            return true;
         }
 
-        if (mt.Table is null || mt.GetRawColumnName is null
-            || mt.OnMorphAction is null || mt.Value is null)
+        if (currentView is MorphTreeView tv)
         {
-            return false;
+            if (tv.SelectedObject is not JsonArrayTreeNode arrayNode)
+            {
+                return false;
+            }
+
+            var children = arrayNode.Children;
+            if (children.Count == 0)
+            {
+                return false;
+            }
+
+            if (children.Any(c => c is not JsonObjectTreeNode))
+            {
+                return false;
+            }
+
+            var treeFormat = FormatDetector.Detect(_state.CurrentFilePath);
+            if (treeFormat.IsFailure)
+            {
+                _app.Invoke(() => _viewManager.ShowError(treeFormat.Error));
+                return false;
+            }
+
+            var request = new DrillDownRequest(
+                Format: treeFormat.Value,
+                NodeBytes: arrayNode.RawJson,
+                KeyName: arrayNode.KeyName,
+                RecordPosition: arrayNode.RecordPosition);
+
+            void onDrillDownConfirmed(string actionName) => _viewManager.DrillDown(request);
+
+            var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
+            _app.Run(dialog);
+            return true;
         }
 
-        var format = FormatDetector.Detect(_state.CurrentFilePath);
-        if (format.IsFailure)
-        {
-            _app.Invoke(() => _viewManager.ShowError(format.Error));
-            return false;
-        }
-
-        var handler = new ColumnActionHandler(
-            _app, mt.Table, mt.Value.SelectedCell.X,
-            mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
-
-        using var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
-        _app.Run(dialog);
-        return true;
+        return false;
     }
 
     /// <summary>

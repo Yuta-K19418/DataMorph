@@ -91,7 +91,7 @@ public sealed class FilterRowIndexer : IFilterRowIndexer
 
             var rowsToRead = Math.Min(batchSize, totalRows - processed);
             var (byteOffset, rowOffset) = _indexer.GetCheckPoint(sourceRow);
-            var lines = reader.ReadLineBytes(byteOffset, rowOffset, rowsToRead);
+            var lines = reader.ReadLines(byteOffset, rowOffset, rowsToRead);
 
             if (lines.Count == 0)
             {

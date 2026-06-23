@@ -28,7 +28,7 @@ public sealed class ElementByteCache(
         long byteOffset,
         int rowOffsetToSkip,
         int rowsToFetch) =>
-        _reader.ReadElementBytes(byteOffset, rowOffsetToSkip, rowsToFetch);
+        _reader.ReadElements(byteOffset, rowOffsetToSkip, rowsToFetch);
 
     /// <inheritdoc/>
     public void Dispose()

@@ -22,23 +22,23 @@ public static class DrillDownSchemaExtractor
     public static Result<(TableSchema schema, IReadOnlyList<JsonRawBytes> childRawValues)>
         ExtractFromNode(JsonRawBytes nodeBytes, DataFormat format)
     {
-        var childBytesResult = ExtractChildBytes(nodeBytes);
-        if (childBytesResult.IsFailure)
+        var childrenResult = ExtractChildren(nodeBytes);
+        if (childrenResult.IsFailure)
         {
-            return Results.Failure<(TableSchema, IReadOnlyList<JsonRawBytes>)>(childBytesResult.Error);
+            return Results.Failure<(TableSchema, IReadOnlyList<JsonRawBytes>)>(childrenResult.Error);
         }
 
-        var schemaResult = BuildSchema(childBytesResult.Value, format);
+        var schemaResult = BuildSchema(childrenResult.Value, format);
         if (schemaResult.IsFailure)
         {
             return Results.Failure<(TableSchema, IReadOnlyList<JsonRawBytes>)>(schemaResult.Error);
         }
 
         return Results.Success<(TableSchema, IReadOnlyList<JsonRawBytes>)>(
-            (schemaResult.Value, childBytesResult.Value));
+            (schemaResult.Value, childrenResult.Value));
     }
 
-    private static Result<List<JsonRawBytes>> ExtractChildBytes(JsonRawBytes nodeBytes)
+    private static Result<List<JsonRawBytes>> ExtractChildren(JsonRawBytes nodeBytes)
     {
         try
         {

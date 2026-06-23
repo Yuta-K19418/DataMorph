@@ -45,7 +45,7 @@ public sealed class ElementReader : IDisposable
     /// <returns>Raw JSON bytes per element (NOT TreeNode — no App layer dependency).</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown for negative <paramref name="elementsToSkip"/> or <paramref name="elementsToFetch"/>.</exception>
     /// <exception cref="ObjectDisposedException">Thrown after <see cref="Dispose"/> has been called.</exception>
-    public IReadOnlyList<JsonRawBytes> ReadElementBytes(
+    public IReadOnlyList<JsonRawBytes> ReadElements(
         long byteOffset,
         int elementsToSkip,
         int elementsToFetch
@@ -66,7 +66,7 @@ public sealed class ElementReader : IDisposable
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
         try
         {
-            ReadElements(buffer, byteOffset, elementsToSkip, elementsToFetch, result);
+            FetchElements(buffer, byteOffset, elementsToSkip, elementsToFetch, result);
         }
         finally
         {
@@ -76,7 +76,7 @@ public sealed class ElementReader : IDisposable
         return result;
     }
 
-    private void ReadElements(
+    private void FetchElements(
         byte[] buffer,
         long byteOffset,
         int elementsToSkip,

@@ -28,7 +28,7 @@ public sealed class RowByteCache(
         long byteOffset,
         int rowOffsetToSkip,
         int rowsToFetch) =>
-        _reader.ReadLineBytes(byteOffset, rowOffsetToSkip, rowsToFetch);
+        _reader.ReadLines(byteOffset, rowOffsetToSkip, rowsToFetch);
 
     /// <inheritdoc/>
     public void Dispose()

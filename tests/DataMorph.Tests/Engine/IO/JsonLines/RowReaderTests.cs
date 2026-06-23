@@ -42,14 +42,14 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithSingleJsonLine_ReturnsOneLine()
+    public void ReadLines_WithSingleJsonLine_ReturnsOneLine()
     {
         // Arrange
         WriteTestContent("{\"id\":1}\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
 
         // Assert
         lines.Should().ContainSingle();
@@ -58,14 +58,14 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithMultipleJsonLines_ReturnsAllLines()
+    public void ReadLines_WithMultipleJsonLines_ReturnsAllLines()
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 3);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 3);
 
         // Assert
         lines.Should().HaveCount(3);
@@ -75,14 +75,14 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithLinesToSkip_SkipsCorrectly()
+    public void ReadLines_WithLinesToSkip_SkipsCorrectly()
     {
         // Arrange
         WriteTestContent("{\"skip\":0}\n{\"read\":1}\n{\"read\":2}\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);
@@ -91,14 +91,14 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithLinesToRead_LimitsCorrectly()
+    public void ReadLines_WithLinesToRead_LimitsCorrectly()
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n{\"b\":2}\n{\"c\":3}\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);
@@ -120,14 +120,14 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithInvalidJsonLine_ReturnsBytesAsIs()
+    public void ReadLines_WithInvalidJsonLine_ReturnsBytesAsIs()
     {
         // Arrange
         WriteTestContent("invalid json\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
 
         // Assert
         // Without validation, raw bytes are returned as-is
@@ -137,7 +137,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_AfterDispose_ThrowsObjectDisposedException()
+    public void ReadLines_AfterDispose_ThrowsObjectDisposedException()
     {
         // Arrange
         WriteTestContent("{\"test\":1}\n");
@@ -145,14 +145,14 @@ public sealed class RowReaderTests : IDisposable
         reader.Dispose();
 
         // Act
-        var act = () => reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
+        var act = () => reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
 
         // Assert
         act.Should().Throw<ObjectDisposedException>();
     }
 
     [Fact]
-    public void ReadLineBytes_WithOffsetBeyondEOF_ReturnsEmptyList()
+    public void ReadLines_WithOffsetBeyondEOF_ReturnsEmptyList()
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n");
@@ -160,14 +160,14 @@ public sealed class RowReaderTests : IDisposable
         long largeOffset = 1000; // beyond file size
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: largeOffset, linesToSkip: 0, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: largeOffset, linesToSkip: 0, linesToRead: 1);
 
         // Assert
         lines.Should().BeEmpty();
     }
 
     [Fact]
-    public void ReadLineBytes_WithIncompleteLineAtEOF_ReturnsBytesAsIs()
+    public void ReadLines_WithIncompleteLineAtEOF_ReturnsBytesAsIs()
     {
         // Arrange
         // Incomplete JSON line without newline at EOF
@@ -175,7 +175,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
 
         // Assert
         // Incomplete lines at EOF return raw bytes as-is
@@ -185,28 +185,28 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithLinesToSkipExceedingTotalLines_ReturnsEmptyList()
+    public void ReadLines_WithLinesToSkipExceedingTotalLines_ReturnsEmptyList()
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n{\"b\":2}\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 10, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 10, linesToRead: 1);
 
         // Assert
         lines.Should().BeEmpty();
     }
 
     [Fact]
-    public void ReadLineBytes_WithCrLfLineEndings_TrimsCorrectly()
+    public void ReadLines_WithCrLfLineEndings_TrimsCorrectly()
     {
         // Arrange
         WriteTestContent("{\"a\":1}\r\n{\"b\":2}\r\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);
@@ -215,21 +215,21 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithZeroLinesToRead_ReturnsEmptyList()
+    public void ReadLines_WithZeroLinesToRead_ReturnsEmptyList()
     {
         // Arrange
         WriteTestContent("{\"a\":1}\n{\"b\":2}\n");
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 0);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 0);
 
         // Assert
         lines.Should().BeEmpty();
     }
 
     [Fact]
-    public void ReadLineBytes_WithValidLineWithoutNewlineAtEOF_ReturnsLine()
+    public void ReadLines_WithValidLineWithoutNewlineAtEOF_ReturnsLine()
     {
         // Arrange
         // Valid JSON line without newline at EOF
@@ -237,7 +237,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 1);
 
         // Assert
         lines.Should().ContainSingle();
@@ -246,7 +246,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WhenFileHasBOM_ReturnsCorrectLines()
+    public void ReadLines_WhenFileHasBOM_ReturnsCorrectLines()
     {
         // Arrange
         // Write JSONL with BOM
@@ -255,7 +255,7 @@ public sealed class RowReaderTests : IDisposable
 
         // Act
         using var reader = new RowReader(_testFilePath);
-        var lines = reader.ReadLineBytes(0, 0, 10);
+        var lines = reader.ReadLines(0, 0, 10);
 
         // Assert
         lines.Should().ContainSingle();
@@ -266,7 +266,7 @@ public sealed class RowReaderTests : IDisposable
     // Skip loop tests (data <= 1 MB)
 
     [Fact]
-    public void ReadLineBytes_SkipLoop_SmallData_EscapedNewlineInValue_ReadsNextLineCorrectly()
+    public void ReadLines_SkipLoop_SmallData_EscapedNewlineInValue_ReadsNextLineCorrectly()
     {
         // Arrange
         // First line has escaped \n in value, second line should be read correctly
@@ -276,7 +276,7 @@ public sealed class RowReaderTests : IDisposable
 
         // Act
         // Skip first line, read second line
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
 
         // Assert
         lines.Should().ContainSingle();
@@ -285,7 +285,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_SkipLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ReturnsAdjacentLine()
+    public void ReadLines_SkipLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ReturnsAdjacentLine()
     {
         // Arrange
         // First line has unclosed quote with literal newline — without validation,
@@ -296,7 +296,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
 
         // Assert
         lines.Should().ContainSingle();
@@ -305,7 +305,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_SkipLoop_SmallData_NormalLineEnding_ReadsNextLineCorrectly()
+    public void ReadLines_SkipLoop_SmallData_NormalLineEnding_ReadsNextLineCorrectly()
     {
         // Arrange
         var content = "{\"id\":1}\n{\"id\":2}\n{\"id\":3}\n";
@@ -314,7 +314,7 @@ public sealed class RowReaderTests : IDisposable
 
         // Act
         // Skip first line, read next two lines
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);
@@ -326,7 +326,7 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_SkipLoop_LargeData_EscapedNewlineInValue_ReadsNextLineCorrectly()
+    public void ReadLines_SkipLoop_LargeData_EscapedNewlineInValue_ReadsNextLineCorrectly()
     {
         // Arrange
         // Line 0: valid >1MB line with escaped \n in value — single line exceeds maxSearch, triggering the multi-call path in skip loop
@@ -337,7 +337,7 @@ public sealed class RowReaderTests : IDisposable
 
         // Act
         // Skip large line (>1MB), read next small line
-        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+        var linesRead = reader.ReadLines(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
 
         // Assert
         linesRead.Should().ContainSingle();
@@ -346,7 +346,7 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_SkipLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ReturnsAdjacentLine()
+    public void ReadLines_SkipLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ReturnsAdjacentLine()
     {
         // Arrange
         // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice.
@@ -358,7 +358,7 @@ public sealed class RowReaderTests : IDisposable
 
         // Act
         // Skip the first byte-level line (up to embedded newline), read next
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 1, linesToRead: 1);
 
         // Assert
         lines.Should().ContainSingle();
@@ -368,7 +368,7 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_SkipLoop_LargeData_NormalLineEnding_ReadsNextLineCorrectly()
+    public void ReadLines_SkipLoop_LargeData_NormalLineEnding_ReadsNextLineCorrectly()
     {
         // Arrange
         // Line 0: valid >1MB line — single line exceeds maxSearch, triggering the multi-call path in skip loop
@@ -379,7 +379,7 @@ public sealed class RowReaderTests : IDisposable
 
         // Act
         // Skip large line (>1MB), read next two small lines
-        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
+        var linesRead = reader.ReadLines(byteOffset: 0, linesToSkip: 1, linesToRead: 2);
 
         // Assert
         linesRead.Should().HaveCount(2);
@@ -390,7 +390,7 @@ public sealed class RowReaderTests : IDisposable
     // Read loop tests (data <= 1 MB)
 
     [Fact]
-    public void ReadLineBytes_ReadLoop_SmallData_EscapedNewlineInValue_ReturnsCorrectBytes()
+    public void ReadLines_ReadLoop_SmallData_EscapedNewlineInValue_ReturnsCorrectBytes()
     {
         // Arrange
         var content = "{\"text\":\"line1\\nline2\",\"id\":1}\n{\"text\":\"next\",\"id\":2}\n";
@@ -398,7 +398,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);
@@ -407,7 +407,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_ReadLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ReturnsBothLinesAsIs()
+    public void ReadLines_ReadLoop_SmallData_UnclosedQuoteWithEmbeddedNewline_ReturnsBothLinesAsIs()
     {
         // Arrange
         // Malformed: unclosed quote with literal newline — without validation,
@@ -417,7 +417,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);
@@ -426,7 +426,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_ReadLoop_SmallData_NormalLineEnding_ReturnsCorrectBytes()
+    public void ReadLines_ReadLoop_SmallData_NormalLineEnding_ReturnsCorrectBytes()
     {
         // Arrange
         var content = "{\"id\":1}\n{\"id\":2}\n{\"id\":3}\n";
@@ -434,7 +434,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 3);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 3);
 
         // Assert
         lines.Should().HaveCount(3);
@@ -447,7 +447,7 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_ReadLoop_LargeData_EscapedNewlineInValue_ReturnsCorrectBytes()
+    public void ReadLines_ReadLoop_LargeData_EscapedNewlineInValue_ReturnsCorrectBytes()
     {
         // Arrange
         // Line 0: valid >1MB line with escaped \n in value — single line exceeds maxSearch, triggering the multi-call path in read loop
@@ -458,7 +458,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var linesRead = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         linesRead.Should().HaveCount(2);
@@ -468,7 +468,7 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_ReadLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ReturnsBothLinesAsIs()
+    public void ReadLines_ReadLoop_LargeData_UnclosedQuoteWithEmbeddedNewline_ReturnsBothLinesAsIs()
     {
         // Arrange
         // Malformed: unclosed quote, value > 1MB so FindNextLineLength is called twice.
@@ -479,7 +479,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);
@@ -490,7 +490,7 @@ public sealed class RowReaderTests : IDisposable
 
     [Fact]
     [Trait("Category", "LargeData")]
-    public void ReadLineBytes_ReadLoop_LargeData_NormalLineEnding_ReturnsCorrectBytes()
+    public void ReadLines_ReadLoop_LargeData_NormalLineEnding_ReturnsCorrectBytes()
     {
         // Arrange
         // Line 0: valid >1MB line — single line exceeds maxSearch, triggering the multi-call path in read loop
@@ -501,7 +501,7 @@ public sealed class RowReaderTests : IDisposable
         using var reader = new RowReader(_testFilePath);
 
         // Act
-        var linesRead = reader.ReadLineBytes(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
+        var linesRead = reader.ReadLines(byteOffset: 0, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         linesRead.Should().HaveCount(2);
@@ -510,7 +510,7 @@ public sealed class RowReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadLineBytes_WithNonZeroByteOffset_ReturnsCorrectLines()
+    public void ReadLines_WithNonZeroByteOffset_ReturnsCorrectLines()
     {
         // Arrange
         var content = "{\"id\":0}\n{\"id\":1}\n{\"id\":2}\n{\"id\":3}\n{\"id\":4}\n";
@@ -521,7 +521,7 @@ public sealed class RowReaderTests : IDisposable
         var byteOffset = Encoding.UTF8.GetBytes("{\"id\":0}\n{\"id\":1}\n").Length;
 
         // Act
-        var lines = reader.ReadLineBytes(byteOffset: byteOffset, linesToSkip: 0, linesToRead: 2);
+        var lines = reader.ReadLines(byteOffset: byteOffset, linesToSkip: 0, linesToRead: 2);
 
         // Assert
         lines.Should().HaveCount(2);

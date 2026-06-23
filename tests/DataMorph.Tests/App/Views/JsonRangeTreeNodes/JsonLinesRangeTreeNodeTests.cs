@@ -161,7 +161,7 @@ public sealed class JsonLinesRangeTreeNodeTests : IDisposable
     [Fact]
     public void EnsureChildrenLoaded_CountExceedsAvailableLines_ReturnsOnlyAvailableChildren()
     {
-        // Arrange — file has 2 lines, but node requests count=3; ReadLineBytes returns only 2
+        // Arrange — file has 2 lines, but node requests count=3; ReadLines returns only 2
         var indexer = CreateAndBuildIndexer("{\"a\":1}\n{\"b\":2}");
         using var reader = new RowReader(indexer.FilePath);
         var node = new JsonLinesRangeTreeNode(indexer, reader, 0L, 3L);

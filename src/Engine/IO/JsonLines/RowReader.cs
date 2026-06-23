@@ -40,7 +40,7 @@ public sealed class RowReader : IDisposable
     /// <returns>A list of raw JSON line bytes.</returns>
     /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
     /// <exception cref="NotSupportedException">The JSON line exceeds the supported size limit.</exception>
-    public IReadOnlyList<JsonRawBytes> ReadLineBytes(
+    public IReadOnlyList<JsonRawBytes> ReadLines(
         long byteOffset,
         int linesToSkip,
         int linesToRead

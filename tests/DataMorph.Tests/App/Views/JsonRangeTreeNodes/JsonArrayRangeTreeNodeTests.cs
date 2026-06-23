@@ -295,7 +295,7 @@ public sealed class JsonArrayRangeTreeNodeTests : IDisposable
     [Fact]
     public void EnsureChildrenLoaded_CountExceedsAvailableElements_ReturnsOnlyAvailableChildren()
     {
-        // Arrange — file has 2 elements, but node requests count=3; ReadElementBytes returns only 2
+        // Arrange — file has 2 elements, but node requests count=3; ReadElements returns only 2
         var indexer = CreateAndBuildIndexer("[1, 2]");
         using var reader = new ElementReader(indexer.FilePath);
         var node = new JsonArrayRangeTreeNode(indexer, reader, 0L, 3L);

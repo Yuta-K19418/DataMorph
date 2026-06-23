@@ -85,7 +85,7 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
     protected override void AddDirectChildren()
     {
         var (byteOffset, rowOffset) = _indexer.GetCheckPoint(StartIndex);
-        var lines = _reader.ReadLineBytes(byteOffset, rowOffset, (int)Count);
+        var lines = _reader.ReadLines(byteOffset, rowOffset, (int)Count);
         List<ITreeNode> children = [];
 
         for (var i = 0; i < lines.Count; i++)

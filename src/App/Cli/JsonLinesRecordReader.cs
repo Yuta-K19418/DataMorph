@@ -72,7 +72,7 @@ internal struct JsonLinesRecordReader : IRecordReader
             var (byteOffset, rowOffset) = _rowIndexer.GetCheckPoint(_batchStart);
             var linesToRead = (int)Math.Min(1000, _rowIndexer.TotalRows - _batchStart);
 
-            _currentBatch = _rowReader.ReadLineBytes(byteOffset, rowOffset, linesToRead);
+            _currentBatch = _rowReader.ReadLines(byteOffset, rowOffset, linesToRead);
             _batchStart += linesToRead;
             _batchIndex = -1;
         }

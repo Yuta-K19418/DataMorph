@@ -84,7 +84,7 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     protected override void AddDirectChildren()
     {
         var (byteOffset, rowOffset) = _indexer.GetCheckPoint(StartIndex);
-        var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)Count);
+        var elements = _reader.ReadElements(byteOffset, rowOffset, (int)Count);
         List<ITreeNode> children = [];
 
         for (var i = 0; i < elements.Count; i++)

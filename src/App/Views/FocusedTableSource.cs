@@ -11,7 +11,7 @@ namespace DataMorph.App.Views;
 /// </summary>
 internal sealed class FocusedTableSource : ITableSource
 {
-    private readonly IReadOnlyList<JsonRawBytes> _childValueBytes;
+    private readonly IReadOnlyList<JsonRawBytes> _childRawValues;
     private readonly TableSchema _schema;
     private readonly long? _recordPosition;
     private readonly string[] _columnNames;
@@ -20,7 +20,7 @@ internal sealed class FocusedTableSource : ITableSource
     internal FocusedTableSource(DrillDownState drillDown)
     {
         ArgumentNullException.ThrowIfNull(drillDown);
-        _childValueBytes = drillDown.ChildValueBytes;
+        _childRawValues = drillDown.ChildRawValues;
         _schema = drillDown.Schema;
         _recordPosition = drillDown.RecordPosition;
         _columnNames = ["#", .. drillDown.Schema.Columns.Select(c => c.Name)];
@@ -28,7 +28,7 @@ internal sealed class FocusedTableSource : ITableSource
     }
 
     /// <inheritdoc/>
-    public int Rows => _childValueBytes.Count;
+    public int Rows => _childRawValues.Count;
 
     /// <inheritdoc/>
     public int Columns => _schema.ColumnCount + 1;
@@ -56,7 +56,7 @@ internal sealed class FocusedTableSource : ITableSource
                 return FormatHashColumn(row);
             }
 
-            return JsonObjectCellExtractor.ExtractCell(_childValueBytes[row].Span, _columnNamesUtf8[col - 1]);
+            return JsonObjectCellExtractor.ExtractCell(_childRawValues[row].Span, _columnNamesUtf8[col - 1]);
         }
     }
 

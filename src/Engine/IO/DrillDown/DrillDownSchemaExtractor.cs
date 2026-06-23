@@ -19,7 +19,7 @@ public static class DrillDownSchemaExtractor
     /// Returns <c>Failure</c> when children include non-Objects, the array is empty, or the
     /// JSON is malformed.
     /// </summary>
-    public static Result<(TableSchema schema, IReadOnlyList<JsonRawBytes> childValueBytes)>
+    public static Result<(TableSchema schema, IReadOnlyList<JsonRawBytes> childRawValues)>
         ExtractFromNode(JsonRawBytes nodeBytes, DataFormat format)
     {
         var childBytesResult = ExtractChildBytes(nodeBytes);
@@ -86,14 +86,14 @@ public static class DrillDownSchemaExtractor
         return Results.Success(children);
     }
 
-    private static Result<TableSchema> BuildSchema(List<JsonRawBytes> childValueBytes, DataFormat format)
+    private static Result<TableSchema> BuildSchema(List<JsonRawBytes> childRawValues, DataFormat format)
     {
         List<string> keyOrder = [];
         var keySet = new HashSet<string>(StringComparer.Ordinal);
         var columnTypes = new Dictionary<string, ColumnType>(StringComparer.Ordinal);
         var keyObservedCount = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        foreach (var childBytes in childValueBytes)
+        foreach (var childBytes in childRawValues)
         {
             var observedKeys = new HashSet<string>(StringComparer.Ordinal);
             ScanObject(childBytes.Span, keyOrder, keySet, columnTypes, observedKeys);
@@ -114,7 +114,7 @@ public static class DrillDownSchemaExtractor
             {
                 Name = key,
                 Type = columnTypes.GetValueOrDefault(key, ColumnType.Text),
-                IsNullable = observedCount < childValueBytes.Count,
+                IsNullable = observedCount < childRawValues.Count,
                 ColumnIndex = i,
             });
         }

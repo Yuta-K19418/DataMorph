@@ -19,7 +19,7 @@ public sealed class DrillDownSchemaExtractorTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "age");
-        result.Value.childValueBytes.Should().HaveCount(2);
+        result.Value.childRawValues.Should().HaveCount(2);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public sealed class DrillDownSchemaExtractorTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.childValueBytes.Should().HaveCount(2);
+        result.Value.childRawValues.Should().HaveCount(2);
         result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "meta");
     }
 }

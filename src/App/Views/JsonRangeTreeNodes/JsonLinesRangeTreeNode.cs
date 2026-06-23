@@ -33,7 +33,7 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
     /// Creates a line node for display from raw JSON bytes.
     /// <paramref name="lineIndex"/> is 0-based; the display label uses <c>lineNumber = lineIndex + 1</c> (1-based).
     /// </summary>
-    internal static ITreeNode CreateLineNode(ReadOnlyMemory<byte> lineBytes, long lineIndex)
+    internal static ITreeNode CreateLineNode(JsonRawBytes lineBytes, long lineIndex)
     {
         var prefix = FormattableString.Invariant($"Line {lineIndex + 1:N0}: ");
         ITreeNode invalidNode() =>
@@ -85,7 +85,7 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
     protected override void AddDirectChildren()
     {
         var (byteOffset, rowOffset) = _indexer.GetCheckPoint(StartIndex);
-        var lines = _reader.ReadLineBytes(byteOffset, rowOffset, (int)Count);
+        var lines = _reader.ReadLines(byteOffset, rowOffset, (int)Count);
         List<ITreeNode> children = [];
 
         for (var i = 0; i < lines.Count; i++)

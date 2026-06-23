@@ -32,7 +32,7 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     /// <summary>
     /// Creates an element node for display from raw JSON bytes.
     /// </summary>
-    internal static ITreeNode CreateElementNode(ReadOnlyMemory<byte> bytes, long index)
+    internal static ITreeNode CreateElementNode(JsonRawBytes bytes, long index)
     {
         var prefix = FormattableString.Invariant($"[{index:N0}]: ");
         ITreeNode invalidNode() =>
@@ -84,7 +84,7 @@ internal sealed class JsonArrayRangeTreeNode : RangeTreeNodeBase
     protected override void AddDirectChildren()
     {
         var (byteOffset, rowOffset) = _indexer.GetCheckPoint(StartIndex);
-        var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)Count);
+        var elements = _reader.ReadElements(byteOffset, rowOffset, (int)Count);
         List<ITreeNode> children = [];
 
         for (var i = 0; i < elements.Count; i++)

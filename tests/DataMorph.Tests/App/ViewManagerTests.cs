@@ -462,7 +462,7 @@ public sealed class ViewManagerTests : IDisposable
         using var window = new Window();
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries =
+        IReadOnlyList<(string key, JsonRawBytes value)> entries =
         [
             ("id", System.Text.Encoding.UTF8.GetBytes("1")),
         ];
@@ -483,7 +483,7 @@ public sealed class ViewManagerTests : IDisposable
         using var window = new Window();
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)>? nullEntries = null;
+        IReadOnlyList<(string key, JsonRawBytes value)>? nullEntries = null;
 
         // Act
         var act = () => viewManager.SwitchToJsonObjectTree(nullEntries!);
@@ -502,7 +502,7 @@ public sealed class ViewManagerTests : IDisposable
         var modeController = new ModeController(state);
         var viewManager = new ViewManager(window, state, modeController, action => action());
         viewManager.Dispose();
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries = [];
+        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
 
         // Act
         var act = () => viewManager.SwitchToJsonObjectTree(entries);
@@ -523,7 +523,7 @@ public sealed class ViewManagerTests : IDisposable
         window.Add(statusBar);
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries =
+        IReadOnlyList<(string key, JsonRawBytes value)> entries =
         [
             ("id", System.Text.Encoding.UTF8.GetBytes("1")),
         ];

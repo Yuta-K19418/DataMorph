@@ -7,7 +7,7 @@ namespace DataMorph.App;
 /// Holds the in-memory state produced by the DrillDown command.
 /// </summary>
 internal sealed record DrillDownState(
-    IReadOnlyList<ReadOnlyMemory<byte>> ChildValueBytes,
+    IReadOnlyList<JsonRawBytes> ChildRawValues,
     TableSchema Schema,
     DataFormat Format,
     long? RecordPosition);

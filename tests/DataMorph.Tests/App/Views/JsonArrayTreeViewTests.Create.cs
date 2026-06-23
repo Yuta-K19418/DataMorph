@@ -166,7 +166,7 @@ public sealed partial class JsonArrayTreeViewTests
         var filePath = CreateTempFile("[1, 2]");
         var realIndexer = new RowIndexer(filePath);
         realIndexer.BuildIndex();
-        // Stub says TotalRows=3 but file only has 2 elements → ReadElementBytes returns only 2 elements
+        // Stub says TotalRows=3 but file only has 2 elements → ReadElements returns only 2 elements
         var stubIndexer = new StubRowIndexer(realIndexer, 3);
 
         // Act

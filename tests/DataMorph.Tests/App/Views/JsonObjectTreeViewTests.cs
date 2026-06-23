@@ -21,7 +21,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
 
     public void Dispose() => _app.Dispose();
 
-    private static ReadOnlyMemory<byte> ToBytes(string json) =>
+    private static JsonRawBytes ToBytes(string json) =>
         Encoding.UTF8.GetBytes(json);
 
     // --- CreateKeyNode tests ---
@@ -108,7 +108,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithNullEntries_ThrowsArgumentNullException()
     {
         // Arrange
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> nullEntries = null!;
+        IReadOnlyList<(string key, JsonRawBytes value)> nullEntries = null!;
 
         // Act
         var act = () => JsonObjectTreeView.Create(nullEntries, () => { });
@@ -121,7 +121,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithNullToggle_ThrowsArgumentNullException()
     {
         // Arrange
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries = [];
+        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
 
         // Act
         var act = () => JsonObjectTreeView.Create(entries, null!);
@@ -134,7 +134,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithEmptyEntries_AddsNoObjects()
     {
         // Arrange
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries = [];
+        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
 
         // Act
         using var view = JsonObjectTreeView.Create(entries, () => { });
@@ -147,7 +147,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithEntries_AddsOneNodePerKey()
     {
         // Arrange
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries =
+        IReadOnlyList<(string key, JsonRawBytes value)> entries =
         [
             ("id", ToBytes("1")),
             ("name", ToBytes("\"Alice\"")),

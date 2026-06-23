@@ -14,7 +14,7 @@ internal partial struct JsonLinesRecordWriter
             _buffer = ArrayPool<byte>.Shared.Rent(initialSize);
         }
 
-        public ReadOnlyMemory<byte> WrittenMemory
+        public JsonRawBytes WrittenMemory
         {
             get
             {

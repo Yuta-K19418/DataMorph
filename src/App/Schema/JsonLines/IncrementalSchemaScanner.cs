@@ -27,7 +27,7 @@ internal sealed class IncrementalSchemaScanner : IncrementalSchemaScannerBase
     protected override TableSchema ExecuteInitialScan()
     {
         using var reader = new RowReader(_filePath);
-        var lines = reader.ReadLineBytes(
+        var lines = reader.ReadLines(
             byteOffset: 0,
             linesToSkip: 0,
             linesToRead: InitialScanCount
@@ -53,7 +53,7 @@ internal sealed class IncrementalSchemaScanner : IncrementalSchemaScannerBase
         while (!cancellationToken.IsCancellationRequested)
         {
             using var reader = new RowReader(_filePath);
-            var lines = reader.ReadLineBytes(
+            var lines = reader.ReadLines(
                 byteOffset: 0,
                 linesToSkip: lineIndex,
                 linesToRead: BackgroundBatchSize

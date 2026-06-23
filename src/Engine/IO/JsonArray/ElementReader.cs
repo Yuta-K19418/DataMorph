@@ -45,7 +45,7 @@ public sealed class ElementReader : IDisposable
     /// <returns>Raw JSON bytes per element (NOT TreeNode — no App layer dependency).</returns>
     /// <exception cref="ArgumentOutOfRangeException">Thrown for negative <paramref name="elementsToSkip"/> or <paramref name="elementsToFetch"/>.</exception>
     /// <exception cref="ObjectDisposedException">Thrown after <see cref="Dispose"/> has been called.</exception>
-    public IReadOnlyList<ReadOnlyMemory<byte>> ReadElementBytes(
+    public IReadOnlyList<JsonRawBytes> ReadElements(
         long byteOffset,
         int elementsToSkip,
         int elementsToFetch
@@ -60,13 +60,13 @@ public sealed class ElementReader : IDisposable
             return [];
         }
 
-        List<ReadOnlyMemory<byte>> result = [];
+        List<JsonRawBytes> result = [];
         result.EnsureCapacity(elementsToFetch);
 
         var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
         try
         {
-            ReadElements(buffer, byteOffset, elementsToSkip, elementsToFetch, result);
+            FetchElements(buffer, byteOffset, elementsToSkip, elementsToFetch, result);
         }
         finally
         {
@@ -76,12 +76,12 @@ public sealed class ElementReader : IDisposable
         return result;
     }
 
-    private void ReadElements(
+    private void FetchElements(
         byte[] buffer,
         long byteOffset,
         int elementsToSkip,
         int elementsToFetch,
-        List<ReadOnlyMemory<byte>> result)
+        List<JsonRawBytes> result)
     {
         var state = default(JsonReaderState);
         // bufferOriginFileOffset maps buffer[0] → virtual file offset (byteOffset - 1 for synthetic '[').
@@ -203,7 +203,7 @@ public sealed class ElementReader : IDisposable
         long endFile,
         int encountered,
         int toSkip,
-        List<ReadOnlyMemory<byte>> result)
+        List<JsonRawBytes> result)
     {
         encountered++;
         if (encountered <= toSkip)

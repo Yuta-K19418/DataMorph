@@ -25,7 +25,7 @@ internal sealed class JsonObjectTreeView : MorphTreeView
     /// </param>
     /// <returns>A populated <see cref="JsonObjectTreeView"/>.</returns>
     internal static JsonObjectTreeView Create(
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries,
+        IReadOnlyList<(string key, JsonRawBytes value)> entries,
         Action onTableModeToggle)
     {
         ArgumentNullException.ThrowIfNull(entries);
@@ -50,7 +50,7 @@ internal sealed class JsonObjectTreeView : MorphTreeView
     /// <param name="key">The top-level property key.</param>
     /// <param name="valueBytes">The raw JSON bytes of the property value.</param>
     /// <returns>A tree node representing the key-value pair.</returns>
-    internal static ITreeNode CreateKeyNode(string key, ReadOnlyMemory<byte> valueBytes)
+    internal static ITreeNode CreateKeyNode(string key, JsonRawBytes valueBytes)
     {
         var prefix = $"{key}: ";
         ITreeNode invalidNode() =>

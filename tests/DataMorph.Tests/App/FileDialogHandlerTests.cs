@@ -200,7 +200,7 @@ public sealed class FileDialogHandlerTests : IDisposable
             Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }]
         };
         state.DrillDown = new DrillDownState(
-            [ReadOnlyMemory<byte>.Empty],
+            [JsonRawBytes.Empty],
             schema,
             DataFormat.JsonObject,
             RecordPosition: 1);

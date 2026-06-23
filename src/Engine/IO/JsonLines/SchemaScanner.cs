@@ -14,11 +14,11 @@ public static class SchemaScanner
     /// Scans the first N lines of a JSON Lines file and returns an inferred schema.
     /// Seeds the schema from the first valid line, then refines with remaining lines.
     /// </summary>
-    /// <param name="lineBytes">Raw byte buffers of individual lines.</param>
+    /// <param name="rawLines">Raw byte buffers of individual lines.</param>
     /// <param name="initialScanCount">Maximum number of lines to scan (default: 200).</param>
     /// <returns>Result containing the inferred TableSchema, or an error message.</returns>
     public static Result<TableSchema> ScanSchema(
-        IReadOnlyList<ReadOnlyMemory<byte>> lineBytes,
+        IReadOnlyList<JsonRawBytes> rawLines,
         int initialScanCount = 200
     )
     {
@@ -30,21 +30,21 @@ public static class SchemaScanner
             );
         }
 
-        ArgumentNullException.ThrowIfNull(lineBytes);
+        ArgumentNullException.ThrowIfNull(rawLines);
 
-        if (lineBytes.Count == 0)
+        if (rawLines.Count == 0)
         {
             return Results.Failure<TableSchema>("No lines provided for schema inference.");
         }
 
-        var linesToProcess = System.Math.Min(lineBytes.Count, initialScanCount);
+        var linesToProcess = System.Math.Min(rawLines.Count, initialScanCount);
 
         // Find first valid line to seed the initial schema
         TableSchema? schema = null;
         var startIndex = 0;
         for (var i = 0; i < linesToProcess; i++)
         {
-            var seedResult = TrySeedSchema(lineBytes[i].Span);
+            var seedResult = TrySeedSchema(rawLines[i].Span);
             if (seedResult.IsFailure)
             {
                 continue;
@@ -65,7 +65,7 @@ public static class SchemaScanner
         // Refine schema with remaining lines
         for (var i = startIndex; i < linesToProcess; i++)
         {
-            var refineResult = RefineSchema(schema, lineBytes[i].Span);
+            var refineResult = RefineSchema(schema, rawLines[i].Span);
             if (refineResult.IsFailure)
             {
                 continue;

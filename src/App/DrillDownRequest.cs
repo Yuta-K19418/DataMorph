@@ -14,6 +14,6 @@ namespace DataMorph.App;
 /// </param>
 internal sealed record DrillDownRequest(
     DataFormat Format,
-    ReadOnlyMemory<byte> NodeBytes,
+    JsonRawBytes NodeBytes,
     string? KeyName = null,
     long? RecordPosition = null);

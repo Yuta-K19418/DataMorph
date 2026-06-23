@@ -9,7 +9,7 @@ namespace DataMorph.App.Views.JsonTreeNodes;
 /// </summary>
 internal sealed class JsonArrayTreeNode : TreeNode
 {
-    private readonly ReadOnlyMemory<byte> _rawJson;
+    private readonly JsonRawBytes _rawJson;
     private bool _childrenLoaded;
 
     /// <summary>Property name or index-label this node represents (e.g. "tags", "[0]"). Null for root-level array nodes.</summary>
@@ -19,14 +19,14 @@ internal sealed class JsonArrayTreeNode : TreeNode
     public long? RecordPosition { get; init; }
 
     /// <summary>Raw JSON bytes of this node.</summary>
-    internal ReadOnlyMemory<byte> RawJson => _rawJson;
+    internal JsonRawBytes RawJson => _rawJson;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonArrayTreeNode"/> class.
     /// </summary>
     /// <param name="rawJson">The raw JSON bytes representing this array.</param>
     /// <param name="prefix">Optional prefix prepended to the display text (e.g. "Line N: ").</param>
-    public JsonArrayTreeNode(ReadOnlyMemory<byte> rawJson, string prefix = "")
+    public JsonArrayTreeNode(JsonRawBytes rawJson, string prefix = "")
     {
         _rawJson = rawJson;
         Text = $"{prefix}{FormatDisplayText()}";

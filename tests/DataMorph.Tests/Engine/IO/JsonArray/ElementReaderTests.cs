@@ -83,7 +83,7 @@ public sealed class ElementReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadElementBytes_MixedTypeArray_ReturnsCorrectElements()
+    public void ReadElements_MixedTypeArray_ReturnsCorrectElements()
     {
         // Arrange
         WriteTestContent("[1, \"hello\", null, true, {\"a\":1}, [2]]");
@@ -91,7 +91,7 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset, skip, 10);
+        var result = reader.ReadElements(byteOffset, skip, 10);
 
         // Assert
         result.Should().HaveCount(6);
@@ -104,7 +104,7 @@ public sealed class ElementReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadElementBytes_SkipPastEnd_ReturnsEmptyList()
+    public void ReadElements_SkipPastEnd_ReturnsEmptyList()
     {
         // Arrange
         WriteTestContent("[1, 2, 3]");
@@ -112,14 +112,14 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset, skip + 100, 10);
+        var result = reader.ReadElements(byteOffset, skip + 100, 10);
 
         // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
-    public void ReadElementBytes_SingleObject_ReturnsObjectBytes()
+    public void ReadElements_SingleObject_ReturnsObjectBytes()
     {
         // Arrange
         WriteTestContent("[{\"a\":1}]");
@@ -127,7 +127,7 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset, skip, 10);
+        var result = reader.ReadElements(byteOffset, skip, 10);
 
         // Assert
         result.Should().HaveCount(1);
@@ -135,7 +135,7 @@ public sealed class ElementReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadElementBytes_MultipleElements_ReturnsCorrectCount()
+    public void ReadElements_MultipleElements_ReturnsCorrectCount()
     {
         // Arrange
         WriteTestContent("[1, 2, 3]");
@@ -143,14 +143,14 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset, skip, 10);
+        var result = reader.ReadElements(byteOffset, skip, 10);
 
         // Assert
         result.Should().HaveCount(3);
     }
 
     [Fact]
-    public void ReadElementBytes_WithSkip_SkipsCorrectElements()
+    public void ReadElements_WithSkip_SkipsCorrectElements()
     {
         // Arrange
         WriteTestContent("[1, 2, 3]");
@@ -158,7 +158,7 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset, skip + 1, 2);
+        var result = reader.ReadElements(byteOffset, skip + 1, 2);
 
         // Assert
         result.Should().HaveCount(2);
@@ -167,7 +167,7 @@ public sealed class ElementReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadElementBytes_ElementSpansBufferBoundary_ReturnsCompleteBytes()
+    public void ReadElements_ElementSpansBufferBoundary_ReturnsCompleteBytes()
     {
         // Arrange — inner array with 300 000 numbers totals ~1.4 MB, forcing multiple
         // 1 MB buffer fills for a single element. Individual tokens stay small (no > 1 MB strings).
@@ -179,7 +179,7 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset: 1, elementsToSkip: 0, elementsToFetch: 1);
+        var result = reader.ReadElements(byteOffset: 1, elementsToSkip: 0, elementsToFetch: 1);
 
         // Assert
         result.Should().HaveCount(1);
@@ -190,7 +190,7 @@ public sealed class ElementReaderTests : IDisposable
     }
 
     [Fact]
-    public void ReadElementBytes_FetchBeyondEnd_ReturnsAvailableElements()
+    public void ReadElements_FetchBeyondEnd_ReturnsAvailableElements()
     {
         // Arrange
         WriteTestContent("[1, 2]");
@@ -198,14 +198,14 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset, skip, 10);
+        var result = reader.ReadElements(byteOffset, skip, 10);
 
         // Assert
         result.Should().HaveCount(2);
     }
 
     [Fact]
-    public void ReadElementBytes_WithZeroFetchCount_ReturnsEmptyList()
+    public void ReadElements_WithZeroFetchCount_ReturnsEmptyList()
     {
         // Arrange
         WriteTestContent("[1, 2, 3]");
@@ -213,14 +213,14 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(byteOffset, skip, 0);
+        var result = reader.ReadElements(byteOffset, skip, 0);
 
         // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
-    public void ReadElementBytes_WithNegativeSkipCount_ThrowsArgumentOutOfRangeException()
+    public void ReadElements_WithNegativeSkipCount_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
         WriteTestContent("[1]");
@@ -228,14 +228,14 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var act = () => reader.ReadElementBytes(byteOffset, -1, 1);
+        var act = () => reader.ReadElements(byteOffset, -1, 1);
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]
-    public void ReadElementBytes_WithNegativeFetchCount_ThrowsArgumentOutOfRangeException()
+    public void ReadElements_WithNegativeFetchCount_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
         WriteTestContent("[1]");
@@ -243,28 +243,28 @@ public sealed class ElementReaderTests : IDisposable
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var act = () => reader.ReadElementBytes(byteOffset, 0, -1);
+        var act = () => reader.ReadElements(byteOffset, 0, -1);
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
 
     [Fact]
-    public void ReadElementBytes_EmptyArray_ReturnsEmptyList()
+    public void ReadElements_EmptyArray_ReturnsEmptyList()
     {
         // Arrange — empty array has no checkpoints; byteOffset = -1 from GetCheckPoint.
         WriteTestContent("[]");
         using var reader = new ElementReader(_testFilePath);
 
         // Act
-        var result = reader.ReadElementBytes(-1, 0, 10);
+        var result = reader.ReadElements(-1, 0, 10);
 
         // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
-    public void ReadElementBytes_AfterDispose_ThrowsObjectDisposedException()
+    public void ReadElements_AfterDispose_ThrowsObjectDisposedException()
     {
         // Arrange
         WriteTestContent("[1]");
@@ -272,7 +272,7 @@ public sealed class ElementReaderTests : IDisposable
         reader.Dispose();
 
         // Act
-        var act = () => reader.ReadElementBytes(0, 0, 1);
+        var act = () => reader.ReadElements(0, 0, 1);
 
         // Assert
         act.Should().Throw<ObjectDisposedException>();

@@ -40,7 +40,7 @@ public sealed class RowReader : IDisposable
     /// <returns>A list of raw JSON line bytes.</returns>
     /// <exception cref="ObjectDisposedException">The reader has been disposed.</exception>
     /// <exception cref="NotSupportedException">The JSON line exceeds the supported size limit.</exception>
-    public IReadOnlyList<ReadOnlyMemory<byte>> ReadLineBytes(
+    public IReadOnlyList<JsonRawBytes> ReadLines(
         long byteOffset,
         int linesToSkip,
         int linesToRead
@@ -48,7 +48,7 @@ public sealed class RowReader : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        List<ReadOnlyMemory<byte>> result = [];
+        List<JsonRawBytes> result = [];
         result.EnsureCapacity(linesToRead);
         var currentOffset = byteOffset;
 
@@ -171,7 +171,7 @@ public sealed class RowReader : IDisposable
         return span;
     }
 
-    private void HandleIncompleteLineAtEof(long offset, long incompleteLineBytes, List<ReadOnlyMemory<byte>> result)
+    private void HandleIncompleteLineAtEof(long offset, long incompleteLineBytes, List<JsonRawBytes> result)
     {
         if (incompleteLineBytes <= 0)
         {

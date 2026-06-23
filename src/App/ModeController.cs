@@ -106,7 +106,7 @@ internal sealed class ModeController
         }
 
         _state.DrillDown = new DrillDownState(
-            result.Value.childValueBytes,
+            result.Value.childRawValues,
             result.Value.schema,
             request.Format,
             request.RecordPosition);

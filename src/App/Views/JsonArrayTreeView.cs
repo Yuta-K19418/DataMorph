@@ -63,7 +63,7 @@ internal sealed class JsonArrayTreeView : RangeTreeViewBase
     protected override void AddSmallFileNodes(long totalRows)
     {
         var (byteOffset, rowOffset) = Indexer.GetCheckPoint(0);
-        var elements = _reader.ReadElementBytes(byteOffset, rowOffset, (int)totalRows);
+        var elements = _reader.ReadElements(byteOffset, rowOffset, (int)totalRows);
 
         for (var i = 0; i < elements.Count; i++)
         {

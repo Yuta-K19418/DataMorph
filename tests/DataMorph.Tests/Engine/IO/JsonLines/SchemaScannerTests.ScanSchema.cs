@@ -21,7 +21,7 @@ public sealed partial class SchemaScannerTests
     {
         // Arrange
         var json = $"{{\"a\": {value}}}";
-        ReadOnlyMemory<byte>[] lines = [Line(json)];
+        JsonRawBytes[] lines = [Line(json)];
 
         // Act
         var result = SchemaScanner.ScanSchema(lines);
@@ -45,7 +45,7 @@ public sealed partial class SchemaScannerTests
         // Arrange
         var json1 = $"{{\"a\": {val1}}}";
         var json2 = $"{{\"a\": {val2}}}";
-        ReadOnlyMemory<byte>[] lines = [Line(json1), Line(json2)];
+        JsonRawBytes[] lines = [Line(json1), Line(json2)];
 
         // Act
         var result = SchemaScanner.ScanSchema(lines);
@@ -59,7 +59,7 @@ public sealed partial class SchemaScannerTests
     public void ScanSchema_MultiLineConsistentTypes_PreservesTypes()
     {
         // Arrange
-        ReadOnlyMemory<byte>[] lines =
+        JsonRawBytes[] lines =
         [
             Line("{\"a\": 1, \"b\": \"text\"}"),
             Line("{\"a\": 2, \"b\": \"text2\"}"),
@@ -78,7 +78,7 @@ public sealed partial class SchemaScannerTests
     public void ScanSchema_MissingKeyInSomeRows_MarksNullable()
     {
         // Arrange
-        ReadOnlyMemory<byte>[] lines =
+        JsonRawBytes[] lines =
         [
             Line("{\"a\": 1}"),
             Line("{\"a\": 2}"),
@@ -97,7 +97,7 @@ public sealed partial class SchemaScannerTests
     public void ScanSchema_NewKeyInLaterRow_AddsNullableColumn()
     {
         // Arrange
-        ReadOnlyMemory<byte>[] lines = [Line("{\"a\": 1}"), Line("{\"a\": 2, \"b\": \"text\"}")];
+        JsonRawBytes[] lines = [Line("{\"a\": 1}"), Line("{\"a\": 2, \"b\": \"text\"}")];
 
         // Act
         var result = SchemaScanner.ScanSchema(lines);
@@ -112,7 +112,7 @@ public sealed partial class SchemaScannerTests
     public void ScanSchema_NullValueInRow_TypeUnchangedAndNullable()
     {
         // Arrange
-        ReadOnlyMemory<byte>[] lines = [Line("{\"a\": 1}"), Line("{\"a\": null}")];
+        JsonRawBytes[] lines = [Line("{\"a\": 1}"), Line("{\"a\": null}")];
 
         // Act
         var result = SchemaScanner.ScanSchema(lines);
@@ -126,7 +126,7 @@ public sealed partial class SchemaScannerTests
     public void ScanSchema_EmptyInput_ReturnsFailure()
     {
         // Arrange
-        var lines = Array.Empty<ReadOnlyMemory<byte>>();
+        var lines = Array.Empty<JsonRawBytes>();
 
         // Act
         var result = SchemaScanner.ScanSchema(lines);
@@ -139,10 +139,10 @@ public sealed partial class SchemaScannerTests
     public void ScanSchema_AllLinesMalformed_ReturnsFailure()
     {
         // Arrange
-        ReadOnlyMemory<byte>[] lines =
+        JsonRawBytes[] lines =
         [
-            new ReadOnlyMemory<byte>("not json"u8.ToArray()),
-            new ReadOnlyMemory<byte>("also not json"u8.ToArray()),
+            new JsonRawBytes("not json"u8.ToArray()),
+            new JsonRawBytes("also not json"u8.ToArray()),
         ];
 
         // Act
@@ -156,7 +156,7 @@ public sealed partial class SchemaScannerTests
     public void ScanSchema_NegativeInitialScanCount_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
-        ReadOnlyMemory<byte>[] lines = [Line("{\"a\": 1}")];
+        JsonRawBytes[] lines = [Line("{\"a\": 1}")];
 
         // Act
         Action act = () => SchemaScanner.ScanSchema(lines, -1);

@@ -10,7 +10,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_ArrayOfObjects_ReturnsUnionOfAllTopLevelKeys()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes =
+        JsonRawBytes nodeBytes =
             "[{\"name\": \"Alice\", \"age\": 30}, {\"name\": \"Bob\", \"age\": 25}]"u8.ToArray();
 
         // Act
@@ -19,14 +19,14 @@ public sealed class DrillDownSchemaExtractorTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "age");
-        result.Value.childValueBytes.Should().HaveCount(2);
+        result.Value.childRawValues.Should().HaveCount(2);
     }
 
     [Fact]
     public void ExtractFromNode_ArrayOfObjectsWithVaryingKeys_ReturnsNullableColumnsForMissingKeys()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes =
+        JsonRawBytes nodeBytes =
             "[{\"name\": \"Alice\", \"role\": \"admin\"}, {\"name\": \"Bob\"}]"u8.ToArray();
 
         // Act
@@ -42,7 +42,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_ArrayWithNonObjectElement_ReturnsFailure()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "[{\"name\": \"Alice\"}, 42]"u8.ToArray();
+        JsonRawBytes nodeBytes = "[{\"name\": \"Alice\"}, 42]"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
@@ -55,7 +55,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_EmptyArray_ReturnsFailure()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "[]"u8.ToArray();
+        JsonRawBytes nodeBytes = "[]"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
@@ -68,7 +68,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_ArrayOfEmptyObjects_ReturnsFailure()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "[{}, {}]"u8.ToArray();
+        JsonRawBytes nodeBytes = "[{}, {}]"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
@@ -82,7 +82,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_MalformedJson_ReturnsFailure()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "[invalid]"u8.ToArray();
+        JsonRawBytes nodeBytes = "[invalid]"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
@@ -95,7 +95,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_SourceFormatMatchesParameter_ReturnsCorrectFormat()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "[{\"key\": \"value\"}]"u8.ToArray();
+        JsonRawBytes nodeBytes = "[{\"key\": \"value\"}]"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonArray);
@@ -109,7 +109,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_NullBeforeNonNull_InfersCorrectType()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "[{\"age\": null}, {\"age\": 30}]"u8.ToArray();
+        JsonRawBytes nodeBytes = "[{\"age\": null}, {\"age\": 30}]"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
@@ -125,7 +125,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_JsonObjectInput_ReturnsFailure()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "{\"key\": \"value\"}"u8.ToArray();
+        JsonRawBytes nodeBytes = "{\"key\": \"value\"}"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
@@ -138,7 +138,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_KeyWithAllNullValues_IsNullableWithTextType()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes =
+        JsonRawBytes nodeBytes =
             "[{\"name\": \"Alice\", \"tag\": null}, {\"name\": \"Bob\", \"tag\": null}]"u8.ToArray();
 
         // Act
@@ -155,7 +155,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_KeyWithMixedNullAndNonNull_IsNullable()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes = "[{\"name\": null}, {\"name\": \"Bob\"}]"u8.ToArray();
+        JsonRawBytes nodeBytes = "[{\"name\": null}, {\"name\": \"Bob\"}]"u8.ToArray();
 
         // Act
         var result = DrillDownSchemaExtractor.ExtractFromNode(nodeBytes, DataFormat.JsonLines);
@@ -171,7 +171,7 @@ public sealed class DrillDownSchemaExtractorTests
     public void ExtractFromNode_ChildWithNestedObject_ReturnsCorrectChildBytesCount()
     {
         // Arrange
-        ReadOnlyMemory<byte> nodeBytes =
+        JsonRawBytes nodeBytes =
             "[{\"name\": \"Alice\", \"meta\": {\"dept\": \"Eng\"}}, {\"name\": \"Bob\", \"meta\": {\"dept\": \"HR\"}}]"u8.ToArray();
 
         // Act
@@ -179,7 +179,7 @@ public sealed class DrillDownSchemaExtractorTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.childValueBytes.Should().HaveCount(2);
+        result.Value.childRawValues.Should().HaveCount(2);
         result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "meta");
     }
 }

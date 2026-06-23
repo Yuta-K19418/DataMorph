@@ -18,9 +18,9 @@ public static class JsonByteExtractor
     /// <param name="reader">The JSON reader positioned at a StartObject or StartArray token.</param>
     /// <param name="rawJson">The full raw JSON bytes containing the nested structure.</param>
     /// <returns>A slice of the raw bytes covering exactly the nested structure.</returns>
-    public static ReadOnlyMemory<byte> ExtractNestedBytes(
+    public static JsonRawBytes ExtractNestedBytes(
         ref Utf8JsonReader reader,
-        ReadOnlyMemory<byte> rawJson)
+        JsonRawBytes rawJson)
     {
         var startPosition = (int)reader.TokenStartIndex;
         var depth = 1;

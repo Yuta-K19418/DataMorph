@@ -279,7 +279,7 @@ internal sealed class ViewManager : IDisposable
         Justification = "Child views are owned by the container and disposed via SwapView."
     )]
     internal void SwitchToJsonObjectTree(
-        IReadOnlyList<(string key, ReadOnlyMemory<byte> value)> entries)
+        IReadOnlyList<(string key, JsonRawBytes value)> entries)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(entries);

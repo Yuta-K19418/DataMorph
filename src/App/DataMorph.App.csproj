@@ -6,7 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Terminal.Gui" Version="2.4.6" />
+    <PackageReference Include="Terminal.Gui" Version="2.4.8" />
     <PackageReference Include="Sep" Version="0.15.0" />
   </ItemGroup>
 

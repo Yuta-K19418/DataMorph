@@ -23,4 +23,10 @@ internal sealed class JsonValueTreeNode : TreeNode
     /// Gets or initializes the JSON value kind of this node.
     /// </summary>
     public JsonValueKind ValueKind { get; init; }
+
+    /// <summary>Property name this node represents. Null for root-level nodes.</summary>
+    public string? KeyName { get; init; }
+
+    /// <summary>Parent node in the tree, used to build a KeyPath via upward traversal. Null for root nodes.</summary>
+    public ITreeNode? ParentNode { get; init; }
 }

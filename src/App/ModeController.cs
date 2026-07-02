@@ -90,12 +90,12 @@ internal sealed class ModeController
     }
 
     /// <summary>
-    /// Executes the DrillDown command for the given request.
+    /// Executes the Phase 1 DrillDown command for the given request.
     /// Parses the selected node's bytes in memory, infers schema, and stores results in AppState.
     /// </summary>
     /// <param name="request">The DrillDown request carrying the selected node bytes and context.</param>
     /// <returns>A <see cref="Result"/> indicating success or the reason for failure.</returns>
-    public Result DrillDown(DrillDownRequest request)
+    public Result DrillDown(SingleDrillDownRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -105,13 +105,25 @@ internal sealed class ModeController
             return Results.Failure(result.Error);
         }
 
-        _state.DrillDown = new DrillDownState(
-            result.Value.childRawValues,
-            result.Value.schema,
-            request.Format,
-            request.RecordPosition);
+        var children = result.Value.childRawValues;
+        var rows = new FocusedTableRow[children.Count];
+        for (var i = 0; i < children.Count; i++)
+        {
+            rows[i] = new FocusedTableRow(children[i], $"[{i}]");
+        }
+
+        _state.DrillDown = new DrillDownState(rows, result.Value.schema);
         _state.CurrentMode = ViewMode.FocusedTable;
 
         return Results.Success();
     }
+
+    /// <summary>
+    /// Executes the DrillDown Phase 2 file scan on a background thread and returns the result.
+    /// Does not mutate AppState — the caller is responsible for applying the result on the UI thread.
+    /// </summary>
+    /// <param name="request">The full-aggregation DrillDown request carrying the KeyPath.</param>
+    /// <returns>A <see cref="Result{T}"/> containing the scanned <see cref="DrillDownState"/> on success.</returns>
+    public ValueTask<Result<DrillDownState>> FullAggregationDrillDownAsync(FullAggregationDrillDownRequest request) =>
+        throw new NotImplementedException();
 }

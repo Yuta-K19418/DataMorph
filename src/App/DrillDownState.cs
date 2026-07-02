@@ -1,5 +1,5 @@
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
 
 namespace DataMorph.App;
 
@@ -7,7 +7,5 @@ namespace DataMorph.App;
 /// Holds the in-memory state produced by the DrillDown command.
 /// </summary>
 internal sealed record DrillDownState(
-    IReadOnlyList<JsonRawBytes> ChildRawValues,
-    TableSchema Schema,
-    DataFormat Format,
-    long? RecordPosition);
+    IReadOnlyList<FocusedTableRow> Rows,
+    TableSchema Schema);

@@ -199,18 +199,7 @@ internal sealed class AppKeyHandler : IDisposable
 
         if (currentView is MorphTreeView tv)
         {
-            if (tv.SelectedObject is not JsonArrayTreeNode arrayNode)
-            {
-                return false;
-            }
-
-            var children = arrayNode.Children;
-            if (children.Count == 0)
-            {
-                return false;
-            }
-
-            if (children.Any(c => c is not JsonObjectTreeNode))
+            if (tv.SelectedObject is not ITreeNode selectedNode)
             {
                 return false;
             }
@@ -222,21 +211,96 @@ internal sealed class AppKeyHandler : IDisposable
                 return false;
             }
 
-            var request = new DrillDownRequest(
-                Format: treeFormat.Value,
-                NodeBytes: arrayNode.RawJson,
-                KeyName: arrayNode.KeyName,
-                RecordPosition: arrayNode.RecordPosition);
+            if (treeFormat.Value == DataFormat.JsonObject)
+            {
+                return HandleSingleDrillDown(selectedNode, treeFormat.Value);
+            }
 
-            void onDrillDownConfirmed(string actionName) => _viewManager.DrillDown(request);
-
-            var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
-            _app.Run(dialog);
-            return true;
+            return HandleFullAggregationDrillDown(selectedNode, treeFormat.Value);
         }
 
         return false;
     }
+
+    /// <summary>
+    /// Phase 1 DrillDown: JSON Object format, restricted to a JsonArrayTreeNode whose children
+    /// are all JsonObjectTreeNode.
+    /// </summary>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
+    private bool HandleSingleDrillDown(ITreeNode selectedNode, DataFormat format)
+    {
+        if (selectedNode is not JsonArrayTreeNode arrayNode)
+        {
+            return false;
+        }
+
+        var children = arrayNode.Children;
+        if (children.Count == 0)
+        {
+            return false;
+        }
+
+        if (children.Any(c => c is not JsonObjectTreeNode))
+        {
+            return false;
+        }
+
+        var request = new SingleDrillDownRequest(Format: format, NodeBytes: arrayNode.RawJson);
+
+        void onConfirmed(string actionName) => _viewManager.DrillDown(request);
+
+        var dialog = new ActionMenuDialog(["DrillDown"], onConfirmed);
+        _app.Run(dialog);
+        return true;
+    }
+
+    /// <summary>
+    /// Phase 2 DrillDown: JSON Lines / JSON Array format, any node type, always a full file scan.
+    /// </summary>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
+    private bool HandleFullAggregationDrillDown(ITreeNode selectedNode, DataFormat format)
+    {
+        var keyPath = BuildKeyPath(selectedNode);
+        var request = new FullAggregationDrillDownRequest(Format: format, KeyPath: keyPath);
+
+        void onConfirmed(string actionName) =>
+            _ = _viewManager.FullAggregationDrillDownAsync(request)
+                .AsTask()
+                .ContinueWith(HandleTaskError, TaskScheduler.Default);
+
+        var dialog = new ActionMenuDialog(["DrillDown"], onConfirmed);
+        _app.Run(dialog);
+        return true;
+    }
+
+    /// <summary>
+    /// Reports an unhandled exception from a fire-and-forget async operation via the error view.
+    /// </summary>
+    private void HandleTaskError(Task task)
+    {
+        if (task.IsFaulted && task.Exception is not null)
+        {
+            _app.Invoke(() => _viewManager.ShowError(task.Exception.InnerException?.Message ?? task.Exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Traverses the <c>ParentNode</c> chain from <paramref name="node"/> up to the root,
+    /// collecting <c>KeyName</c> segments in bottom-up order, then reverses to produce a
+    /// root-to-leaf KeyPath.
+    /// </summary>
+    /// <param name="node">The selected tree node to build the KeyPath from.</param>
+    /// <returns>An ordered list of path segments from root to <paramref name="node"/>.</returns>
+    private static IReadOnlyList<string> BuildKeyPath(ITreeNode node) =>
+        throw new NotImplementedException();
 
     /// <summary>
     /// Handles the clear action stack shortcut (c).

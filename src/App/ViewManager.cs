@@ -480,10 +480,10 @@ internal sealed class ViewManager : IDisposable
     }
 
     /// <summary>
-    /// Orchestrates the DrillDown transition: delegates schema extraction to ModeController,
+    /// Orchestrates the Phase 1 DrillDown transition: delegates schema extraction to ModeController,
     /// then switches to FocusedTable view on the UI thread.
     /// </summary>
-    internal void DrillDown(DrillDownRequest request)
+    internal void DrillDown(SingleDrillDownRequest request)
     {
         var result = _modeController.DrillDown(request);
 
@@ -504,6 +504,13 @@ internal sealed class ViewManager : IDisposable
             SwitchToFocusedTable(drillDown);
         });
     }
+
+    /// <summary>
+    /// Orchestrates the DrillDown Phase 2 transition: offloads file scan to a background thread
+    /// via ModeController, then applies state and switches to FocusedTable view on the UI thread.
+    /// </summary>
+    internal ValueTask FullAggregationDrillDownAsync(FullAggregationDrillDownRequest request) =>
+        throw new NotImplementedException();
 
     /// <summary>
     /// Creates FocusedTableSource and FocusedTableView, then switches to the FocusedTable view.

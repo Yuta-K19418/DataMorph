@@ -222,11 +222,9 @@ internal sealed class AppKeyHandler : IDisposable
                 return false;
             }
 
-            var request = new DrillDownRequest(
+            var request = new SingleDrillDownRequest(
                 Format: treeFormat.Value,
-                NodeBytes: arrayNode.RawJson,
-                KeyName: arrayNode.KeyName,
-                RecordPosition: arrayNode.RecordPosition);
+                NodeBytes: arrayNode.RawJson);
 
             void onDrillDownConfirmed(string actionName) => _viewManager.DrillDown(request);
 
@@ -237,6 +235,29 @@ internal sealed class AppKeyHandler : IDisposable
 
         return false;
     }
+
+    /// <summary>
+    /// Full Aggregation DrillDown: JSON Lines / JSON Array format, any node type, always a full file scan.
+    /// Not yet wired into <see cref="HandleActionMenu"/> — routing is added in Step 2.
+    /// </summary>
+    private bool HandleFullAggregationDrillDown(ITreeNode selectedNode, DataFormat format) =>
+        throw new NotImplementedException();
+
+    /// <summary>
+    /// Reports an unhandled exception from a fire-and-forget async operation via the error view.
+    /// </summary>
+    private void HandleTaskError(Task task) =>
+        throw new NotImplementedException();
+
+    /// <summary>
+    /// Traverses the <c>ParentNode</c> chain from <paramref name="node"/> up to the root,
+    /// collecting <c>KeyName</c> segments in bottom-up order, then reverses to produce a
+    /// root-to-leaf KeyPath.
+    /// </summary>
+    /// <param name="node">The selected tree node to build the KeyPath from.</param>
+    /// <returns>An ordered list of path segments from root to <paramref name="node"/>.</returns>
+    private static IReadOnlyList<string> BuildKeyPath(ITreeNode node) =>
+        throw new NotImplementedException();
 
     /// <summary>
     /// Handles the clear action stack shortcut (c).

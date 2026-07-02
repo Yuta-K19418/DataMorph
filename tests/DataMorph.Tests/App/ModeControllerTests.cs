@@ -139,4 +139,18 @@ public sealed class ModeControllerTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         state.CurrentMode.Should().Be(ViewMode.JsonLinesTree);
     }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(1)]
+    public void DrillDown_JsonObjectWithChildren_FirstRowHashValueIsBracketZero(int childCount)
+    {
+        // Arrange
+        _ = childCount; // Use parameter to suppress xUnit1026
+
+        // Act
+
+        // Assert
+        Assert.Fail("Skeleton test - replace with real assertions.");
+    }
 }

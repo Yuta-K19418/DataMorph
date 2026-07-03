@@ -1,3 +1,7 @@
+using System.Buffers;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
@@ -24,8 +28,60 @@ public static class FullAggregationScanner
         IReadOnlyList<string> keyPath,
         CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        ArgumentNullException.ThrowIfNull(keyPath);
+
+        if (format == DataFormat.JsonObject)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>(
+                "JSON Object format does not support full aggregation.");
+        }
+
+        var mmapResult = MmapService.Open(filePath);
+        if (mmapResult.IsFailure)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>(mmapResult.Error);
+        }
+
+        using var mmap = mmapResult.Value;
+
+        List<FocusedTableRow> rows = [];
+        List<string> keyOrder = [];
+        var keySet = new HashSet<string>(StringComparer.Ordinal);
+        var columnTypes = new Dictionary<string, ColumnType>(StringComparer.Ordinal);
+        var keyObservedCount = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        var colName = KeyPathTraverser.LastKeySegment(keyPath);
+        var colNameUtf8 = Encoding.UTF8.GetBytes(colName);
+
+        ScanFunc scan = format == DataFormat.JsonLines ? ScanLines : ScanElements;
+        scan(mmap, keyPath, colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount, cancellationToken);
+
+        if (rows.Count == 0)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>("No matching records found.");
+        }
+
+        if (keyOrder.Count == 0)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>("All child objects have no keys");
+        }
+
+        var schema = SchemaScanner.BuildTableSchema(keyOrder, columnTypes, keyObservedCount, rows.Count, format);
+        return Results.Success<(TableSchema, IReadOnlyList<FocusedTableRow>)>((schema, rows));
     }
+
+    private delegate void ScanFunc(
+        MmapService mmap,
+        IReadOnlyList<string> keyPath,
+        string colName,
+        byte[] colNameUtf8,
+        List<FocusedTableRow> rows,
+        List<string> keyOrder,
+        HashSet<string> keySet,
+        Dictionary<string, ColumnType> columnTypes,
+        Dictionary<string, int> keyObservedCount,
+        CancellationToken cancellationToken);
 
     private static void ScanLines(
         MmapService mmap,
@@ -39,7 +95,78 @@ public static class FullAggregationScanner
         Dictionary<string, int> keyObservedCount,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var buffer = ArrayPool<byte>.Shared.Rent(FileChunkReader.BufferSize);
+        try
+        {
+            var fileOffset = FileChunkReader.SkipUtf8Bom(mmap);
+            var recordPosition = 1L;
+            var remainingLen = 0;
+
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                (var dataEnd, fileOffset) = FileChunkReader.FillBuffer(mmap, buffer, remainingLen, fileOffset, "JSON line");
+                var isFinalBlock = fileOffset >= mmap.Length;
+                var consumed = 0;
+
+                while (true)
+                {
+                    var newlineIndex = buffer.AsSpan(consumed, dataEnd - consumed).IndexOf((byte)'\n');
+                    if (newlineIndex == -1)
+                    {
+                        break;
+                    }
+
+                    ExtractAndProcessLine(
+                        buffer.AsSpan(consumed, newlineIndex), recordPosition, keyPath,
+                        colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+                    recordPosition++;
+                    consumed += newlineIndex + 1;
+                }
+
+                if (isFinalBlock)
+                {
+                    ExtractAndProcessLine(
+                        buffer.AsSpan(consumed, dataEnd - consumed), recordPosition, keyPath,
+                        colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+                    return;
+                }
+
+                remainingLen = dataEnd - consumed;
+                if (remainingLen > 0)
+                {
+                    buffer.AsSpan(consumed, remainingLen).CopyTo(buffer);
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
+    }
+
+    private static void ExtractAndProcessLine(
+        ReadOnlySpan<byte> lineSpan,
+        long recordPosition,
+        IReadOnlyList<string> keyPath,
+        string colName,
+        byte[] colNameUtf8,
+        List<FocusedTableRow> rows,
+        List<string> keyOrder,
+        HashSet<string> keySet,
+        Dictionary<string, ColumnType> columnTypes,
+        Dictionary<string, int> keyObservedCount)
+    {
+        var trimmed = FileChunkReader.TrimTrailingCr(lineSpan);
+        if (trimmed.IsEmpty)
+        {
+            return;
+        }
+
+        KeyPathTraverser.ExtractRows(
+            trimmed.ToArray(), keyPath, recordPosition.ToString(CultureInfo.InvariantCulture),
+            colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
     }
 
     private static void ScanElements(
@@ -54,13 +181,70 @@ public static class FullAggregationScanner
         Dictionary<string, int> keyObservedCount,
         CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var buffer = ArrayPool<byte>.Shared.Rent(FileChunkReader.BufferSize);
+        try
+        {
+            var state = default(JsonReaderState);
+            var bufferOriginFileOffset = 0L;
+            var fileReadOffset = 0L;
+            var remainingLen = 0;
+            var recordPosition = 0L;
+            var currentElementStart = -1L;
+
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                (var dataEnd, fileReadOffset) = FileChunkReader.FillBuffer(mmap, buffer, remainingLen, fileReadOffset, "JSON element");
+                var isFinalBlock = fileReadOffset >= mmap.Length;
+
+                var reader = new Utf8JsonReader(buffer.AsSpan(0, dataEnd), isFinalBlock, state);
+                var rootDone = false;
+
+                while (!rootDone && reader.Read())
+                {
+                    (rootDone, currentElementStart, recordPosition) = ProcessElementToken(
+                        ref reader, mmap, bufferOriginFileOffset, currentElementStart, recordPosition,
+                        keyPath, colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+                }
+
+                if (rootDone)
+                {
+                    return;
+                }
+
+                state = reader.CurrentState;
+                var consumed = (int)reader.BytesConsumed;
+                bufferOriginFileOffset += consumed;
+                remainingLen = dataEnd - consumed;
+                if (remainingLen > 0)
+                {
+                    buffer.AsSpan(consumed, remainingLen).CopyTo(buffer);
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
-    private static void TryExtractRows(
-        JsonRawBytes recordBytes,
+    /// <summary>
+    /// Handles a single token read from the top-level array during <see cref="ScanElements"/>,
+    /// tracking the start of the current element and dispatching a completed element (or a
+    /// depth-1 primitive) to <see cref="KeyPathTraverser.ExtractRows"/>.
+    /// </summary>
+    /// <returns>
+    /// Whether the root array has ended, plus the updated <c>currentElementStart</c> and
+    /// <c>recordPosition</c> to carry into the next token.
+    /// </returns>
+    private static (bool isRootDone, long currentElementStart, long recordPosition) ProcessElementToken(
+        ref Utf8JsonReader reader,
+        MmapService mmap,
+        long bufferOriginFileOffset,
+        long currentElementStart,
+        long recordPosition,
         IReadOnlyList<string> keyPath,
-        string posHash,
         string colName,
         byte[] colNameUtf8,
         List<FocusedTableRow> rows,
@@ -69,51 +253,40 @@ public static class FullAggregationScanner
         Dictionary<string, ColumnType> columnTypes,
         Dictionary<string, int> keyObservedCount)
     {
-        throw new NotImplementedException();
-    }
+        if (reader.CurrentDepth == 0 && reader.TokenType == JsonTokenType.EndArray)
+        {
+            return (true, currentElementStart, recordPosition);
+        }
 
-    private static void TraverseKeyPath(
-        JsonRawBytes currentBytes,
-        IReadOnlyList<string> keyPath,
-        int segmentIndex,
-        string posHash,
-        string colName,
-        byte[] colNameUtf8,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount)
-    {
-        throw new NotImplementedException();
-    }
+        if (reader.CurrentDepth != 1)
+        {
+            return (false, currentElementStart, recordPosition);
+        }
 
-    private static void CollectLeafRows(
-        JsonRawBytes leafBytes,
-        string posHash,
-        string colName,
-        byte[] colNameUtf8,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount)
-    {
-        throw new NotImplementedException();
-    }
+        if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+        {
+            var updatedStart = currentElementStart < 0
+                ? bufferOriginFileOffset + reader.TokenStartIndex
+                : currentElementStart;
+            return (false, updatedStart, recordPosition);
+        }
 
-    private static JsonRawBytes? FindValueByKey(JsonRawBytes objectBytes, string key)
-    {
-        throw new NotImplementedException();
-    }
+        if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+        {
+            var elementEnd = bufferOriginFileOffset + reader.BytesConsumed;
+            var elementBytes = FileChunkReader.ReadFileRange(mmap, currentElementStart, elementEnd);
+            KeyPathTraverser.ExtractRows(
+                elementBytes, keyPath, recordPosition.ToString(CultureInfo.InvariantCulture),
+                colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+            return (false, -1L, recordPosition + 1);
+        }
 
-    private static JsonRawBytes SynthesizeObject(ReadOnlySpan<byte> keyUtf8, ReadOnlySpan<byte> valueBytes)
-    {
-        throw new NotImplementedException();
-    }
-
-    private static string LastKeySegment(IReadOnlyList<string> keyPath)
-    {
-        throw new NotImplementedException();
+        // Primitive element at depth 1 (number, string, bool, null).
+        var primitiveBytes = FileChunkReader.ReadFileRange(
+            mmap, bufferOriginFileOffset + reader.TokenStartIndex, bufferOriginFileOffset + reader.BytesConsumed);
+        KeyPathTraverser.ExtractRows(
+            primitiveBytes, keyPath, recordPosition.ToString(CultureInfo.InvariantCulture),
+            colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+        return (false, currentElementStart, recordPosition + 1);
     }
 }

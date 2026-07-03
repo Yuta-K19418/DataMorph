@@ -124,6 +124,23 @@ internal sealed class ModeController
     /// </summary>
     /// <param name="request">The full-aggregation DrillDown request carrying the KeyPath.</param>
     /// <returns>A <see cref="Result{T}"/> containing the scanned <see cref="DrillDownState"/> on success.</returns>
-    public ValueTask<Result<DrillDownState>> FullAggregationDrillDownAsync(FullAggregationDrillDownRequest request) =>
-        throw new NotImplementedException();
+    public async ValueTask<Result<DrillDownState>> FullAggregationDrillDownAsync(FullAggregationDrillDownRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // Capture by value before Task.Run to avoid reading _state on the thread-pool thread.
+        var filePath = _state.CurrentFilePath;
+        var ct = _state.Cts.Token;
+
+        var result = await Task.Run(
+            () => FullAggregationScanner.Scan(filePath, request.Format, request.KeyPath, ct),
+            ct);
+
+        if (result.IsFailure)
+        {
+            return Results.Failure<DrillDownState>(result.Error);
+        }
+
+        return Results.Success(new DrillDownState(result.Value.rows, result.Value.schema));
+    }
 }

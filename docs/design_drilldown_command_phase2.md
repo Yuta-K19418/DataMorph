@@ -650,6 +650,14 @@ segment = keyPath[segIdx]
 if segment starts with '[':
     // Index segment → expand all array elements
     if first token of currentBytes != StartArray → return  // wrong type, skip silently
+
+    if segIdx == keyPath.Count - 1:
+        // Trailing index segment: "tags" and "tags[0]" must produce identical output
+        // (including the "value" column for primitive elements), so delegate directly
+        // to the same array-leaf collection used when the array itself is the leaf.
+        CollectArrayLeafRows(currentBytes, posHash, rows, keyOrder, keySet, columnTypes, keyObservedCount)
+        return
+
     elementIdx = 0
     for each element bytes in currentBytes (via Utf8JsonReader):
         TraverseKeyPath(elementBytes, keyPath, segIdx + 1, $"{posHash}:{elementIdx}",

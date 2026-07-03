@@ -509,8 +509,28 @@ internal sealed class ViewManager : IDisposable
     /// Orchestrates the Full Aggregation DrillDown transition: offloads file scan to a background thread
     /// via ModeController, then applies state and switches to FocusedTable view on the UI thread.
     /// </summary>
-    internal ValueTask FullAggregationDrillDownAsync(FullAggregationDrillDownRequest request) =>
-        throw new NotImplementedException();
+    internal async ValueTask FullAggregationDrillDownAsync(FullAggregationDrillDownRequest request)
+    {
+        var result = await _modeController.FullAggregationDrillDownAsync(request);
+        _uiThreadInvoke(() =>
+        {
+            // Fail fast before any state mutation: if the ViewManager was disposed between the
+            // background scan completing and this callback running, leave AppState untouched.
+            // SwitchToFocusedTable has its own guard, but state is written here first, so without
+            // this check a dispose race would corrupt AppState before the view-side throw.
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            if (result.IsFailure)
+            {
+                ShowError(result.Error);
+                return;
+            }
+
+            _state.DrillDown = result.Value;
+            _state.CurrentMode = ViewMode.FocusedTable;
+            SwitchToFocusedTable(result.Value);
+        });
+    }
 
     /// <summary>
     /// Creates FocusedTableSource and FocusedTableView, then switches to the FocusedTable view.
@@ -518,6 +538,7 @@ internal sealed class ViewManager : IDisposable
     [SuppressMessage("Reliability", "CA2000", Justification = "Owned by container via SwapView.")]
     internal void SwitchToFocusedTable(DrillDownState drillDown)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
         var source = new Views.FocusedTableSource(drillDown);
         var view = new Views.FocusedTableView
         {

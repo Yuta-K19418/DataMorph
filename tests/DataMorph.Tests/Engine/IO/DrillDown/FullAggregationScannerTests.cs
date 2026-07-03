@@ -1,21 +1,72 @@
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+using AwesomeAssertions;
+using DataMorph.Engine.IO.DrillDown;
+using DataMorph.Engine.IO.Json;
+using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
 namespace DataMorph.Tests.Engine.IO.DrillDown;
 
-public sealed class FullAggregationScannerTests
+public sealed class FullAggregationScannerTests : IDisposable
 {
+    private readonly List<string> _tempFiles = [];
+
+    public void Dispose()
+    {
+        foreach (var path in _tempFiles)
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    private string CreateTempFile(DataFormat format, params string[] records)
+    {
+        var extension = format == DataFormat.JsonLines ? ".jsonl" : ".json";
+        var path = Path.ChangeExtension(Path.GetTempFileName(), extension);
+        var content = format == DataFormat.JsonArray
+            ? $"[{string.Join(",", records)}]"
+            : string.Join("\n", records);
+        File.WriteAllText(path, content);
+        _tempFiles.Add(path);
+        return path;
+    }
+
+    private static string Pos(DataFormat format, int recordIndex) =>
+        (format == DataFormat.JsonLines ? recordIndex + 1 : recordIndex).ToString(CultureInfo.InvariantCulture);
+
+    private static JsonElement GetProperty(JsonRawBytes bytes, string propertyName)
+    {
+        using var doc = JsonDocument.Parse(bytes);
+        return doc.RootElement.GetProperty(propertyName).Clone();
+    }
+
     [Theory]
     [InlineData(DataFormat.JsonLines)]
     [InlineData(DataFormat.JsonArray)]
     public void Scan_ObjectLeafInAllRecords_ReturnsOneRowPerRecord(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"user":{"name":"Alice","age":30}}""",
+            """{"user":{"name":"Bob","age":25}}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["user"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(2);
+        result.Value.rows[0].HashValue.Should().Be(Pos(format, 0));
+        result.Value.rows[1].HashValue.Should().Be(Pos(format, 1));
+        GetProperty(result.Value.rows[0].Bytes, "name").GetString().Should().Be("Alice");
+        GetProperty(result.Value.rows[1].Bytes, "name").GetString().Should().Be("Bob");
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "age");
     }
 
     [Theory]
@@ -24,12 +75,21 @@ public sealed class FullAggregationScannerTests
     public void Scan_ArrayOfObjectLeafInAllRecords_ReturnsOneRowPerElement(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"orders":[{"id":"A1","qty":2},{"id":"A2","qty":5}]}""",
+            """{"orders":[{"id":"B1","qty":1}]}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["orders"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(3);
+        result.Value.rows.Select(r => r.HashValue).Should().Equal(
+            $"{Pos(format, 0)}:0", $"{Pos(format, 0)}:1", $"{Pos(format, 1)}:0");
+        result.Value.rows.Select(r => GetProperty(r.Bytes, "id").GetString())
+            .Should().Equal("A1", "A2", "B1");
     }
 
     [Theory]
@@ -38,12 +98,22 @@ public sealed class FullAggregationScannerTests
     public void Scan_ArrayOfPrimitiveLeafInAllRecords_ReturnsRowsWithValueColumn(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"tags":["dev","ops"]}""",
+            """{"tags":["dev"]}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["tags"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(3);
+        result.Value.rows.Select(r => r.HashValue).Should().Equal(
+            $"{Pos(format, 0)}:0", $"{Pos(format, 0)}:1", $"{Pos(format, 1)}:0");
+        result.Value.rows.Select(r => GetProperty(r.Bytes, "value").GetString())
+            .Should().Equal("dev", "ops", "dev");
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("value");
     }
 
     [Theory]
@@ -52,12 +122,22 @@ public sealed class FullAggregationScannerTests
     public void Scan_PrimitiveLeaf_ReturnsOneRowPerRecordWithKeyNamedColumn(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"score":88}""",
+            """{"score":72}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["score"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(2);
+        result.Value.rows[0].HashValue.Should().Be(Pos(format, 0));
+        result.Value.rows[1].HashValue.Should().Be(Pos(format, 1));
+        GetProperty(result.Value.rows[0].Bytes, "score").GetInt32().Should().Be(88);
+        GetProperty(result.Value.rows[1].Bytes, "score").GetInt32().Should().Be(72);
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("score");
     }
 
     [Theory]
@@ -66,12 +146,19 @@ public sealed class FullAggregationScannerTests
     public void Scan_IndexSegmentInPath_ProducesSameOutputAsParentArray(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(format, """{"orders":[{"id":"A1"},{"id":"A2"}]}""");
 
         // Act
+        var resultWithoutIndex = FullAggregationScanner.Scan(path, format, ["orders"]);
+        var resultWithIndex = FullAggregationScanner.Scan(path, format, ["orders", "[0]"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        resultWithoutIndex.IsSuccess.Should().BeTrue();
+        resultWithIndex.IsSuccess.Should().BeTrue();
+        resultWithoutIndex.Value.rows.Select(r => r.HashValue)
+            .Should().Equal(resultWithIndex.Value.rows.Select(r => r.HashValue));
+        resultWithoutIndex.Value.rows.Select(r => GetProperty(r.Bytes, "id").GetString())
+            .Should().Equal(resultWithIndex.Value.rows.Select(r => GetProperty(r.Bytes, "id").GetString()));
     }
 
     [Theory]
@@ -80,12 +167,20 @@ public sealed class FullAggregationScannerTests
     public void Scan_TwoIndexSegmentsInPath_HashHasTwoColonSeparators(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"orders":[{"tags":["urgent","gift"]},{"tags":["normal"]}]}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["orders", "[0]", "tags"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(3);
+        result.Value.rows.Select(r => r.HashValue).Should().Equal(
+            $"{Pos(format, 0)}:0:0", $"{Pos(format, 0)}:0:1", $"{Pos(format, 0)}:1:0");
+        result.Value.rows.Select(r => GetProperty(r.Bytes, "value").GetString())
+            .Should().Equal("urgent", "gift", "normal");
     }
 
     [Theory]
@@ -94,12 +189,19 @@ public sealed class FullAggregationScannerTests
     public void Scan_KeyMissingInSomeRecords_SkipsThoseRecordsSilently(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"user":{"name":"Alice"}}""",
+            """{"other":"x"}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["user"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        result.Value.rows[0].HashValue.Should().Be(Pos(format, 0));
+        GetProperty(result.Value.rows[0].Bytes, "name").GetString().Should().Be("Alice");
     }
 
     [Theory]
@@ -108,12 +210,19 @@ public sealed class FullAggregationScannerTests
     public void Scan_KeySegmentFollowedByNonObjectToken_SkipsRecordSilently(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"user":"just a string"}""",
+            """{"user":{"name":"Bob"}}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["user", "name"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        result.Value.rows[0].HashValue.Should().Be(Pos(format, 1));
+        GetProperty(result.Value.rows[0].Bytes, "name").GetString().Should().Be("Bob");
     }
 
     [Theory]
@@ -122,12 +231,21 @@ public sealed class FullAggregationScannerTests
     public void Scan_IndexSegmentFollowedByNonArrayToken_SkipsRecordSilently(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"tags":"not an array"}""",
+            """{"tags":["x","y"]}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["tags", "[0]"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(2);
+        result.Value.rows.Select(r => r.HashValue).Should().Equal(
+            $"{Pos(format, 1)}:0", $"{Pos(format, 1)}:1");
+        result.Value.rows.Select(r => GetProperty(r.Bytes, "value").GetString())
+            .Should().Equal("x", "y");
     }
 
     [Theory]
@@ -136,23 +254,28 @@ public sealed class FullAggregationScannerTests
     public void Scan_NoRecordsMatch_ReturnsFailureWithNoMatchingRecordsMessage(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(format, """{"user":{"name":"Alice"}}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["missing"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("No matching records found.");
     }
 
     [Fact]
     public void Scan_JsonObjectFormat_ReturnsFailure()
     {
         // Arrange
+        var path = Path.Combine(Path.GetTempPath(), "does-not-need-to-exist.json");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, DataFormat.JsonObject, ["user"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("JSON Object format does not support full aggregation.");
     }
 
     [Theory]
@@ -161,12 +284,17 @@ public sealed class FullAggregationScannerTests
     public void Scan_AllMatchedLeafObjectsEmpty_ReturnsFailureWithNoKeysMessage(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"user":{}}""",
+            """{"user":{}}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["user"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("All child objects have no keys");
     }
 
     [Theory]
@@ -175,26 +303,38 @@ public sealed class FullAggregationScannerTests
     public void Scan_VaryingKeysAcrossRecords_BuildsUnionSchemaWithNullableForMissingKeys(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"user":{"name":"Alice","age":30}}""",
+            """{"user":{"name":"Bob"}}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["user"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(2);
+        result.Value.schema.GetColumn("name").Should().BeOfType<ColumnSchema>()
+            .Which.IsNullable.Should().BeFalse();
+        result.Value.schema.GetColumn("age").Should().BeOfType<ColumnSchema>()
+            .Which.IsNullable.Should().BeTrue();
     }
 
     [Theory]
     [InlineData(DataFormat.JsonLines)]
     [InlineData(DataFormat.JsonArray)]
-    public void Scan_CancellationRequestedMidScan_ThrowsOperationCanceledException(DataFormat format)
+    public void Scan_CancellationRequestedBeforeScanStarts_ThrowsOperationCanceledException(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(format, """{"user":{"name":"Alice"}}""");
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
 
         // Act
+        var act = () => FullAggregationScanner.Scan(path, format, ["user"], cts.Token);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        act.Should().Throw<OperationCanceledException>();
     }
 
     [Theory]
@@ -203,12 +343,18 @@ public sealed class FullAggregationScannerTests
     public void Scan_NestedObjectOrArrayCellValue_RendersAsEllipsisPlaceholder(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"user":{"name":"Alice","address":{"city":"Tokyo"},"tags":["dev","ops"]}}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["user"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, "address"u8).Should().Be("{...}");
+        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, "tags"u8).Should().Be("[...]");
     }
 
     [Theory]
@@ -217,12 +363,15 @@ public sealed class FullAggregationScannerTests
     public void Scan_LeafValueIsNull_EmitsOneNullRow(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(format, """{"score":null}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["score"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, "score"u8).Should().Be("<null>");
     }
 
     [Theory]
@@ -231,12 +380,19 @@ public sealed class FullAggregationScannerTests
     public void Scan_EmptyArrayAtLeafPosition_ContributesZeroRowsForThatRecord(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(
+            format,
+            """{"tags":[]}""",
+            """{"tags":["x"]}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["tags"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        result.Value.rows[0].HashValue.Should().Be($"{Pos(format, 1)}:0");
+        GetProperty(result.Value.rows[0].Bytes, "value").GetString().Should().Be("x");
     }
 
     [Theory]
@@ -245,12 +401,17 @@ public sealed class FullAggregationScannerTests
     public void Scan_MixedArrayOfObjectAndPrimitiveElements_ProducesCorrespondingRowTypes(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(format, """{"items":[{"id":"A1"},"loose-string"]}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["items"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(2);
+        GetProperty(result.Value.rows[0].Bytes, "id").GetString().Should().Be("A1");
+        GetProperty(result.Value.rows[1].Bytes, "value").GetString().Should().Be("loose-string");
+        result.Value.schema.Columns.Select(c => c.Name).Should().Contain(["id", "value"]);
     }
 
     [Theory]
@@ -259,11 +420,75 @@ public sealed class FullAggregationScannerTests
     public void Scan_Utf8MultiBytePropertyName_RoundTripsAsColumnIdentifier(DataFormat format)
     {
         // Arrange
-        _ = format; // Use parameter to suppress xUnit1026
+        var path = CreateTempFile(format, """{"user":{"名前":"Alice"}}""");
 
         // Act
+        var result = FullAggregationScanner.Scan(path, format, ["user"]);
 
         // Assert
-        Assert.Fail("Skeleton test - replace with real assertions.");
+        result.IsSuccess.Should().BeTrue();
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("名前");
+        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, Encoding.UTF8.GetBytes("名前"))
+            .Should().Be("Alice");
+    }
+
+    [Fact]
+    public void Scan_JsonLinesWithEmptyLineInMiddle_PreservesLineBasedRecordPosition()
+    {
+        // Arrange
+        var path = CreateTempFile(DataFormat.JsonLines, """{"score":1}""", "", """{"score":3}""");
+
+        // Act
+        var result = FullAggregationScanner.Scan(path, DataFormat.JsonLines, ["score"]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(2);
+        result.Value.rows[0].HashValue.Should().Be("1");
+        result.Value.rows[1].HashValue.Should().Be("3");
+    }
+
+    [Theory]
+    [InlineData(DataFormat.JsonLines)]
+    [InlineData(DataFormat.JsonArray)]
+    public void Scan_EmptyKeyPath_TreatsEachRecordAsRowWithTopLevelKeysAsColumns(DataFormat format)
+    {
+        // Arrange
+        var path = CreateTempFile(
+            format,
+            """{"name":"Alice","age":30}""",
+            """{"name":"Bob","age":25}""");
+
+        // Act
+        var result = FullAggregationScanner.Scan(path, format, []);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(2);
+        result.Value.rows[0].HashValue.Should().Be(Pos(format, 0));
+        result.Value.rows[1].HashValue.Should().Be(Pos(format, 1));
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("name", "age");
+        GetProperty(result.Value.rows[0].Bytes, "name").GetString().Should().Be("Alice");
+        GetProperty(result.Value.rows[1].Bytes, "name").GetString().Should().Be("Bob");
+    }
+
+    [Fact]
+    public void Scan_JsonLinesFileWithUtf8Bom_SkipsBomAndParsesFirstLine()
+    {
+        // Arrange
+        var path = Path.ChangeExtension(Path.GetTempFileName(), ".jsonl");
+        byte[] bom = [0xEF, 0xBB, 0xBF];
+        var content = Encoding.UTF8.GetBytes("""{"score":88}""");
+        File.WriteAllBytes(path, [.. bom, .. content]);
+        _tempFiles.Add(path);
+
+        // Act
+        var result = FullAggregationScanner.Scan(path, DataFormat.JsonLines, ["score"]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        result.Value.rows[0].HashValue.Should().Be("1");
+        GetProperty(result.Value.rows[0].Bytes, "score").GetInt32().Should().Be(88);
     }
 }

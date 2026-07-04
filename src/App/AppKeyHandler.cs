@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Views;
 using DataMorph.App.Views.Dialogs;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -307,12 +308,12 @@ internal sealed class AppKeyHandler : IDisposable
     [SuppressMessage(
         "Performance",
         "CA1859:Use concrete types when possible for improved performance",
-        Justification = "IReadOnlyList<string> is the KeyPath contract shared with FullAggregationDrillDownRequest; " +
-            "the concrete List<string> used to build it is an implementation detail that should not leak out."
+        Justification = "IReadOnlyList<KeyPathSegment> is the KeyPath contract shared with FullAggregationDrillDownRequest; " +
+            "the concrete List<KeyPathSegment> used to build it is an implementation detail that should not leak out."
     )]
-    internal static IReadOnlyList<string> BuildKeyPath(ITreeNode node)
+    internal static IReadOnlyList<KeyPathSegment> BuildKeyPath(ITreeNode node)
     {
-        List<string> segments = [];
+        List<KeyPathSegment> segments = [];
         var current = node;
 
         while (current is JsonObjectTreeNode or JsonArrayTreeNode or JsonValueTreeNode)
@@ -327,7 +328,11 @@ internal sealed class AppKeyHandler : IDisposable
 
             if (keyName is not null)
             {
-                segments.Add(keyName);
+                // An array element's parent is the JsonArrayTreeNode that labeled it "[n]"; every
+                // other node is an object property. Tagging by parent type — not by the label text —
+                // keeps a literal object key such as "[0]" from colliding with an index marker.
+                var kind = parent is JsonArrayTreeNode ? KeyPathSegmentKind.Index : KeyPathSegmentKind.Key;
+                segments.Add(new KeyPathSegment(keyName, kind));
             }
 
             current = parent;

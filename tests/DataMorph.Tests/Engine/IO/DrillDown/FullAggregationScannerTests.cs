@@ -45,6 +45,17 @@ public sealed class FullAggregationScannerTests : IDisposable
         return doc.RootElement.GetProperty(propertyName).Clone();
     }
 
+    /// <summary>
+    /// Builds a KeyPath from conventional segment labels for test scenarios: a segment matching the
+    /// "[n]" index-label form is tagged as Index, every other segment as Key. This is test shorthand
+    /// only — production BuildKeyPath tags segments by parent node type, never by label text, so a
+    /// literal "[0]" object key is correctly tagged as Key there (see the regression test below).
+    /// </summary>
+    private static IReadOnlyList<KeyPathSegment> KeyPath(params string[] segments)
+        => [.. segments.Select(static s => new KeyPathSegment(
+            s,
+            s.StartsWith('[') ? KeyPathSegmentKind.Index : KeyPathSegmentKind.Key))];
+
     [Theory]
     [InlineData(DataFormat.JsonLines)]
     [InlineData(DataFormat.JsonArray)]
@@ -57,7 +68,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"user":{"name":"Bob","age":25}}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["user"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("user"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -81,7 +92,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"orders":[{"id":"B1","qty":1}]}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["orders"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("orders"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -104,7 +115,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"tags":["dev"]}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["tags"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("tags"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -128,7 +139,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"score":72}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["score"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("score"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -149,8 +160,8 @@ public sealed class FullAggregationScannerTests : IDisposable
         var path = CreateTempFile(format, """{"orders":[{"id":"A1"},{"id":"A2"}]}""");
 
         // Act
-        var resultWithoutIndex = FullAggregationScanner.Scan(path, format, ["orders"]);
-        var resultWithIndex = FullAggregationScanner.Scan(path, format, ["orders", "[0]"]);
+        var resultWithoutIndex = FullAggregationScanner.Scan(path, format, KeyPath("orders"));
+        var resultWithIndex = FullAggregationScanner.Scan(path, format, KeyPath("orders", "[0]"));
 
         // Assert
         resultWithoutIndex.IsSuccess.Should().BeTrue();
@@ -172,7 +183,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"orders":[{"tags":["urgent","gift"]},{"tags":["normal"]}]}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["orders", "[0]", "tags"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("orders", "[0]", "tags"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -195,7 +206,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"other":"x"}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["user"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("user"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -216,7 +227,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"user":{"name":"Bob"}}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["user", "name"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("user", "name"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -237,7 +248,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"tags":["x","y"]}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["tags", "[0]"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("tags", "[0]"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -257,7 +268,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         var path = CreateTempFile(format, """{"user":{"name":"Alice"}}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["missing"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("missing"));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -271,7 +282,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         var path = Path.Combine(Path.GetTempPath(), "does-not-need-to-exist.json");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, DataFormat.JsonObject, ["user"]);
+        var result = FullAggregationScanner.Scan(path, DataFormat.JsonObject, KeyPath("user"));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -290,7 +301,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"user":{}}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["user"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("user"));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -309,7 +320,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"user":{"name":"Bob"}}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["user"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("user"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -331,7 +342,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         cts.Cancel();
 
         // Act
-        var act = () => FullAggregationScanner.Scan(path, format, ["user"], cts.Token);
+        var act = () => FullAggregationScanner.Scan(path, format, KeyPath("user"), cts.Token);
 
         // Assert
         act.Should().Throw<OperationCanceledException>();
@@ -348,7 +359,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"user":{"name":"Alice","address":{"city":"Tokyo"},"tags":["dev","ops"]}}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["user"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("user"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -366,7 +377,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         var path = CreateTempFile(format, """{"score":null}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["score"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("score"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -386,7 +397,7 @@ public sealed class FullAggregationScannerTests : IDisposable
             """{"tags":["x"]}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["tags"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("tags"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -404,7 +415,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         var path = CreateTempFile(format, """{"items":[{"id":"A1"},"loose-string"]}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["items"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("items"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -423,7 +434,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         var path = CreateTempFile(format, """{"user":{"名前":"Alice"}}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, format, ["user"]);
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("user"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -439,7 +450,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         var path = CreateTempFile(DataFormat.JsonLines, """{"score":1}""", "", """{"score":3}""");
 
         // Act
-        var result = FullAggregationScanner.Scan(path, DataFormat.JsonLines, ["score"]);
+        var result = FullAggregationScanner.Scan(path, DataFormat.JsonLines, KeyPath("score"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -483,7 +494,7 @@ public sealed class FullAggregationScannerTests : IDisposable
         _tempFiles.Add(path);
 
         // Act
-        var result = FullAggregationScanner.Scan(path, DataFormat.JsonLines, ["score"]);
+        var result = FullAggregationScanner.Scan(path, DataFormat.JsonLines, KeyPath("score"));
 
         // Assert
         result.IsSuccess.Should().BeTrue();

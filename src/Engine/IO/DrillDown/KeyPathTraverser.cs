@@ -20,7 +20,7 @@ internal static class KeyPathTraverser
     /// </summary>
     public static void ExtractRows(
         JsonRawBytes recordBytes,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         string posHash,
         string colName,
         byte[] colNameUtf8,
@@ -40,13 +40,13 @@ internal static class KeyPathTraverser
     /// for a scalar primitive leaf. Falls back to <c>"value"</c> when every segment is an index
     /// segment (e.g. an empty or all-<c>[n]</c> path).
     /// </summary>
-    public static string LastKeySegment(IReadOnlyList<string> keyPath)
+    public static string LastKeySegment(IReadOnlyList<KeyPathSegment> keyPath)
     {
         for (var i = keyPath.Count - 1; i >= 0; i--)
         {
-            if (!keyPath[i].StartsWith('['))
+            if (keyPath[i].Kind == KeyPathSegmentKind.Key)
             {
-                return keyPath[i];
+                return keyPath[i].Value;
             }
         }
 
@@ -55,7 +55,7 @@ internal static class KeyPathTraverser
 
     private static void TraverseKeyPath(
         JsonRawBytes currentBytes,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         int segmentIndex,
         string posHash,
         string colName,
@@ -74,7 +74,7 @@ internal static class KeyPathTraverser
 
         var segment = keyPath[segmentIndex];
 
-        if (segment.StartsWith('['))
+        if (segment.Kind == KeyPathSegmentKind.Index)
         {
             var reader = new Utf8JsonReader(currentBytes.Span);
             if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
@@ -114,7 +114,7 @@ internal static class KeyPathTraverser
             return;
         }
 
-        var valueBytes = FindValueByKey(currentBytes, segment);
+        var valueBytes = FindValueByKey(currentBytes, segment.Value);
         if (valueBytes is null)
         {
             return; // Key absent, or current value is not an object — skip record silently.

@@ -25,7 +25,7 @@ public static class FullAggregationScanner
     public static Result<(TableSchema schema, IReadOnlyList<FocusedTableRow> rows)> Scan(
         string filePath,
         DataFormat format,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -73,7 +73,7 @@ public static class FullAggregationScanner
 
     private delegate void ScanFunc(
         MmapService mmap,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         string colName,
         byte[] colNameUtf8,
         List<FocusedTableRow> rows,
@@ -85,7 +85,7 @@ public static class FullAggregationScanner
 
     private static void ScanLines(
         MmapService mmap,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         string colName,
         byte[] colNameUtf8,
         List<FocusedTableRow> rows,
@@ -149,7 +149,7 @@ public static class FullAggregationScanner
     private static void ExtractAndProcessLine(
         ReadOnlySpan<byte> lineSpan,
         long recordPosition,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         string colName,
         byte[] colNameUtf8,
         List<FocusedTableRow> rows,
@@ -171,7 +171,7 @@ public static class FullAggregationScanner
 
     private static void ScanElements(
         MmapService mmap,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         string colName,
         byte[] colNameUtf8,
         List<FocusedTableRow> rows,
@@ -244,7 +244,7 @@ public static class FullAggregationScanner
         long bufferOriginFileOffset,
         long currentElementStart,
         long recordPosition,
-        IReadOnlyList<string> keyPath,
+        IReadOnlyList<KeyPathSegment> keyPath,
         string colName,
         byte[] colNameUtf8,
         List<FocusedTableRow> rows,

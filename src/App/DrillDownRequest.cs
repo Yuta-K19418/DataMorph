@@ -1,3 +1,4 @@
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Types;
 
 namespace DataMorph.App;
@@ -19,5 +20,5 @@ internal sealed record SingleDrillDownRequest(
 /// <param name="KeyPath">Ordered path segments from root to the selected node.</param>
 internal sealed record FullAggregationDrillDownRequest(
     DataFormat Format,
-    IReadOnlyList<string> KeyPath)
+    IReadOnlyList<KeyPathSegment> KeyPath)
     : DrillDownRequest(Format);

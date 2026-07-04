@@ -1,6 +1,7 @@
 using System.Text;
 using AwesomeAssertions;
 using DataMorph.App;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonLines;
 
 namespace DataMorph.Tests.App;
@@ -175,7 +176,7 @@ public sealed class ModeControllerTests : IDisposable
         var controller = new ModeController(state);
         var request = new FullAggregationDrillDownRequest(
             Format: DataMorph.Engine.Types.DataFormat.JsonLines,
-            KeyPath: ["user"]);
+            KeyPath: [new KeyPathSegment("user", KeyPathSegmentKind.Key)]);
 
         // Act
         var result = await controller.FullAggregationDrillDownAsync(request);
@@ -197,7 +198,7 @@ public sealed class ModeControllerTests : IDisposable
         var controller = new ModeController(state);
         var request = new FullAggregationDrillDownRequest(
             Format: DataMorph.Engine.Types.DataFormat.JsonLines,
-            KeyPath: ["missing"]);
+            KeyPath: [new KeyPathSegment("missing", KeyPathSegmentKind.Key)]);
 
         // Act
         var result = await controller.FullAggregationDrillDownAsync(request);

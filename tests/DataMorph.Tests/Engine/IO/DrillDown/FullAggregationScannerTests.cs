@@ -502,4 +502,34 @@ public sealed class FullAggregationScannerTests : IDisposable
         result.Value.rows[0].HashValue.Should().Be("1");
         GetProperty(result.Value.rows[0].Bytes, "score").GetInt32().Should().Be(88);
     }
+
+    [Theory]
+    [InlineData(DataFormat.JsonLines)]
+    [InlineData(DataFormat.JsonArray)]
+    public void Scan_ObjectKeyStartingWithBracket_TreatedAsKeyNotIndex(DataFormat format)
+    {
+        // Arrange — a KeyPath segment "[0]" is ambiguous: it's both a literal object key here and
+        // the marker this codebase uses for array indices. That ambiguity breaks two independent
+        // methods that read KeyPath segments: TraverseKeyPath misreads "[0]" as an index and
+        // silently skips the record entirely (asserted via IsSuccess/row count), while
+        // LastKeySegment misreads it the same way and synthesizes the wrong leaf column name
+        // (asserted via the schema column name). The "[0]" segment below is built directly, not
+        // via the KeyPath(...) helper, because that helper uses the same flawed '[' heuristic and
+        // would silently defeat this test.
+        var path = CreateTempFile(format, """{"a":{"[0]":"hello"}}""");
+        IReadOnlyList<KeyPathSegment> keyPath =
+        [
+            new KeyPathSegment("a", KeyPathSegmentKind.Key),
+            new KeyPathSegment("[0]", KeyPathSegmentKind.Key),
+        ];
+
+        // Act
+        var result = FullAggregationScanner.Scan(path, format, keyPath);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        result.Value.schema.Columns.Select(c => c.Name).Should().Equal("[0]");
+        GetProperty(result.Value.rows[0].Bytes, "[0]").GetString().Should().Be("hello");
+    }
 }

@@ -46,10 +46,7 @@ public sealed class FullAggregationScannerTests : IDisposable
     }
 
     /// <summary>
-    /// Builds a KeyPath from conventional segment labels for test scenarios: a segment matching the
-    /// "[n]" index-label form is tagged as Index, every other segment as Key. This is test shorthand
-    /// only — production BuildKeyPath tags segments by parent node type, never by label text, so a
-    /// literal "[0]" object key is correctly tagged as Key there (see the regression test below).
+    /// Test-only shorthand: builds a KeyPath tagging "[n]"-shaped segments as Index and everything else as Key. Production BuildKeyPath tags by parent node type instead, not label text.
     /// </summary>
     private static IReadOnlyList<KeyPathSegment> KeyPath(params string[] segments)
         => [.. segments.Select(static s => new KeyPathSegment(
@@ -531,5 +528,51 @@ public sealed class FullAggregationScannerTests : IDisposable
         result.Value.rows.Should().HaveCount(1);
         result.Value.schema.Columns.Select(c => c.Name).Should().Equal("[0]");
         GetProperty(result.Value.rows[0].Bytes, "[0]").GetString().Should().Be("hello");
+    }
+
+    /// <summary>
+    /// Builds a file where a padding record ends just short of FileChunkReader.BufferSize and the
+    /// following "note" record's value straddles that boundary, forcing a FillBuffer carry-over
+    /// (JsonLines) or a multi-segment Utf8JsonReader continuation (JsonArray) mid-value.
+    /// </summary>
+    private (string path, string expectedValue) CreateBoundaryStraddlingFile(DataFormat format)
+    {
+        const int remaining = 100;
+        const int targetValueLength = 500;
+        var targetValue = new string('b', targetValueLength);
+        var target = "{\"note\":\"" + targetValue + "\"}";
+
+        var wrapperOverhead = "{\"pad\":\"".Length + "\"}".Length;
+        var extraOverhead = format == DataFormat.JsonLines ? 1 : 2; // newline, or "[" + ","
+        var padLen = FileChunkReader.BufferSize - remaining - wrapperOverhead - extraOverhead;
+        var padElem = "{\"pad\":\"" + new string('a', padLen) + "\"}";
+
+        var content = format == DataFormat.JsonLines
+            ? padElem + "\n" + target
+            : "[" + padElem + "," + target + "]";
+        var extension = format == DataFormat.JsonLines ? ".jsonl" : ".json";
+
+        var path = Path.ChangeExtension(Path.GetTempFileName(), extension);
+        File.WriteAllText(path, content);
+        _tempFiles.Add(path);
+        return (path, targetValue);
+    }
+
+    // Generates a record that straddles FileChunkReader.BufferSize exactly, to confirm ScanLines/ScanElements carry leftover bytes across FillBuffer calls without corruption.
+    [Theory]
+    [InlineData(DataFormat.JsonLines)]
+    [InlineData(DataFormat.JsonArray)]
+    public void Scan_WhenLineSpansBufferBoundary_ParsesRecordWithoutCorruption(DataFormat format)
+    {
+        // Arrange
+        var (path, expectedValue) = CreateBoundaryStraddlingFile(format);
+
+        // Act
+        var result = FullAggregationScanner.Scan(path, format, KeyPath("note"));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.rows.Should().HaveCount(1);
+        GetProperty(result.Value.rows[0].Bytes, "note").GetString().Should().Be(expectedValue);
     }
 }

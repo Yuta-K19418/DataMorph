@@ -2,6 +2,7 @@ using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
 using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonArray;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
@@ -539,6 +540,121 @@ public sealed class ViewManagerTests : IDisposable
             Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
             s => s.HelpText);
         hints.Should().NotContainMatch("*Tree/Table*");
+    }
+
+    [Fact]
+    public async Task FullAggregationDrillDownAsync_WhenScanSucceeds_SwitchesToFocusedTable()
+    {
+        // Arrange — real file + matching KeyPath; ModeController is sealed and can't be mocked, so
+        // success is driven by an actual scan over an actual file.
+        var filePath = CreateTempFile(".jsonl", "{\"user\":{\"name\":\"Alice\"}}\n");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var request = new FullAggregationDrillDownRequest(
+            DataFormat.JsonLines,
+            [new KeyPathSegment("user", KeyPathSegmentKind.Key)]);
+
+        // Act — immediate-execution uiThreadInvoke applies the scanned result synchronously
+        await viewManager.FullAggregationDrillDownAsync(request);
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.FocusedTable);
+        state.DrillDown.Should().NotBeNull();
+        viewManager.GetCurrentView().Should().BeOfType<FocusedTableView>();
+    }
+
+    [Fact]
+    public async Task FullAggregationDrillDownAsync_WhenScanFails_ShowsErrorPlaceholder()
+    {
+        // Arrange — real file + non-matching KeyPath, so the sealed ModeController's scan fails.
+        var filePath = CreateTempFile(".jsonl", "{\"user\":{\"name\":\"Alice\"}}\n");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var request = new FullAggregationDrillDownRequest(
+            DataFormat.JsonLines,
+            [new KeyPathSegment("missing", KeyPathSegmentKind.Key)]);
+
+        // Act
+        await viewManager.FullAggregationDrillDownAsync(request);
+
+        // Assert — failure routes through ShowError into a PlaceholderView carrying the message
+        state.CurrentMode.Should().Be(ViewMode.PlaceholderView);
+        viewManager.GetCurrentView().Should().BeOfType<PlaceholderView>().Which.Text.Should().Be("No matching records found.");
+    }
+
+    [Fact]
+    public async Task FullAggregationDrillDownAsync_WithDeferredUiThreadInvoke_DoesNotMutateStateUntilCallback()
+    {
+        // Arrange — inject a deferred-capture uiThreadInvoke so state changes only happen once the
+        // captured callback runs, mirroring how a real TUI posts work to the UI thread.
+        var filePath = CreateTempFile(".jsonl", "{\"user\":{\"name\":\"Alice\"}}\n");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+
+        List<Action> capturedCallbacks = [];
+        using var viewManager = new ViewManager(
+            window, state, modeController, cb => capturedCallbacks.Add(cb));
+
+        var request = new FullAggregationDrillDownRequest(
+            DataFormat.JsonLines,
+            [new KeyPathSegment("user", KeyPathSegmentKind.Key)]);
+
+        // Act — the background scan completes; the callback is captured but NOT yet executed
+        await viewManager.FullAggregationDrillDownAsync(request);
+
+        // Assert — phase 1: state must be untouched before the UI-thread callback runs
+        capturedCallbacks.Should().ContainSingle();
+        state.DrillDown.Should().BeNull();
+        state.CurrentMode.Should().Be(ViewMode.FileSelection);
+
+        // Act — dispatch the captured callback (what the real UI thread would run)
+        capturedCallbacks[0].Invoke();
+
+        // Assert — phase 2: only now does the successful result reach AppState and switch the view
+        state.CurrentMode.Should().Be(ViewMode.FocusedTable);
+        state.DrillDown.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task FullAggregationDrillDownAsync_WhenViewManagerDisposedBeforeCallback_Throws()
+    {
+        // Arrange — a success scan is required to reach SwitchToFocusedTable's dispose guard;
+        // dispose before invoking the captured callback to simulate the race.
+        var filePath = CreateTempFile(".jsonl", "{\"user\":{\"name\":\"Alice\"}}\n");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+
+        List<Action> capturedCallbacks = [];
+        // Not 'using' — disposed manually below to simulate the race between scan completion and dispatch.
+        var viewManager = new ViewManager(
+            window, state, modeController, cb => capturedCallbacks.Add(cb));
+
+        var request = new FullAggregationDrillDownRequest(
+            DataFormat.JsonLines,
+            [new KeyPathSegment("user", KeyPathSegmentKind.Key)]);
+
+        // Act — scan completes and the callback is captured; dispose BEFORE the callback executes
+        await viewManager.FullAggregationDrillDownAsync(request);
+        viewManager.Dispose();
+
+        // Assert — the fail-fast guard throws before any state mutation.
+        capturedCallbacks.Should().ContainSingle();
+        var act = () => capturedCallbacks[0].Invoke();
+        act.Should().Throw<ObjectDisposedException>();
+        state.DrillDown.Should().BeNull();
+        state.CurrentMode.Should().Be(ViewMode.FileSelection);
     }
 
     /// <summary>

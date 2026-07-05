@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -45,56 +46,41 @@ public static class FullAggregationScanner
 
         using var mmap = mmapResult.Value;
 
+        var scanData = format switch
+        {
+            DataFormat.JsonLines => ScanLines(mmap, keyPath, cancellationToken),
+            DataFormat.JsonArray => ScanElements(mmap, keyPath, cancellationToken),
+            _ => throw new UnreachableException($"Full aggregation scan does not handle format '{format}'."),
+        };
+
+        if (scanData.Rows.Count == 0)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>("No matching records found.");
+        }
+
+        if (scanData.KeyOrder.Count == 0)
+        {
+            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>("All child objects have no keys");
+        }
+
+        var schema = SchemaScanner.BuildTableSchema(scanData.KeyOrder, scanData.ColumnTypes, scanData.KeyObservedCount, scanData.Rows.Count, format);
+        return Results.Success<(TableSchema, IReadOnlyList<FocusedTableRow>)>((schema, scanData.Rows));
+    }
+
+    private static ScanData ScanLines(
+        MmapService mmap,
+        IReadOnlyList<KeyPathSegment> keyPath,
+        CancellationToken cancellationToken)
+    {
+        var colName = KeyPathTraverser.LastKeySegment(keyPath);
+        var colNameUtf8 = Encoding.UTF8.GetBytes(colName);
+
         List<FocusedTableRow> rows = [];
         List<string> keyOrder = [];
         var keySet = new HashSet<string>(StringComparer.Ordinal);
         var columnTypes = new Dictionary<string, ColumnType>(StringComparer.Ordinal);
         var keyObservedCount = new Dictionary<string, int>(StringComparer.Ordinal);
 
-        var colName = KeyPathTraverser.LastKeySegment(keyPath);
-        var colNameUtf8 = Encoding.UTF8.GetBytes(colName);
-
-        ScanFunc scan = format == DataFormat.JsonLines ? ScanLines : ScanElements;
-        scan(mmap, keyPath, colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount, cancellationToken);
-
-        if (rows.Count == 0)
-        {
-            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>("No matching records found.");
-        }
-
-        if (keyOrder.Count == 0)
-        {
-            return Results.Failure<(TableSchema, IReadOnlyList<FocusedTableRow>)>("All child objects have no keys");
-        }
-
-        var schema = SchemaScanner.BuildTableSchema(keyOrder, columnTypes, keyObservedCount, rows.Count, format);
-        return Results.Success<(TableSchema, IReadOnlyList<FocusedTableRow>)>((schema, rows));
-    }
-
-    private delegate void ScanFunc(
-        MmapService mmap,
-        IReadOnlyList<KeyPathSegment> keyPath,
-        string colName,
-        byte[] colNameUtf8,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount,
-        CancellationToken cancellationToken);
-
-    private static void ScanLines(
-        MmapService mmap,
-        IReadOnlyList<KeyPathSegment> keyPath,
-        string colName,
-        byte[] colNameUtf8,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount,
-        CancellationToken cancellationToken)
-    {
         var buffer = ArrayPool<byte>.Shared.Rent(FileChunkReader.BufferSize);
         try
         {
@@ -130,7 +116,7 @@ public static class FullAggregationScanner
                     ExtractAndProcessLine(
                         buffer.AsSpan(consumed, dataEnd - consumed), recordPosition, keyPath,
                         colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
-                    return;
+                    return new ScanData(rows, keyOrder, columnTypes, keyObservedCount);
                 }
 
                 remainingLen = dataEnd - consumed;
@@ -169,18 +155,20 @@ public static class FullAggregationScanner
             colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
     }
 
-    private static void ScanElements(
+    private static ScanData ScanElements(
         MmapService mmap,
         IReadOnlyList<KeyPathSegment> keyPath,
-        string colName,
-        byte[] colNameUtf8,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount,
         CancellationToken cancellationToken)
     {
+        var colName = KeyPathTraverser.LastKeySegment(keyPath);
+        var colNameUtf8 = Encoding.UTF8.GetBytes(colName);
+
+        List<FocusedTableRow> rows = [];
+        List<string> keyOrder = [];
+        var keySet = new HashSet<string>(StringComparer.Ordinal);
+        var columnTypes = new Dictionary<string, ColumnType>(StringComparer.Ordinal);
+        var keyObservedCount = new Dictionary<string, int>(StringComparer.Ordinal);
+
         var buffer = ArrayPool<byte>.Shared.Rent(FileChunkReader.BufferSize);
         try
         {
@@ -210,7 +198,7 @@ public static class FullAggregationScanner
 
                 if (rootDone)
                 {
-                    return;
+                    return new ScanData(rows, keyOrder, columnTypes, keyObservedCount);
                 }
 
                 state = reader.CurrentState;
@@ -289,4 +277,10 @@ public static class FullAggregationScanner
             colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
         return (false, currentElementStart, recordPosition + 1);
     }
+
+    private readonly record struct ScanData(
+        List<FocusedTableRow> Rows,
+        List<string> KeyOrder,
+        Dictionary<string, ColumnType> ColumnTypes,
+        Dictionary<string, int> KeyObservedCount);
 }

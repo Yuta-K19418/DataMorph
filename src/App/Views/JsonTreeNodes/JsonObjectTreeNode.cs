@@ -21,6 +21,9 @@ internal sealed class JsonObjectTreeNode : TreeNode
     /// </summary>
     public long? RecordPosition { get; init; }
 
+    /// <summary>Parent node in the tree, used to build a KeyPath via upward traversal. Null for root nodes.</summary>
+    public ITreeNode? ParentNode { get; init; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonObjectTreeNode"/> class.
     /// </summary>
@@ -95,7 +98,7 @@ internal sealed class JsonObjectTreeNode : TreeNode
                 break;
             }
 
-            var childNode = JsonTreeNodeHelper.CreateChildNode(ref reader, propertyName, _rawJson, RecordPosition);
+            var childNode = JsonTreeNodeHelper.CreateChildNode(ref reader, propertyName, _rawJson, RecordPosition, this);
             if (childNode is not null)
             {
                 children.Add(childNode);

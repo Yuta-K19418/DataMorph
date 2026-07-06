@@ -16,40 +16,52 @@ internal static class JsonTreeNodeHelper
     /// <param name="label">The display label prefix (e.g. "name" or "[0]").</param>
     /// <param name="rawJson">The raw JSON bytes for extracting nested structures.</param>
     /// <param name="recordPosition">Ancestor root record position to propagate to child nodes.</param>
+    /// <param name="parentNode">The parent node, used to build a KeyPath via upward traversal.</param>
     /// <returns>A tree node representing the current token, or null if unrecognized.</returns>
     internal static ITreeNode? CreateChildNode(
         ref Utf8JsonReader reader,
         string label,
         JsonRawBytes rawJson,
-        long? recordPosition = null
+        long? recordPosition = null,
+        ITreeNode? parentNode = null
     )
     {
         return reader.TokenType switch
         {
-            JsonTokenType.StartObject => CreateNestedObjectNode(ref reader, label, rawJson, recordPosition),
-            JsonTokenType.StartArray => CreateNestedArrayNode(ref reader, label, rawJson, recordPosition),
+            JsonTokenType.StartObject => CreateNestedObjectNode(ref reader, label, rawJson, recordPosition, parentNode),
+            JsonTokenType.StartArray => CreateNestedArrayNode(ref reader, label, rawJson, recordPosition, parentNode),
             JsonTokenType.String => new JsonValueTreeNode(
                 $"{label}: \"{EscapeString(reader.GetString() ?? string.Empty)}\""
             )
             {
                 ValueKind = JsonValueKind.String,
+                KeyName = label,
+                ParentNode = parentNode,
             },
-            JsonTokenType.Number => CreateNumberNode(ref reader, label),
+            JsonTokenType.Number => CreateNumberNode(ref reader, label, parentNode),
             JsonTokenType.True => new JsonValueTreeNode($"{label}: true")
             {
                 ValueKind = JsonValueKind.True,
+                KeyName = label,
+                ParentNode = parentNode,
             },
             JsonTokenType.False => new JsonValueTreeNode($"{label}: false")
             {
                 ValueKind = JsonValueKind.False,
+                KeyName = label,
+                ParentNode = parentNode,
             },
             JsonTokenType.Null => new JsonValueTreeNode($"{label}: <null>")
             {
                 ValueKind = JsonValueKind.Null,
+                KeyName = label,
+                ParentNode = parentNode,
             },
             _ => new JsonValueTreeNode($"{label}: <unknown>")
             {
                 ValueKind = JsonValueKind.Undefined,
+                KeyName = label,
+                ParentNode = parentNode,
             },
         };
     }
@@ -70,7 +82,8 @@ internal static class JsonTreeNodeHelper
         ref Utf8JsonReader reader,
         string label,
         JsonRawBytes rawJson,
-        long? recordPosition
+        long? recordPosition,
+        ITreeNode? parentNode
     )
     {
         var objectBytes = JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
@@ -78,6 +91,7 @@ internal static class JsonTreeNodeHelper
         {
             KeyName = label,
             RecordPosition = recordPosition,
+            ParentNode = parentNode,
         };
     }
 
@@ -85,7 +99,8 @@ internal static class JsonTreeNodeHelper
         ref Utf8JsonReader reader,
         string label,
         JsonRawBytes rawJson,
-        long? recordPosition
+        long? recordPosition,
+        ITreeNode? parentNode
     )
     {
         var arrayBytes = JsonByteExtractor.ExtractNestedBytes(ref reader, rawJson);
@@ -93,16 +108,19 @@ internal static class JsonTreeNodeHelper
         {
             KeyName = label,
             RecordPosition = recordPosition,
+            ParentNode = parentNode,
         };
     }
 
-    private static JsonValueTreeNode CreateNumberNode(ref Utf8JsonReader reader, string label)
+    private static JsonValueTreeNode CreateNumberNode(ref Utf8JsonReader reader, string label, ITreeNode? parentNode)
     {
         if (reader.TryGetDecimal(out var decimalValue))
         {
             return new JsonValueTreeNode($"{label}: {decimalValue}")
             {
                 ValueKind = JsonValueKind.Number,
+                KeyName = label,
+                ParentNode = parentNode,
             };
         }
 
@@ -110,6 +128,8 @@ internal static class JsonTreeNodeHelper
         return new JsonValueTreeNode($"{label}: {doubleValue}")
         {
             ValueKind = JsonValueKind.Number,
+            KeyName = label,
+            ParentNode = parentNode,
         };
     }
 }

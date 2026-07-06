@@ -1,6 +1,5 @@
 using System.Text.Json;
 using DataMorph.Engine.IO.Json;
-using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
@@ -96,8 +95,8 @@ public static class DrillDownSchemaExtractor
         foreach (var childBytes in childRawValues)
         {
             var observedKeys = new HashSet<string>(StringComparer.Ordinal);
-            ScanObject(childBytes.Span, keyOrder, keySet, columnTypes, observedKeys);
-            IncrementObservationCounts(observedKeys, keyObservedCount);
+            SchemaScanner.ScanObject(childBytes.Span, keyOrder, keySet, columnTypes, observedKeys);
+            SchemaScanner.IncrementObservationCounts(observedKeys, keyObservedCount);
         }
 
         if (keyOrder.Count == 0)
@@ -105,119 +104,7 @@ public static class DrillDownSchemaExtractor
             return Results.Failure<TableSchema>("All child objects have no keys");
         }
 
-        List<ColumnSchema> columns = [];
-        for (var i = 0; i < keyOrder.Count; i++)
-        {
-            var key = keyOrder[i];
-            var observedCount = keyObservedCount.GetValueOrDefault(key);
-            columns.Add(new ColumnSchema
-            {
-                Name = key,
-                Type = columnTypes.GetValueOrDefault(key, ColumnType.Text),
-                IsNullable = observedCount < childRawValues.Count,
-                ColumnIndex = i,
-            });
-        }
-
-        return Results.Success(new TableSchema { Columns = columns, SourceFormat = format });
-    }
-
-    private static void IncrementObservationCounts(
-        HashSet<string> observedKeys,
-        Dictionary<string, int> keyObservedCount)
-    {
-        foreach (var key in observedKeys)
-        {
-            keyObservedCount[key] = keyObservedCount.GetValueOrDefault(key) + 1;
-        }
-    }
-
-    private static void ScanObject(
-        ReadOnlySpan<byte> objectBytes,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        HashSet<string> observedKeys)
-    {
-        var reader = new Utf8JsonReader(objectBytes);
-
-        if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
-        {
-            return;
-        }
-
-        while (reader.Read())
-        {
-            if (reader.TokenType == JsonTokenType.EndObject)
-            {
-                break;
-            }
-
-            ScanSingleProperty(ref reader, keyOrder, keySet, columnTypes, observedKeys);
-        }
-    }
-
-    private static void ScanSingleProperty(
-        ref Utf8JsonReader reader,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        HashSet<string> observedKeys)
-    {
-        if (reader.TokenType != JsonTokenType.PropertyName)
-        {
-            return;
-        }
-
-        var key = reader.GetString() ?? string.Empty;
-
-        if (!reader.Read())
-        {
-            return;
-        }
-
-        var tokenType = reader.TokenType;
-        var valueSpan = reader.ValueSpan;
-
-        if (tokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
-        {
-            reader.Skip();
-        }
-
-        RegisterKeyIfNew(key, keyOrder, keySet);
-
-        if (TypeInferrer.IsNullToken(tokenType))
-        {
-            return;
-        }
-
-        var inferredType = TypeInferrer.InferType(tokenType, valueSpan);
-        observedKeys.Add(key);
-        MergeColumnType(key, inferredType, columnTypes);
-    }
-
-    private static void MergeColumnType(
-        string key,
-        ColumnType inferredType,
-        Dictionary<string, ColumnType> columnTypes)
-    {
-        if (!columnTypes.TryGetValue(key, out var existingType))
-        {
-            columnTypes[key] = inferredType;
-            return;
-        }
-
-        columnTypes[key] = ColumnTypeResolver.Resolve(existingType, inferredType);
-    }
-
-    private static void RegisterKeyIfNew(string key, List<string> keyOrder, HashSet<string> keySet)
-    {
-        if (keySet.Contains(key))
-        {
-            return;
-        }
-
-        keyOrder.Add(key);
-        keySet.Add(key);
+        return Results.Success(SchemaScanner.BuildTableSchema(
+            keyOrder, columnTypes, keyObservedCount, childRawValues.Count, format));
     }
 }

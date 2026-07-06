@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 
@@ -8,10 +9,10 @@ namespace DataMorph.Tests.App.Views;
 
 public sealed class FocusedTableSourceTests
 {
-    private static readonly IReadOnlyList<JsonRawBytes> DefaultChildRawValues =
+    private static readonly IReadOnlyList<FocusedTableRow> DefaultRows =
     [
-        "{\"name\": \"Alice\", \"age\": 30}"u8.ToArray(),
-        "{\"name\": \"Bob\", \"age\": 25}"u8.ToArray(),
+        new FocusedTableRow("{\"name\": \"Alice\", \"age\": 30}"u8.ToArray(), "[0]"),
+        new FocusedTableRow("{\"name\": \"Bob\", \"age\": 25}"u8.ToArray(), "[1]"),
     ];
 
     private static readonly TableSchema DefaultSchema = new()
@@ -25,11 +26,9 @@ public sealed class FocusedTableSourceTests
     };
 
     private static DrillDownState CreateState(
-        IReadOnlyList<JsonRawBytes>? childRawValues = null,
-        TableSchema? schema = null,
-        DataFormat format = DataFormat.JsonLines,
-        long? recordPosition = 22) =>
-        new(childRawValues ?? DefaultChildRawValues, schema ?? DefaultSchema, format, recordPosition);
+        IReadOnlyList<FocusedTableRow>? rows = null,
+        TableSchema? schema = null) =>
+        new(rows ?? DefaultRows, schema ?? DefaultSchema);
 
     [Fact]
     public void Constructor_NullDrillDownState_ThrowsArgumentNullException()
@@ -42,7 +41,7 @@ public sealed class FocusedTableSourceTests
     }
 
     [Fact]
-    public void Rows_ReturnsChildCount()
+    public void Rows_ReturnsRowCount()
     {
         // Arrange
         var source = new FocusedTableSource(CreateState());
@@ -81,46 +80,18 @@ public sealed class FocusedTableSourceTests
     }
 
     [Theory]
-    [InlineData(0, "22:0")]
-    [InlineData(1, "22:1")]
-    public void Indexer_JsonLines_HashColumnFormatsAsLineNumberColonIndex(int row, string expected)
+    [InlineData(0, "[0]")]
+    [InlineData(1, "[1]")]
+    public void Indexer_HashColumn_ReturnsRowHashValue(int row, string expected)
     {
         // Arrange
-        var source = new FocusedTableSource(CreateState(format: DataFormat.JsonLines, recordPosition: 22));
+        var source = new FocusedTableSource(CreateState());
 
         // Act
         var hashCell = source[row, 0];
 
         // Assert
         hashCell.Should().Be(expected);
-    }
-
-    [Theory]
-    [InlineData(0, "5:0")]
-    [InlineData(1, "5:1")]
-    public void Indexer_JsonArray_HashColumnFormatsAsElementIndexColonIndex(int row, string expected)
-    {
-        // Arrange
-        var source = new FocusedTableSource(CreateState(format: DataFormat.JsonArray, recordPosition: 5));
-
-        // Act
-        var hashCell = source[row, 0];
-
-        // Assert
-        hashCell.Should().Be(expected);
-    }
-
-    [Fact]
-    public void Indexer_JsonObject_HashColumnFormatsAsBracketIndex()
-    {
-        // Arrange
-        var source = new FocusedTableSource(CreateState(format: DataFormat.JsonObject, recordPosition: null));
-
-        // Act
-        var hashCell = source[0, 0];
-
-        // Assert
-        hashCell.Should().Be("[0]");
     }
 
     [Fact]

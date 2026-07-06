@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using AwesomeAssertions;
 using DataMorph.App.Views.JsonTreeNodes;
+using Terminal.Gui.Views;
 
 namespace DataMorph.Tests.App.Views.JsonTreeNodes;
 
@@ -186,49 +187,143 @@ public sealed class JsonTreeNodeHelperTests
     public void CreateChildNode_NestedObject_SetsKeyNameOnReturnedNode()
     {
         // Arrange
+        var json = "{\"key\": \"value\"}";
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read(); // Move to StartObject
 
         // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, "obj", rawJson);
 
         // Assert
+        var objectNode = node.Should().BeOfType<JsonObjectTreeNode>().Subject;
+        objectNode.KeyName.Should().Be("obj");
     }
 
     [Fact]
     public void CreateChildNode_NestedArray_SetsKeyNameOnReturnedNode()
     {
         // Arrange
+        var json = "[1, 2, 3]";
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read(); // Move to StartArray
 
         // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, "arr", rawJson);
 
         // Assert
+        var arrayNode = node.Should().BeOfType<JsonArrayTreeNode>().Subject;
+        arrayNode.KeyName.Should().Be("arr");
     }
 
     [Fact]
     public void CreateChildNode_WithRecordPosition_PropagatesRecordPositionToObjectNode()
     {
         // Arrange
+        var json = "{\"key\": \"value\"}";
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read(); // Move to StartObject
 
         // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, "obj", rawJson, recordPosition: 5L);
 
         // Assert
+        var objectNode = node.Should().BeOfType<JsonObjectTreeNode>().Subject;
+        objectNode.RecordPosition.Should().Be(5L);
     }
 
     [Fact]
     public void CreateChildNode_WithRecordPosition_PropagatesRecordPositionToArrayNode()
     {
         // Arrange
+        var json = "[1, 2, 3]";
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read(); // Move to StartArray
 
         // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, "arr", rawJson, recordPosition: 7L);
 
         // Assert
+        var arrayNode = node.Should().BeOfType<JsonArrayTreeNode>().Subject;
+        arrayNode.RecordPosition.Should().Be(7L);
     }
 
     [Fact]
     public void CreateChildNode_WithNullRecordPosition_SetsNullRecordPositionOnNode()
     {
         // Arrange
+        var json = "{\"key\": \"value\"}";
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read(); // Move to StartObject
 
         // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, "obj", rawJson);
 
         // Assert
+        var objectNode = node.Should().BeOfType<JsonObjectTreeNode>().Subject;
+        objectNode.RecordPosition.Should().BeNull();
+    }
+
+    [Fact]
+    public void CreateChildNode_WithObjectToken_PropagatesParentNodeAndKeyName()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("{\"k\":\"v\"}");
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read();
+        ITreeNode parent = new JsonValueTreeNode("parent");
+
+        // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, "obj", rawJson, parentNode: parent);
+
+        // Assert
+        var objectNode = node.Should().BeOfType<JsonObjectTreeNode>().Subject;
+        objectNode.KeyName.Should().Be("obj");
+        objectNode.ParentNode.Should().BeSameAs(parent);
+    }
+
+    [Fact]
+    public void CreateChildNode_WithArrayToken_PropagatesParentNodeAndKeyName()
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes("[1]");
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read();
+        ITreeNode parent = new JsonValueTreeNode("parent");
+
+        // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, "arr", rawJson, parentNode: parent);
+
+        // Assert
+        var arrayNode = node.Should().BeOfType<JsonArrayTreeNode>().Subject;
+        arrayNode.KeyName.Should().Be("arr");
+        arrayNode.ParentNode.Should().BeSameAs(parent);
+    }
+
+    [Theory]
+    [InlineData("\"s\"", "str")]
+    [InlineData("1", "num")]
+    [InlineData("true", "t")]
+    [InlineData("false", "f")]
+    [InlineData("null", "nul")]
+    public void CreateChildNode_WithValueToken_PropagatesParentNodeAndKeyName(string json, string label)
+    {
+        // Arrange
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read();
+        ITreeNode parent = new JsonValueTreeNode("parent");
+
+        // Act
+        var node = JsonTreeNodeHelper.CreateChildNode(ref reader, label, rawJson, parentNode: parent);
+
+        // Assert
+        var valueNode = node.Should().BeOfType<JsonValueTreeNode>().Subject;
+        valueNode.KeyName.Should().Be(label);
+        valueNode.ParentNode.Should().BeSameAs(parent);
     }
 }

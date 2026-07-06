@@ -18,6 +18,9 @@ internal sealed class JsonArrayTreeNode : TreeNode
     /// <summary>Ancestor root record position. Same semantics as JsonObjectTreeNode.RecordPosition.</summary>
     public long? RecordPosition { get; init; }
 
+    /// <summary>Parent node in the tree, used to build a KeyPath via upward traversal. Null for root nodes.</summary>
+    public ITreeNode? ParentNode { get; init; }
+
     /// <summary>Raw JSON bytes of this node.</summary>
     internal JsonRawBytes RawJson => _rawJson;
 
@@ -88,7 +91,8 @@ internal sealed class JsonArrayTreeNode : TreeNode
                 ref reader,
                 $"[{elementIndex}]",
                 _rawJson,
-                RecordPosition
+                RecordPosition,
+                this
             );
             if (elementNode is not null)
             {

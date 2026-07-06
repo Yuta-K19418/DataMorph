@@ -2,6 +2,7 @@ using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
 using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
@@ -200,10 +201,8 @@ public sealed class FileDialogHandlerTests : IDisposable
             Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }]
         };
         state.DrillDown = new DrillDownState(
-            [JsonRawBytes.Empty],
-            schema,
-            DataFormat.JsonObject,
-            RecordPosition: 1);
+            [new FocusedTableRow(JsonRawBytes.Empty, "[0]")],
+            schema);
 
         var handler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
 

@@ -1,8 +1,11 @@
 using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
+using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO.DrillDown;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
+using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
 namespace DataMorph.Tests.App;
@@ -200,8 +203,124 @@ public sealed class AppKeyHandlerTests
         state.ActionStack.Should().BeEmpty();
     }
 
-    // Note: MessageBox.Query display is not unit-testable (requires TUI event loop).
-    // This scenario requires integration testing with TUI event loop support.
+    // MessageBox.Query display is not unit-testable; requires TUI event loop integration testing.
+
+    // BuildKeyPath is exposed as internal static (same pattern as IsGlobalShortcut) so its tests call it directly. HandleSingleDrillDown and HandleActionMenu are tested indirectly through the real ActionMenuDialog; the DrillDown path is driven by an app.Iteration Enter-key press.
+    [Fact]
+    public void BuildKeyPath_WithRootSelection_ReturnsEmptyKeyPath()
+    {
+        // Arrange
+        ITreeNode rootNode = new JsonValueTreeNode("root");
+
+        // Act
+        var keyPath = AppKeyHandler.BuildKeyPath(rootNode);
+
+        // Assert
+        keyPath.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void BuildKeyPath_WithNestedObjectArraySelection_ReturnsOrderedSegmentsWithIndex()
+    {
+        // Arrange
+        var root = new JsonObjectTreeNode("{}"u8.ToArray());
+        var ordersArray = new JsonArrayTreeNode("[]"u8.ToArray()) { KeyName = "orders", ParentNode = root };
+        var element0 = new JsonObjectTreeNode("{}"u8.ToArray()) { KeyName = "[0]", ParentNode = ordersArray };
+
+        // Act
+        var keyPath = AppKeyHandler.BuildKeyPath(element0);
+
+        // Assert
+        keyPath.Should().Equal(
+            new KeyPathSegment("orders", KeyPathSegmentKind.Key),
+            new KeyPathSegment("[0]", KeyPathSegmentKind.Index));
+    }
+
+    [Fact]
+    public void HandleActionMenu_WithJsonObjectFormatAndArrayNode_DispatchesSingleDrillDown()
+    {
+        // Arrange
+        var filePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.json");
+        File.WriteAllText(filePath, "{\"orders\":[{\"id\":1},{\"id\":2}]}");
+        try
+        {
+            using var app = CreateTestApp();
+            using var state = new AppState { CurrentFilePath = filePath };
+            using var window = new Window();
+            var modeController = new ModeController(state);
+            using var viewManager = new ViewManager(window, state, modeController, action => action());
+            viewManager.SwitchToJsonObjectTree([("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray())]);
+            var treeView = (MorphTreeView)viewManager.GetCurrentView()!;
+            treeView.SelectedObject = JsonObjectTreeView.CreateKeyNode("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray());
+            var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
+            var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+            using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+            app.Iteration += (_, _) => app.Keyboard.RaiseKeyDownEvent(Key.Enter);
+
+            // Act — HandleActionMenu detects JsonObject format and dispatches to HandleSingleDrillDown,
+            // which runs an ActionMenuDialog confirmed here via the Enter-key pattern.
+            var result = handler.HandleActionMenu();
+
+            // Assert
+            result.Should().BeTrue();
+            state.CurrentMode.Should().Be(ViewMode.FocusedTable);
+            viewManager.GetCurrentView().Should().BeOfType<FocusedTableView>();
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidSingleDrillDownSelections))]
+    public void HandleActionMenu_WhenSelectedNodeInvalidForSingleDrillDown_ReturnsFalse(ITreeNode selectedNode)
+    {
+        // Arrange — drive the guards indirectly through HandleActionMenu (same pattern as
+        // HandleActionMenu_WhenCurrentViewIsNotMorphTableView_ReturnsFalse). The guard clauses
+        // return before the ActionMenuDialog is shown, so no Enter-key confirmation is needed.
+        var filePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.json");
+        File.WriteAllText(filePath, "{\"orders\":[{\"id\":1},{\"id\":2}]}");
+        try
+        {
+            using var app = CreateTestApp();
+            using var state = new AppState { CurrentFilePath = filePath };
+            using var window = new Window();
+            var modeController = new ModeController(state);
+            using var viewManager = new ViewManager(window, state, modeController, action => action());
+            viewManager.SwitchToJsonObjectTree([("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray())]);
+            var treeView = (MorphTreeView)viewManager.GetCurrentView()!;
+            treeView.SelectedObject = selectedNode;
+            var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
+            var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+            using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+
+            // Act
+            var result = handler.HandleActionMenu();
+
+            // Assert
+            result.Should().BeFalse();
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    /// <summary>
+    /// One ITreeNode fixture per HandleSingleDrillDown guard clause (see the guard comments below for details).
+    /// </summary>
+    public static IEnumerable<object[]> InvalidSingleDrillDownSelections()
+    {
+        // Guard 1: a primitive value node is not a JsonArrayTreeNode.
+        yield return [(object)new JsonValueTreeNode("not-an-array")];
+
+        // Guard 2: array whose lazy Children parse to zero elements.
+        yield return [(object)new JsonArrayTreeNode("[]"u8.ToArray())];
+
+        // Guard 3: mixed-type children (object + value) fail the "all children must be objects" check.
+        yield return [(object)new JsonArrayTreeNode("[{},1]"u8.ToArray())];
+    }
 
     private static IApplication CreateTestApp()
     {

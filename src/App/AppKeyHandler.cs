@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Views;
 using DataMorph.App.Views.Dialogs;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -199,18 +201,7 @@ internal sealed class AppKeyHandler : IDisposable
 
         if (currentView is MorphTreeView tv)
         {
-            if (tv.SelectedObject is not JsonArrayTreeNode arrayNode)
-            {
-                return false;
-            }
-
-            var children = arrayNode.Children;
-            if (children.Count == 0)
-            {
-                return false;
-            }
-
-            if (children.Any(c => c is not JsonObjectTreeNode))
+            if (tv.SelectedObject is not ITreeNode selectedNode)
             {
                 return false;
             }
@@ -222,20 +213,133 @@ internal sealed class AppKeyHandler : IDisposable
                 return false;
             }
 
-            var request = new DrillDownRequest(
-                Format: treeFormat.Value,
-                NodeBytes: arrayNode.RawJson,
-                KeyName: arrayNode.KeyName,
-                RecordPosition: arrayNode.RecordPosition);
+            if (treeFormat.Value == DataFormat.JsonObject)
+            {
+                return HandleSingleDrillDown(selectedNode, treeFormat.Value);
+            }
 
-            void onDrillDownConfirmed(string actionName) => _viewManager.DrillDown(request);
-
-            var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
-            _app.Run(dialog);
-            return true;
+            return HandleFullAggregationDrillDown(selectedNode, treeFormat.Value);
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Single-node DrillDown: JSON Object format only. Requires the selected node to be a
+    /// <see cref="JsonArrayTreeNode"/> whose direct children are all <see cref="JsonObjectTreeNode"/>.
+    /// </summary>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
+    private bool HandleSingleDrillDown(ITreeNode selectedNode, DataFormat format)
+    {
+        if (selectedNode is not JsonArrayTreeNode arrayNode)
+        {
+            return false;
+        }
+
+        var children = arrayNode.Children;
+        if (children.Count == 0)
+        {
+            return false;
+        }
+
+        if (children.Any(c => c is not JsonObjectTreeNode))
+        {
+            return false;
+        }
+
+        var request = new SingleDrillDownRequest(
+            Format: format,
+            NodeBytes: arrayNode.RawJson);
+
+        void onDrillDownConfirmed(string actionName) => _viewManager.DrillDown(request);
+
+        var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
+        _app.Run(dialog);
+        return true;
+    }
+
+    /// <summary>
+    /// Full Aggregation DrillDown: JSON Lines / JSON Array format, any node type, always a full file scan.
+    /// </summary>
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
+    private bool HandleFullAggregationDrillDown(ITreeNode selectedNode, DataFormat format)
+    {
+        var keyPath = BuildKeyPath(selectedNode);
+        var request = new FullAggregationDrillDownRequest(
+            Format: format,
+            KeyPath: keyPath);
+
+        void onDrillDownConfirmed(string actionName) =>
+            _ = _viewManager.FullAggregationDrillDownAsync(request)
+                .AsTask()
+                .ContinueWith(HandleTaskError, TaskScheduler.Default);
+
+        var dialog = new ActionMenuDialog(["DrillDown"], onDrillDownConfirmed);
+        _app.Run(dialog);
+        return true;
+    }
+
+    /// <summary>
+    /// Reports an unhandled exception from a fire-and-forget async operation via the error view.
+    /// </summary>
+    private void HandleTaskError(Task task)
+    {
+        if (task.IsFaulted && task.Exception is not null)
+        {
+            _app.Invoke(() => _viewManager.ShowError(task.Exception.InnerException?.Message ?? task.Exception.Message));
+        }
+    }
+
+    /// <summary>
+    /// Traverses the <c>ParentNode</c> chain from <paramref name="node"/> up to the root,
+    /// collecting <c>KeyName</c> segments in bottom-up order, then reverses to produce a
+    /// root-to-leaf KeyPath.
+    /// </summary>
+    /// <param name="node">The selected tree node to build the KeyPath from.</param>
+    /// <returns>An ordered list of path segments from root to <paramref name="node"/>.</returns>
+    [SuppressMessage(
+        "Performance",
+        "CA1859:Use concrete types when possible for improved performance",
+        Justification = "IReadOnlyList<KeyPathSegment> is the KeyPath contract shared with FullAggregationDrillDownRequest; " +
+            "the concrete List<KeyPathSegment> used to build it is an implementation detail that should not leak out."
+    )]
+    internal static IReadOnlyList<KeyPathSegment> BuildKeyPath(ITreeNode node)
+    {
+        List<KeyPathSegment> segments = [];
+        var current = node;
+
+        while (current is JsonObjectTreeNode or JsonArrayTreeNode or JsonValueTreeNode)
+        {
+            var (keyName, parent) = current switch
+            {
+                JsonObjectTreeNode obj => (obj.KeyName, obj.ParentNode),
+                JsonArrayTreeNode arr => (arr.KeyName, arr.ParentNode),
+                JsonValueTreeNode val => (val.KeyName, val.ParentNode),
+                _ => throw new UnreachableException(),
+            };
+
+            if (keyName is not null)
+            {
+                // An array element's parent is the JsonArrayTreeNode that labeled it "[n]"; every
+                // other node is an object property. Tagging by parent type — not by the label text —
+                // keeps a literal object key such as "[0]" from colliding with an index marker.
+                var kind = parent is JsonArrayTreeNode ? KeyPathSegmentKind.Index : KeyPathSegmentKind.Key;
+                segments.Add(new KeyPathSegment(keyName, kind));
+            }
+
+            current = parent;
+        }
+
+        segments.Reverse();
+        return segments;
     }
 
     /// <summary>

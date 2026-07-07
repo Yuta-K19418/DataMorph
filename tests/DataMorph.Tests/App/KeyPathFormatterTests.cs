@@ -45,15 +45,4 @@ public sealed class KeyPathFormatterTests
         // Assert
         Assert.Fail("Not implemented");
     }
-
-    [Fact]
-    public void Format_ReturnsSegmentRangesForClickMapping()
-    {
-        // Arrange — each segment's (start, length) range maps a click X back to a segment index
-
-        // Act
-
-        // Assert
-        Assert.Fail("Not implemented");
-    }
 }

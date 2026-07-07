@@ -20,14 +20,13 @@ Displays the current location in the JSON hierarchy as a breadcrumb bar at the t
 | `CsvTable` | ❌ | No hierarchical structure |
 
 **Out of scope (deferred):**
-- Clicking a **FocusedTable** breadcrumb segment to jump back into Tree mode at that ancestor
-  level. This needs a "return to Tree and restore selection at an arbitrary ancestor" mechanism,
-  which `docs/design_drilldown_command_phase2.md` already deferred under "Back / Undo navigation
-  (Backspace to return to Tree)". Building that is a separate, non-trivial feature and should be
-  tracked as its own follow-up rather than bundled here.
-- Exhaustive mouse-support verification across terminal emulators. Click handling is implemented
-  on a best-effort basis using Terminal.Gui's standard mouse API; not every terminal/driver
-  combination will be tested.
+- Clicking a breadcrumb segment to navigate (jump the Tree selection to that ancestor, or jump a
+  **FocusedTable** breadcrumb back into Tree mode at that ancestor level). This is a TUI app
+  primarily driven by keyboard (vim-key tree navigation); the click use case is unclear and a
+  click affordance is easy to miss in a terminal. Omitted from this issue entirely — track as its
+  own follow-up if there's real demand for it. This also removes the need for
+  `KeyPathFormatter.Format` to report per-segment column ranges and for `BreadcrumbBar` to expose
+  a `SegmentActivated` event; `BreadcrumbBar` is display-only.
 
 ---
 
@@ -147,17 +146,15 @@ when converting Tree → Table"). See 3.5 for why the two DrillDown variants nee
 ### 3.5 Rendering: `BreadcrumbBar` + index-collapsing rule
 
 New `src/App/Views/BreadcrumbBar.cs`, a small `View` (single row, `Y=1` — see 3.6 for exact
-placement) that renders a formatted path string and exposes:
+placement) that renders a formatted path string. Display-only, no click handling (see Scope):
 
 ```csharp
 internal void SetPath(IReadOnlyList<KeyPathSegment> path, bool collapseIndices);
-internal event Action<int>? SegmentActivated; // clicked segment's 0-based index
 ```
 
 Formatting is delegated to a new static `src/App/KeyPathFormatter.cs`
 (`Format(IReadOnlyList<KeyPathSegment> path, bool collapseIndices)` → e.g. `"root → data →
-orders[*]"`), which also returns the column range of each rendered segment so `BreadcrumbBar` can
-map a mouse click's X position back to a segment index.
+orders[*]"`).
 
 **`collapseIndices` decision:** per `docs/design_drilldown_command_phase2.md` §1.3, discarding the
 specific array index and expanding every element (`orders` and `orders[0]` produce identical
@@ -224,33 +221,19 @@ Terminal.Gui `Adornments` (Padding/Border/Margin) were considered and rejected: 
 single view's own bounds, not a sibling relationship ("bar above container"), so a container +
 `Pos.Bottom` is the correct fit here.
 
-### 3.7 Parent-level navigation (Tree modes only, in scope)
-
-Clicking a breadcrumb segment (or a to-be-decided keyboard shortcut) while in a Tree mode moves
-the tree's selection to that ancestor node and scrolls it into view. The ancestor node is already
-materialized in memory (it's on the `ParentNode` chain of the currently selected node), so no
-re-scan is needed — this is a pure selection/scroll operation.
-
-**Open item for implementation:** the exact Terminal.Gui v2 API to select-and-scroll-to an
-already-known node (e.g. `TreeView.GoTo(object)`, or manually setting `SelectedObject` plus a
-scroll/`EnsureVisible` call) is not yet confirmed. To be verified during Step 1/2 implementation
-rather than guessed here.
-
 ---
 
 ## 4. Testing
 
 - `KeyPathBuilderTests.cs` (moved from `AppKeyHandlerTests.cs`, renamed type only).
 - `KeyPathFormatterTests.cs` (new): empty path → `"root"`; key-only path; path containing an
-  `Index` segment with `collapseIndices: true` vs `false`; segment-range output used for click
-  mapping.
+  `Index` segment with `collapseIndices: true` vs `false`.
 - `ViewManagerTests.cs`: extend to cover the Phase 1 vs Phase 2 `collapseIndices` distinction from
   3.4/3.5 directly — a `SingleDrillDownRequest` result with an `Index` segment in its `KeyPath`
   must render the literal index (`collapseIndices: false`), while a
   `FullAggregationDrillDownRequest` result with an `Index` segment must render `[*]`
   (`collapseIndices: true`). This is the regression test for Finding 1 of the design review.
-- `BreadcrumbBarTests.cs` (new): `SetPath` updates displayed text; a simulated click within a
-  segment's column range raises `SegmentActivated` with the correct index.
+- `BreadcrumbBarTests.cs` (new): `SetPath` updates displayed text.
 - `AppStateTests.cs`: extend for `CurrentKeyPath` default (`[]`) — likely a small addition to an
   existing test file rather than a new one.
 - Extend existing `JsonLinesTreeViewTests` / `JsonArrayTreeViewTests` / `JsonObjectTreeViewTests`

@@ -657,6 +657,29 @@ public sealed class ViewManagerTests : IDisposable
         state.CurrentMode.Should().Be(ViewMode.FileSelection);
     }
 
+    [Fact]
+    public void DrillDown_WithIndexSegmentInKeyPath_RendersLiteralIndexInBreadcrumb()
+    {
+        // Arrange — SingleDrillDownRequest (Phase 1) must not collapse array indices
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public async Task FullAggregationDrillDownAsync_WithIndexSegmentInKeyPath_RendersCollapsedIndexInBreadcrumb()
+    {
+        // Arrange — FullAggregationDrillDownRequest (Phase 2) collapses array indices to [*]
+
+        // Act
+        await Task.CompletedTask;
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
     /// <summary>
     /// Mock IRowIndexer for testing.
     /// </summary>

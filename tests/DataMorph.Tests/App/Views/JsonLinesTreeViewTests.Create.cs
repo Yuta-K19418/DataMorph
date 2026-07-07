@@ -14,7 +14,7 @@ public sealed partial class JsonLinesTreeViewTests
         using var app = CreateTestApp();
 
         // Act
-        var act = () => JsonLinesTreeView.Create(null!, () => { }, SynchronousUiThreadInvoke);
+        var act = () => JsonLinesTreeView.Create(null!, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -30,7 +30,7 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        var act = () => JsonLinesTreeView.Create(indexer, null!, SynchronousUiThreadInvoke);
+        var act = () => JsonLinesTreeView.Create(indexer, null!, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -46,7 +46,23 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        var act = () => JsonLinesTreeView.Create(indexer, () => { }, null!);
+        var act = () => JsonLinesTreeView.Create(indexer, () => { }, _ => { }, null!);
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Create_WithNullOnPathChanged_ThrowsArgumentNullException()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        var filePath = CreateTempFile("{\"a\":1}");
+        var indexer = new RowIndexer(filePath);
+        indexer.BuildIndex();
+
+        // Act
+        var act = () => JsonLinesTreeView.Create(indexer, () => { }, null!, SynchronousUiThreadInvoke);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -62,7 +78,7 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        using var view = JsonLinesTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert
         var objects = view.Objects;
@@ -84,7 +100,7 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        using var view = JsonLinesTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert
         var objects = view.Objects;
@@ -106,7 +122,7 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        using var view = JsonLinesTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert
         var objects = view.Objects;
@@ -128,7 +144,7 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        using var view = JsonLinesTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert
         var objects = view.Objects;
@@ -151,7 +167,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 0);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert
         var objects = view.Objects;
@@ -171,7 +187,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 3);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert — only 2 nodes added (Empty for index 2 is skipped)
         var objects = view.Objects;
@@ -191,7 +207,7 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        using var view = JsonLinesTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert — IsIndexingCompleted is true, TotalRows=2500, range nodes
         var objects = view.Objects;
@@ -213,7 +229,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 5000, fakeIsCompleted: true, fakeFileSize: 200_000_000);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert — 3 range nodes: [1-2000], [2001-4000], [4001-5000]
         var objects = view.Objects;
@@ -237,7 +253,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 0, fakeIsCompleted: false);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert — no nodes yet (TotalRows = 0)
         var objectsEmpty = view.Objects;
@@ -268,7 +284,7 @@ public sealed partial class JsonLinesTreeViewTests
         indexer.BuildIndex();
 
         // Act
-        using var view = JsonLinesTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert — DelegateTreeBuilder prevents eager loading via AddObject()
         var objects = view.Objects;
@@ -290,7 +306,7 @@ public sealed partial class JsonLinesTreeViewTests
 
         // Act — Create enters the in-progress branch (first check = false),
         // subscribes to events, then TOCTOU check finds completed → manual _completedHandler
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert — TOCTOU path uses AddNodesBatch which creates 1 range node (count=3)
         // because totalRows=3 < nodeGroupSize=1000 → remainder node only
@@ -313,7 +329,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 0, fakeIsCompleted: false);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Simulate progressive loading — 3500 rows indexed so far
         stubIndexer.UpdateTotalRows(3500);
@@ -349,7 +365,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 0, fakeIsCompleted: false);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Assert — successive progress fires advance the count without duplicating
         stubIndexer.UpdateTotalRows(3000);
@@ -380,7 +396,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 0, fakeIsCompleted: false);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         stubIndexer.UpdateTotalRows(3500);
         stubIndexer.RaiseProgressChanged(0, stubIndexer.FileSize);
@@ -407,7 +423,7 @@ public sealed partial class JsonLinesTreeViewTests
         var realIndexer = new RowIndexer(filePath);
         realIndexer.BuildIndex();
         var stubIndexer = new StubRowIndexer(realIndexer, 0, fakeIsCompleted: false);
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         stubIndexer.UpdateTotalRows(3000);
         stubIndexer.RaiseProgressChanged(0, stubIndexer.FileSize);
@@ -438,7 +454,7 @@ public sealed partial class JsonLinesTreeViewTests
         var stubIndexer = new StubRowIndexer(realIndexer, 0, fakeIsCompleted: false);
 
         // Act
-        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonLinesTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         stubIndexer.UpdateTotalRows(3000);
         stubIndexer.RaiseProgressChanged(0, stubIndexer.FileSize);

@@ -13,12 +13,18 @@ internal abstract class MorphTreeView : TreeView
 {
     private readonly VimKeyTranslator _vimKeys = new();
     private readonly Action _onTableModeToggle;
+    private readonly Action<ITreeNode?> _onSelectionChanged;
 
-    protected MorphTreeView(Action onTableModeToggle)
+    protected MorphTreeView(Action onTableModeToggle, Action<ITreeNode?> onSelectionChanged)
     {
         ArgumentNullException.ThrowIfNull(onTableModeToggle);
+        ArgumentNullException.ThrowIfNull(onSelectionChanged);
         _onTableModeToggle = onTableModeToggle;
+        _onSelectionChanged = onSelectionChanged;
         Accepted += OnAccepted;
+        // A single subscription covers both vim-key (AdjustSelection) and native arrow-key
+        // navigation, since both update SelectedObject and raise SelectionChanged.
+        SelectionChanged += (_, _) => _onSelectionChanged(SelectedObject is ITreeNode node ? node : null);
     }
 
     private void OnAccepted(object? sender, CommandEventArgs e)

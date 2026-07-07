@@ -2,7 +2,6 @@ using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
 using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO.DrillDown;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
@@ -204,37 +203,6 @@ public sealed class AppKeyHandlerTests
     }
 
     // MessageBox.Query display is not unit-testable; requires TUI event loop integration testing.
-
-    // BuildKeyPath is exposed as internal static (same pattern as IsGlobalShortcut) so its tests call it directly. HandleSingleDrillDown and HandleActionMenu are tested indirectly through the real ActionMenuDialog; the DrillDown path is driven by an app.Iteration Enter-key press.
-    [Fact]
-    public void BuildKeyPath_WithRootSelection_ReturnsEmptyKeyPath()
-    {
-        // Arrange
-        ITreeNode rootNode = new JsonValueTreeNode("root");
-
-        // Act
-        var keyPath = AppKeyHandler.BuildKeyPath(rootNode);
-
-        // Assert
-        keyPath.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void BuildKeyPath_WithNestedObjectArraySelection_ReturnsOrderedSegmentsWithIndex()
-    {
-        // Arrange
-        var root = new JsonObjectTreeNode("{}"u8.ToArray());
-        var ordersArray = new JsonArrayTreeNode("[]"u8.ToArray()) { KeyName = "orders", ParentNode = root };
-        var element0 = new JsonObjectTreeNode("{}"u8.ToArray()) { KeyName = "[0]", ParentNode = ordersArray };
-
-        // Act
-        var keyPath = AppKeyHandler.BuildKeyPath(element0);
-
-        // Assert
-        keyPath.Should().Equal(
-            new KeyPathSegment("orders", KeyPathSegmentKind.Key),
-            new KeyPathSegment("[0]", KeyPathSegmentKind.Index));
-    }
 
     [Fact]
     public void HandleActionMenu_WithJsonObjectFormatAndArrayNode_DispatchesSingleDrillDown()

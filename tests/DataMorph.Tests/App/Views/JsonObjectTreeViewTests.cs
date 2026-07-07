@@ -111,7 +111,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
         IReadOnlyList<(string key, JsonRawBytes value)> nullEntries = null!;
 
         // Act
-        var act = () => JsonObjectTreeView.Create(nullEntries, () => { });
+        var act = () => JsonObjectTreeView.Create(nullEntries, () => { }, _ => { });
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -124,7 +124,20 @@ public sealed class JsonObjectTreeViewTests : IDisposable
         IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
 
         // Act
-        var act = () => JsonObjectTreeView.Create(entries, null!);
+        var act = () => JsonObjectTreeView.Create(entries, null!, _ => { });
+
+        // Assert
+        act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Create_WithNullOnPathChanged_ThrowsArgumentNullException()
+    {
+        // Arrange
+        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
+
+        // Act
+        var act = () => JsonObjectTreeView.Create(entries, () => { }, null!);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
@@ -137,7 +150,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
         IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
 
         // Act
-        using var view = JsonObjectTreeView.Create(entries, () => { });
+        using var view = JsonObjectTreeView.Create(entries, () => { }, _ => { });
 
         // Assert
         view.Objects.Should().BeEmpty();
@@ -155,7 +168,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
         ];
 
         // Act
-        using var view = JsonObjectTreeView.Create(entries, () => { });
+        using var view = JsonObjectTreeView.Create(entries, () => { }, _ => { });
 
         // Assert
         view.Objects.Should().HaveCount(3);

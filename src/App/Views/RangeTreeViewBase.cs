@@ -21,9 +21,10 @@ internal abstract class RangeTreeViewBase : MorphTreeView
     protected RangeTreeViewBase(
         IRowIndexer indexer,
         Action onTableModeToggle,
+        Action<ITreeNode?> onSelectionChanged,
         Action<Action> uiThreadInvoke,
         long nodeGroupSize)
-        : base(onTableModeToggle)
+        : base(onTableModeToggle, onSelectionChanged)
     {
         Indexer = indexer;
         _uiThreadInvoke = uiThreadInvoke;

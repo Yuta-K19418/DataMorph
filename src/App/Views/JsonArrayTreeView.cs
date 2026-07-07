@@ -1,6 +1,8 @@
 using DataMorph.App.Views.JsonRangeTreeNodes;
 using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonArray;
+using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
 
@@ -17,9 +19,10 @@ internal sealed class JsonArrayTreeView : RangeTreeViewBase
         IRowIndexer indexer,
         ElementReader reader,
         Action onTableModeToggle,
+        Action<ITreeNode?> onSelectionChanged,
         Action<Action> uiThreadInvoke,
         long nodeGroupSize)
-        : base(indexer, onTableModeToggle, uiThreadInvoke, nodeGroupSize)
+        : base(indexer, onTableModeToggle, onSelectionChanged, uiThreadInvoke, nodeGroupSize)
     {
         _reader = reader;
     }
@@ -29,20 +32,28 @@ internal sealed class JsonArrayTreeView : RangeTreeViewBase
     /// </summary>
     /// <param name="indexer">The row indexer for the JSON Array file.</param>
     /// <param name="onTableModeToggle">Callback invoked when the user presses 't'.</param>
+    /// <param name="onPathChanged">Callback invoked with the current selection's KeyPath whenever the cursor moves.</param>
     /// <param name="uiThreadInvoke">Marshals actions to the UI thread for thread-safe <c>AddObject</c> calls.</param>
     /// <returns>A new <see cref="JsonArrayTreeView"/> instance populated with element or range nodes.</returns>
     internal static JsonArrayTreeView Create(
         IRowIndexer indexer,
         Action onTableModeToggle,
+        Action<IReadOnlyList<KeyPathSegment>> onPathChanged,
         Action<Action> uiThreadInvoke)
     {
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(onTableModeToggle);
+        ArgumentNullException.ThrowIfNull(onPathChanged);
         ArgumentNullException.ThrowIfNull(uiThreadInvoke);
 
         var nodeGroupSize = RangePartitionPolicy.GetNodeGroupSize(indexer.FileSize);
         var view = new JsonArrayTreeView(
-            indexer, new ElementReader(indexer.FilePath), onTableModeToggle, uiThreadInvoke, nodeGroupSize);
+            indexer,
+            new ElementReader(indexer.FilePath),
+            onTableModeToggle,
+            node => onPathChanged(node is null ? [] : KeyPathBuilder.Build(node)),
+            uiThreadInvoke,
+            nodeGroupSize);
 
         if (indexer.IsIndexingCompleted)
         {

@@ -102,4 +102,15 @@ public sealed class AppStateTests
         originalList.Should().HaveCount(1);
         state.ActionStack.Should().BeEmpty();
     }
+
+    [Fact]
+    public void CurrentKeyPath_Default_IsEmpty()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
 }

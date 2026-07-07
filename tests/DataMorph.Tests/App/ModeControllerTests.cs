@@ -152,7 +152,8 @@ public sealed class ModeControllerTests : IDisposable
         JsonRawBytes nodeBytes = Encoding.UTF8.GetBytes($"[{children}]");
         var request = new SingleDrillDownRequest(
             Format: DataMorph.Engine.Types.DataFormat.JsonObject,
-            NodeBytes: nodeBytes);
+            NodeBytes: nodeBytes,
+            KeyPath: []);
         using var state = new AppState();
         var controller = new ModeController(state);
         var expectedHashValues = Enumerable.Range(0, childCount).Select(i => $"[{i}]");

@@ -1,4 +1,5 @@
 using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 
@@ -20,6 +21,13 @@ internal sealed class AppState : IDisposable
     /// Gets or sets the current view mode.
     /// </summary>
     public ViewMode CurrentMode { get; set; } = ViewMode.FileSelection;
+
+    /// <summary>
+    /// Gets or sets the KeyPath of the location currently on screen.
+    /// Only meaningful while <see cref="CurrentMode"/> is a Tree mode or FocusedTable — updated
+    /// on tree cursor movement and when DrillDown is triggered.
+    /// </summary>
+    public IReadOnlyList<KeyPathSegment> CurrentKeyPath { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the table schema for the loaded file.

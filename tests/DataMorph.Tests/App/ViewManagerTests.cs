@@ -1,3 +1,4 @@
+using System.Text;
 using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
@@ -658,26 +659,127 @@ public sealed class ViewManagerTests : IDisposable
     }
 
     [Fact]
+    public void SwitchToCsvTable_WithStaleKeyPath_ResetsCurrentKeyPath()
+    {
+        // Arrange — a leftover KeyPath from a prior Tree/FocusedTable session must not leak into CsvTable
+        var filePath = CreateTempFile(".csv", "col1\nvalue1\n");
+        using var app = CreateTestApp();
+        using var state = new AppState
+        {
+            CurrentFilePath = filePath,
+            CurrentKeyPath = [new KeyPathSegment("stale", KeyPathSegmentKind.Key)],
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        var schema = new TableSchema
+        {
+            SourceFormat = DataFormat.Csv,
+            Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }]
+        };
+
+        // Act
+        viewManager.SwitchToCsvTable(new MockRowIndexer(filePath), schema);
+
+        // Assert
+        state.CurrentKeyPath.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SwitchToJsonLinesTableView_WithStaleKeyPath_ResetsCurrentKeyPath()
+    {
+        // Arrange — a leftover KeyPath from a prior Tree/FocusedTable session must not leak into JsonLinesTable
+        var filePath = CreateTempFile(".jsonl", "{\"col1\": \"value\"}\n");
+        using var app = CreateTestApp();
+        using var state = new AppState
+        {
+            CurrentFilePath = filePath,
+            CurrentKeyPath = [new KeyPathSegment("stale", KeyPathSegmentKind.Key)],
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        var schema = new TableSchema
+        {
+            SourceFormat = DataFormat.JsonLines,
+            Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }]
+        };
+
+        // Act
+        viewManager.SwitchToJsonLinesTableView(new MockRowIndexer(filePath), schema);
+
+        // Assert
+        state.CurrentKeyPath.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SwitchToFileSelection_WithStaleKeyPath_ResetsCurrentKeyPath()
+    {
+        // Arrange — a leftover KeyPath from a prior Tree/FocusedTable session must not leak into FileSelection
+        using var app = CreateTestApp();
+        using var state = new AppState
+        {
+            CurrentKeyPath = [new KeyPathSegment("stale", KeyPathSegmentKind.Key)],
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        // Act
+        viewManager.SwitchToFileSelection();
+
+        // Assert
+        state.CurrentKeyPath.Should().BeEmpty();
+    }
+
+    [Fact]
     public void DrillDown_WithIndexSegmentInKeyPath_RendersLiteralIndexInBreadcrumb()
     {
         // Arrange — SingleDrillDownRequest (Phase 1) must not collapse array indices
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var request = new SingleDrillDownRequest(
+            DataFormat.JsonObject,
+            Encoding.UTF8.GetBytes("[{\"a\":1}]"),
+            [
+                new KeyPathSegment("list", KeyPathSegmentKind.Key),
+                new KeyPathSegment("[0]", KeyPathSegmentKind.Index),
+            ]);
 
         // Act
+        viewManager.DrillDown(request);
 
         // Assert
-        Assert.Fail("Not implemented");
+        window.SubViews.OfType<BreadcrumbBar>().Single().Text.Should().Be("list[0]");
     }
 
     [Fact]
     public async Task FullAggregationDrillDownAsync_WithIndexSegmentInKeyPath_RendersCollapsedIndexInBreadcrumb()
     {
         // Arrange — FullAggregationDrillDownRequest (Phase 2) collapses array indices to [*]
+        var filePath = CreateTempFile(".jsonl", "{\"list\":[{\"a\":1}]}\n");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var request = new FullAggregationDrillDownRequest(
+            DataFormat.JsonLines,
+            [
+                new KeyPathSegment("list", KeyPathSegmentKind.Key),
+                new KeyPathSegment("[0]", KeyPathSegmentKind.Index),
+            ]);
 
         // Act
-        await Task.CompletedTask;
+        await viewManager.FullAggregationDrillDownAsync(request);
 
         // Assert
-        Assert.Fail("Not implemented");
+        window.SubViews.OfType<BreadcrumbBar>().Single().Text.Should().Be("list[*]");
     }
 
     /// <summary>

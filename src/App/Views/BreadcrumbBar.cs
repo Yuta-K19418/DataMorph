@@ -27,6 +27,6 @@ internal sealed class BreadcrumbBar : View
     /// </param>
     internal void SetPath(IReadOnlyList<KeyPathSegment> path, bool collapseIndices)
     {
-        throw new NotImplementedException();
+        Text = KeyPathFormatter.Format(path, collapseIndices);
     }
 }

@@ -115,9 +115,11 @@ must also accept `onSelectionChanged` and forward it to `base(...)` for the para
 so it needs no intermediate change.
 
 `ViewManager.SwitchToJsonLinesTree/JsonArrayTree/JsonObjectTree` pass a call to
-`UpdateBreadcrumb(path, collapseIndices: false)` (3.5) as `onPathChanged`, and invoke it once
-immediately after the view is built so the breadcrumb reflects the initial selection instead of
-staying blank until the first cursor move.
+`UpdateBreadcrumb(path, collapseIndices: false)` (3.5) as `onPathChanged`, and call
+`UpdateBreadcrumb([], collapseIndices: false)` once immediately after the view is built. A freshly
+built `TreeView` has no `SelectedObject` yet, so this always renders `"root"` — it exists only so
+the breadcrumb reads "root" from the first frame instead of showing whatever path was left over
+from the previously displayed mode.
 
 ### 3.4 Static path for FocusedTable
 
@@ -153,8 +155,8 @@ internal void SetPath(IReadOnlyList<KeyPathSegment> path, bool collapseIndices);
 ```
 
 Formatting is delegated to a new static `src/App/KeyPathFormatter.cs`
-(`Format(IReadOnlyList<KeyPathSegment> path, bool collapseIndices)` → e.g. `"root → data →
-orders[*]"`).
+(`Format(IReadOnlyList<KeyPathSegment> path, bool collapseIndices)` → e.g. `"data >
+orders[*]"`; an empty path renders as `"root"`).
 
 **`collapseIndices` decision:** per `docs/design_drilldown_command_phase2.md` §1.3, discarding the
 specific array index and expanding every element (`orders` and `orders[0]` produce identical
@@ -164,7 +166,7 @@ such thing: `ModeController.DrillDown` calls `DrillDownSchemaExtractor.ExtractFr
 against the one concrete node the user selected, with no index-discarding and no file-wide
 expansion. `ViewMode.FocusedTable` is a single mode shared by both, so `_state.CurrentMode ==
 ViewMode.FocusedTable` cannot distinguish them — deriving `collapseIndices` from `CurrentMode`
-alone would render a Phase 1 result such as `list[2].orders` as `list[*] → orders`, falsely
+alone would render a Phase 1 result such as `list[2].orders` as `list[*] > orders`, falsely
 implying the table aggregates every element of `list` when it is actually scoped to element 2
 only.
 

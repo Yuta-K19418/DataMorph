@@ -107,10 +107,12 @@ public sealed class AppStateTests
     public void CurrentKeyPath_Default_IsEmpty()
     {
         // Arrange
+        using var state = new AppState();
 
         // Act
+        var result = state.CurrentKeyPath;
 
         // Assert
-        Assert.Fail("Not implemented");
+        result.Should().BeEmpty();
     }
 }

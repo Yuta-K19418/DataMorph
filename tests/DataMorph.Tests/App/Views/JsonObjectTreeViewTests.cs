@@ -2,6 +2,7 @@ using System.Text;
 using AwesomeAssertions;
 using DataMorph.App.Views;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO.DrillDown;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 
@@ -154,6 +155,25 @@ public sealed class JsonObjectTreeViewTests : IDisposable
 
         // Assert
         view.Objects.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Create_OnSelectionChanged_InvokesOnPathChangedWithExpectedKeyPath()
+    {
+        // Arrange
+        IReadOnlyList<(string key, JsonRawBytes value)> entries = [("data", ToBytes("{\"a\":1}"))];
+        List<IReadOnlyList<KeyPathSegment>> observedPaths = [];
+        using var view = JsonObjectTreeView.Create(entries, () => { }, path => observedPaths.Add(path));
+        var objects = view.Objects;
+        objects.Should().NotBeNull();
+        var node = objects.First();
+
+        // Act
+        view.SelectedObject = node;
+
+        // Assert
+        observedPaths.Should().ContainSingle();
+        observedPaths[0].Should().Equal(new KeyPathSegment("data", KeyPathSegmentKind.Key));
     }
 
     [Fact]

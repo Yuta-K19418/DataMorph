@@ -58,6 +58,7 @@ internal sealed class ViewManager : IDisposable
             Y = Pos.Bottom(_breadcrumbBar),
             Width = Dim.Fill(),
             Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
+            CanFocus = true,
         };
         _container.Add(_breadcrumbBar, _contentContainer);
     }
@@ -138,8 +139,7 @@ internal sealed class ViewManager : IDisposable
     internal void UpdateBreadcrumb(IReadOnlyList<KeyPathSegment> path, bool collapseIndices)
     {
         _state.CurrentKeyPath = path;
-        // _breadcrumbBar.SetPath(path, collapseIndices) is deferred to Step 2, pending
-        // KeyPathFormatter/BreadcrumbBar rendering logic.
+        _breadcrumbBar.SetPath(path, collapseIndices);
     }
 
     /// <summary>
@@ -192,6 +192,7 @@ internal sealed class ViewManager : IDisposable
     internal void SwitchToFileSelection()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        _state.CurrentKeyPath = [];
         SwapView(Views.FileSelectionView.Create());
         RefreshStatusBarHints();
     }
@@ -212,6 +213,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(schema);
+        _state.CurrentKeyPath = [];
 
         ITableSource rawSource = new Views.VirtualTableSource(indexer, schema);
         var source = _state.ActionStack.Count > 0
@@ -271,6 +273,7 @@ internal sealed class ViewManager : IDisposable
             () => _ = ToggleJsonLinesModeAsync(),
             path => UpdateBreadcrumb(path, collapseIndices: false),
             _uiThreadInvoke);
+        UpdateBreadcrumb([], collapseIndices: false);
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -294,6 +297,7 @@ internal sealed class ViewManager : IDisposable
             () => _ = ToggleJsonArrayModeAsync(),
             path => UpdateBreadcrumb(path, collapseIndices: false),
             _uiThreadInvoke);
+        UpdateBreadcrumb([], collapseIndices: false);
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -319,6 +323,7 @@ internal sealed class ViewManager : IDisposable
             entries,
             static () => { },
             path => UpdateBreadcrumb(path, collapseIndices: false));
+        UpdateBreadcrumb([], collapseIndices: false);
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -340,6 +345,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(schema);
+        _state.CurrentKeyPath = [];
 
         var cache = new RowByteCache(indexer);
         var source = new Views.JsonLinesTableSource(cache, schema);

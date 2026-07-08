@@ -1,6 +1,7 @@
 using AwesomeAssertions;
 using DataMorph.App.Views;
 using DataMorph.App.Views.JsonRangeTreeNodes;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonArray;
 
 namespace DataMorph.Tests.App.Views;
@@ -66,6 +67,30 @@ public sealed partial class JsonArrayTreeViewTests
 
         // Assert
         act.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Create_OnSelectionChanged_InvokesOnPathChangedWithExpectedKeyPath()
+    {
+        // Arrange
+        var filePath = CreateTempFile("[{\"a\":1}]");
+        using var app = CreateTestApp();
+        var indexer = new RowIndexer(filePath);
+        indexer.BuildIndex();
+        List<IReadOnlyList<KeyPathSegment>> observedPaths = [];
+        using var view = JsonArrayTreeView.Create(
+            indexer, () => { }, path => observedPaths.Add(path), SynchronousUiThreadInvoke);
+        var objects = view.Objects;
+        objects.Should().NotBeNull();
+        var elementNode = objects.First();
+        var childNode = elementNode.Children.First();
+
+        // Act
+        view.SelectedObject = childNode;
+
+        // Assert
+        observedPaths.Should().ContainSingle();
+        observedPaths[0].Should().Equal(new KeyPathSegment("a", KeyPathSegmentKind.Key));
     }
 
     [Fact]

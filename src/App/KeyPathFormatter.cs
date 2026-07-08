@@ -1,12 +1,15 @@
+using System.Text;
 using DataMorph.Engine.IO.DrillDown;
 
 namespace DataMorph.App;
 
 /// <summary>
-/// Formats a KeyPath into the breadcrumb display string (e.g. <c>"root → data → orders[*]"</c>).
+/// Formats a KeyPath into the breadcrumb display string (e.g. <c>"data > orders[*]"</c>).
 /// </summary>
 internal static class KeyPathFormatter
 {
+    private const string Separator = " > ";
+
     /// <summary>
     /// Renders <paramref name="path"/> as a single breadcrumb line, collapsing every
     /// <see cref="KeyPathSegmentKind.Index"/> segment to <c>"[*]"</c> when
@@ -20,6 +23,28 @@ internal static class KeyPathFormatter
     /// <returns>The formatted breadcrumb text. An empty path yields <c>"root"</c>.</returns>
     internal static string Format(IReadOnlyList<KeyPathSegment> path, bool collapseIndices)
     {
-        throw new NotImplementedException();
+        if (path.Count == 0)
+        {
+            return "root";
+        }
+
+        var builder = new StringBuilder();
+        foreach (var segment in path)
+        {
+            if (segment.Kind == KeyPathSegmentKind.Index)
+            {
+                builder.Append(collapseIndices ? "[*]" : segment.Value);
+                continue;
+            }
+
+            if (builder.Length > 0)
+            {
+                builder.Append(Separator);
+            }
+
+            builder.Append(segment.Value);
+        }
+
+        return builder.ToString();
     }
 }

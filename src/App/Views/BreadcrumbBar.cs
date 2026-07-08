@@ -29,4 +29,13 @@ internal sealed class BreadcrumbBar : View
     {
         Text = KeyPathFormatter.Format(path, collapseIndices);
     }
+
+    /// <summary>
+    /// Blanks the breadcrumb text for views with no JSON hierarchy (e.g. <c>CsvTable</c>).
+    /// Unlike <see cref="SetPath"/> with an empty path, this does not render <c>"root"</c>.
+    /// </summary>
+    internal void Clear()
+    {
+        Text = string.Empty;
+    }
 }

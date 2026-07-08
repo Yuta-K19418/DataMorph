@@ -683,6 +683,7 @@ public sealed class ViewManagerTests : IDisposable
 
         // Assert
         state.CurrentKeyPath.Should().BeEmpty();
+        window.SubViews.OfType<BreadcrumbBar>().Single().Text.Should().BeEmpty();
     }
 
     [Fact]
@@ -710,6 +711,7 @@ public sealed class ViewManagerTests : IDisposable
 
         // Assert
         state.CurrentKeyPath.Should().BeEmpty();
+        window.SubViews.OfType<BreadcrumbBar>().Single().Text.Should().BeEmpty();
     }
 
     [Fact]
@@ -730,6 +732,7 @@ public sealed class ViewManagerTests : IDisposable
 
         // Assert
         state.CurrentKeyPath.Should().BeEmpty();
+        window.SubViews.OfType<BreadcrumbBar>().Single().Text.Should().BeEmpty();
     }
 
     [Fact]

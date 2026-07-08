@@ -143,6 +143,18 @@ internal sealed class ViewManager : IDisposable
     }
 
     /// <summary>
+    /// Blanks the breadcrumb bar and resets <see cref="AppState.CurrentKeyPath"/> for modes with no
+    /// JSON hierarchy (<see cref="ViewMode.CsvTable"/>, <see cref="ViewMode.JsonLinesTable"/>,
+    /// <see cref="ViewMode.FileSelection"/>). Unlike <see cref="UpdateBreadcrumb"/> with an empty
+    /// path, this does not render <c>"root"</c>.
+    /// </summary>
+    internal void ClearBreadcrumb()
+    {
+        _state.CurrentKeyPath = [];
+        _breadcrumbBar.Clear();
+    }
+
+    /// <summary>
     /// Toggles between JSON Lines Tree and Table view modes.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
@@ -192,7 +204,7 @@ internal sealed class ViewManager : IDisposable
     internal void SwitchToFileSelection()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        _state.CurrentKeyPath = [];
+        ClearBreadcrumb();
         SwapView(Views.FileSelectionView.Create());
         RefreshStatusBarHints();
     }
@@ -213,7 +225,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(schema);
-        _state.CurrentKeyPath = [];
+        ClearBreadcrumb();
 
         ITableSource rawSource = new Views.VirtualTableSource(indexer, schema);
         var source = _state.ActionStack.Count > 0
@@ -345,7 +357,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(schema);
-        _state.CurrentKeyPath = [];
+        ClearBreadcrumb();
 
         var cache = new RowByteCache(indexer);
         var source = new Views.JsonLinesTableSource(cache, schema);

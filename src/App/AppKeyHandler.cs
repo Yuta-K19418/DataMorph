@@ -1,9 +1,7 @@
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using DataMorph.App.Views;
 using DataMorph.App.Views.Dialogs;
 using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
@@ -253,7 +251,8 @@ internal sealed class AppKeyHandler : IDisposable
 
         var request = new SingleDrillDownRequest(
             Format: format,
-            NodeBytes: arrayNode.RawJson);
+            NodeBytes: arrayNode.RawJson,
+            KeyPath: KeyPathBuilder.Build(selectedNode));
 
         void onDrillDownConfirmed(string actionName) => _viewManager.DrillDown(request);
 
@@ -272,7 +271,7 @@ internal sealed class AppKeyHandler : IDisposable
     )]
     private bool HandleFullAggregationDrillDown(ITreeNode selectedNode, DataFormat format)
     {
-        var keyPath = BuildKeyPath(selectedNode);
+        var keyPath = KeyPathBuilder.Build(selectedNode);
         var request = new FullAggregationDrillDownRequest(
             Format: format,
             KeyPath: keyPath);
@@ -296,50 +295,6 @@ internal sealed class AppKeyHandler : IDisposable
         {
             _app.Invoke(() => _viewManager.ShowError(task.Exception.InnerException?.Message ?? task.Exception.Message));
         }
-    }
-
-    /// <summary>
-    /// Traverses the <c>ParentNode</c> chain from <paramref name="node"/> up to the root,
-    /// collecting <c>KeyName</c> segments in bottom-up order, then reverses to produce a
-    /// root-to-leaf KeyPath.
-    /// </summary>
-    /// <param name="node">The selected tree node to build the KeyPath from.</param>
-    /// <returns>An ordered list of path segments from root to <paramref name="node"/>.</returns>
-    [SuppressMessage(
-        "Performance",
-        "CA1859:Use concrete types when possible for improved performance",
-        Justification = "IReadOnlyList<KeyPathSegment> is the KeyPath contract shared with FullAggregationDrillDownRequest; " +
-            "the concrete List<KeyPathSegment> used to build it is an implementation detail that should not leak out."
-    )]
-    internal static IReadOnlyList<KeyPathSegment> BuildKeyPath(ITreeNode node)
-    {
-        List<KeyPathSegment> segments = [];
-        var current = node;
-
-        while (current is JsonObjectTreeNode or JsonArrayTreeNode or JsonValueTreeNode)
-        {
-            var (keyName, parent) = current switch
-            {
-                JsonObjectTreeNode obj => (obj.KeyName, obj.ParentNode),
-                JsonArrayTreeNode arr => (arr.KeyName, arr.ParentNode),
-                JsonValueTreeNode val => (val.KeyName, val.ParentNode),
-                _ => throw new UnreachableException(),
-            };
-
-            if (keyName is not null)
-            {
-                // An array element's parent is the JsonArrayTreeNode that labeled it "[n]"; every
-                // other node is an object property. Tagging by parent type — not by the label text —
-                // keeps a literal object key such as "[0]" from colliding with an index marker.
-                var kind = parent is JsonArrayTreeNode ? KeyPathSegmentKind.Index : KeyPathSegmentKind.Key;
-                segments.Add(new KeyPathSegment(keyName, kind));
-            }
-
-            current = parent;
-        }
-
-        segments.Reverse();
-        return segments;
     }
 
     /// <summary>

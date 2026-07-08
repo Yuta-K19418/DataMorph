@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using DataMorph.App.Views;
 using DataMorph.Engine.IO;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonLines;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
@@ -24,6 +25,18 @@ internal sealed class ViewManager : IDisposable
     private readonly AppState _state;
     private readonly ModeController _modeController;
     private readonly Action<Action> _uiThreadInvoke;
+    [SuppressMessage(
+        "Reliability",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "BreadcrumbBar is added to the Window (_container) and is disposed automatically when the Window is disposed."
+    )]
+    private readonly BreadcrumbBar _breadcrumbBar;
+    [SuppressMessage(
+        "Reliability",
+        "CA2213:Disposable fields should be disposed",
+        Justification = "ContentContainer is added to the Window (_container) and is disposed automatically when the Window is disposed."
+    )]
+    private readonly View _contentContainer;
     private View? _currentView;
     private Label? _itemCountLabel;
     private bool _disposed;
@@ -38,6 +51,16 @@ internal sealed class ViewManager : IDisposable
         _state = state;
         _modeController = modeController;
         _uiThreadInvoke = uiThreadInvoke;
+        _breadcrumbBar = new BreadcrumbBar();
+        _contentContainer = new View
+        {
+            X = 0,
+            Y = Pos.Bottom(_breadcrumbBar),
+            Width = Dim.Fill(),
+            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
+            CanFocus = true,
+        };
+        _container.Add(_breadcrumbBar, _contentContainer);
     }
 
     /// <summary>
@@ -107,6 +130,31 @@ internal sealed class ViewManager : IDisposable
     }
 
     /// <summary>
+    /// Updates the breadcrumb bar to reflect the current location and stores it on <see cref="AppState"/>.
+    /// </summary>
+    /// <param name="path">The ordered path segments from root to the current location.</param>
+    /// <param name="collapseIndices">
+    /// When <c>true</c>, array indices render as <c>"[*]"</c> (Full Aggregation DrillDown).
+    /// </param>
+    internal void UpdateBreadcrumb(IReadOnlyList<KeyPathSegment> path, bool collapseIndices)
+    {
+        _state.CurrentKeyPath = path;
+        _breadcrumbBar.SetPath(path, collapseIndices);
+    }
+
+    /// <summary>
+    /// Blanks the breadcrumb bar and resets <see cref="AppState.CurrentKeyPath"/> for modes with no
+    /// JSON hierarchy (<see cref="ViewMode.CsvTable"/>, <see cref="ViewMode.JsonLinesTable"/>,
+    /// <see cref="ViewMode.FileSelection"/>). Unlike <see cref="UpdateBreadcrumb"/> with an empty
+    /// path, this does not render <c>"root"</c>.
+    /// </summary>
+    internal void ClearBreadcrumb()
+    {
+        _state.CurrentKeyPath = [];
+        _breadcrumbBar.Clear();
+    }
+
+    /// <summary>
     /// Toggles between JSON Lines Tree and Table view modes.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
@@ -156,6 +204,7 @@ internal sealed class ViewManager : IDisposable
     internal void SwitchToFileSelection()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        ClearBreadcrumb();
         SwapView(Views.FileSelectionView.Create());
         RefreshStatusBarHints();
     }
@@ -176,6 +225,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(schema);
+        ClearBreadcrumb();
 
         ITableSource rawSource = new Views.VirtualTableSource(indexer, schema);
         var source = _state.ActionStack.Count > 0
@@ -200,10 +250,6 @@ internal sealed class ViewManager : IDisposable
 
         var view = new Views.CsvTableView
         {
-            X = 0,
-            Y = 1, // Start below MenuBar
-            Width = Dim.Fill(),
-            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
             Table = source,
             Style = new TableStyle { AlwaysShowHeaders = true },
             OnMorphAction = HandleMorphAction,
@@ -234,11 +280,12 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        var view = Views.JsonLinesTreeView.Create(indexer, () => _ = ToggleJsonLinesModeAsync(), _uiThreadInvoke);
-        view.X = 0;
-        view.Y = 1; // Start below MenuBar
-        view.Width = Dim.Fill();
-        view.Height = Dim.Fill() - 1; // Leave room for StatusBar at the bottom
+        var view = Views.JsonLinesTreeView.Create(
+            indexer,
+            () => _ = ToggleJsonLinesModeAsync(),
+            path => UpdateBreadcrumb(path, collapseIndices: false),
+            _uiThreadInvoke);
+        UpdateBreadcrumb([], collapseIndices: false);
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -257,11 +304,12 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
 
-        var view = Views.JsonArrayTreeView.Create(indexer, () => _ = ToggleJsonArrayModeAsync(), _uiThreadInvoke);
-        view.X = 0;
-        view.Y = 1; // Start below MenuBar
-        view.Width = Dim.Fill();
-        view.Height = Dim.Fill() - 1; // Leave room for StatusBar at the bottom
+        var view = Views.JsonArrayTreeView.Create(
+            indexer,
+            () => _ = ToggleJsonArrayModeAsync(),
+            path => UpdateBreadcrumb(path, collapseIndices: false),
+            _uiThreadInvoke);
+        UpdateBreadcrumb([], collapseIndices: false);
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -283,11 +331,11 @@ internal sealed class ViewManager : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(entries);
-        var view = Views.JsonObjectTreeView.Create(entries, static () => { });
-        view.X = 0;
-        view.Y = 1;
-        view.Width = Dim.Fill();
-        view.Height = Dim.Fill() - 1;
+        var view = Views.JsonObjectTreeView.Create(
+            entries,
+            static () => { },
+            path => UpdateBreadcrumb(path, collapseIndices: false));
+        UpdateBreadcrumb([], collapseIndices: false);
         SwapView(view);
         RefreshStatusBarHints();
     }
@@ -309,6 +357,7 @@ internal sealed class ViewManager : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(indexer);
         ArgumentNullException.ThrowIfNull(schema);
+        ClearBreadcrumb();
 
         var cache = new RowByteCache(indexer);
         var source = new Views.JsonLinesTableSource(cache, schema);
@@ -337,10 +386,6 @@ internal sealed class ViewManager : IDisposable
 
         var view = new Views.JsonLinesTableView
         {
-            X = 0,
-            Y = 1, // Start below MenuBar
-            Width = Dim.Fill(),
-            Height = Dim.Fill() - 1, // Leave room for StatusBar at the bottom
             Table = tableSource,
             Style = new TableStyle { AlwaysShowHeaders = true },
             OnMorphAction = HandleMorphAction,
@@ -443,13 +488,18 @@ internal sealed class ViewManager : IDisposable
     {
         if (_currentView is not null)
         {
-            _container.Remove(_currentView);
+            _contentContainer.Remove(_currentView);
             _currentView.Dispose();
         }
 
+        newView.X = 0;
+        newView.Y = 0;
+        newView.Width = Dim.Fill();
+        newView.Height = Dim.Fill();
+
         _currentView = newView;
-        _container.Add(_currentView);
-        _container.SetNeedsDraw();
+        _contentContainer.Add(_currentView);
+        _contentContainer.SetNeedsDraw();
     }
 
     private void RemoveItemCountLabel()
@@ -501,6 +551,7 @@ internal sealed class ViewManager : IDisposable
                     "ModeController.DrillDown must set DrillDown state on success.");
             }
 
+            UpdateBreadcrumb(request.KeyPath, collapseIndices: false);
             SwitchToFocusedTable(drillDown);
         });
     }
@@ -528,6 +579,7 @@ internal sealed class ViewManager : IDisposable
 
             _state.DrillDown = result.Value;
             _state.CurrentMode = ViewMode.FocusedTable;
+            UpdateBreadcrumb(request.KeyPath, collapseIndices: true);
             SwitchToFocusedTable(result.Value);
         });
     }
@@ -542,10 +594,6 @@ internal sealed class ViewManager : IDisposable
         var source = new Views.FocusedTableSource(drillDown);
         var view = new Views.FocusedTableView
         {
-            X = 0,
-            Y = 1,
-            Width = Dim.Fill(),
-            Height = Dim.Fill() - 1,
             Table = source,
             Style = new TableStyle { AlwaysShowHeaders = true },
         };

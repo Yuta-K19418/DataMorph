@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO.DrillDown;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
@@ -10,8 +11,8 @@ namespace DataMorph.App.Views;
 /// </summary>
 internal sealed class JsonObjectTreeView : MorphTreeView
 {
-    private JsonObjectTreeView(Action onTableModeToggle)
-        : base(onTableModeToggle) { }
+    private JsonObjectTreeView(Action onTableModeToggle, Action<ITreeNode?> onSelectionChanged)
+        : base(onTableModeToggle, onSelectionChanged) { }
 
     /// <summary>
     /// Creates a new <see cref="JsonObjectTreeView"/> populated with root-level key nodes.
@@ -23,14 +24,19 @@ internal sealed class JsonObjectTreeView : MorphTreeView
     /// Callback invoked when the user presses 't' to toggle between tree and table mode.
     /// JSON Object does not support table mode, so callers pass a no-op.
     /// </param>
+    /// <param name="onPathChanged">Callback invoked with the current selection's KeyPath whenever the cursor moves.</param>
     /// <returns>A populated <see cref="JsonObjectTreeView"/>.</returns>
     internal static JsonObjectTreeView Create(
         IReadOnlyList<(string key, JsonRawBytes value)> entries,
-        Action onTableModeToggle)
+        Action onTableModeToggle,
+        Action<IReadOnlyList<KeyPathSegment>> onPathChanged)
     {
         ArgumentNullException.ThrowIfNull(entries);
         ArgumentNullException.ThrowIfNull(onTableModeToggle);
-        var view = new JsonObjectTreeView(onTableModeToggle);
+        ArgumentNullException.ThrowIfNull(onPathChanged);
+        var view = new JsonObjectTreeView(
+            onTableModeToggle,
+            node => onPathChanged(node is null ? [] : KeyPathBuilder.Build(node)));
         foreach (var (key, valueBytes) in entries)
         {
             view.AddObject(CreateKeyNode(key, valueBytes));

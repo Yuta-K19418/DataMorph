@@ -102,4 +102,17 @@ public sealed class AppStateTests
         originalList.Should().HaveCount(1);
         state.ActionStack.Should().BeEmpty();
     }
+
+    [Fact]
+    public void CurrentKeyPath_Default_IsEmpty()
+    {
+        // Arrange
+        using var state = new AppState();
+
+        // Act
+        var result = state.CurrentKeyPath;
+
+        // Assert
+        result.Should().BeEmpty();
+    }
 }

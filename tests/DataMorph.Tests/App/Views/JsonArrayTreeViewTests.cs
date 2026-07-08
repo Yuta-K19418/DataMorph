@@ -55,7 +55,7 @@ public sealed partial class JsonArrayTreeViewTests : IDisposable
         using var app = CreateTestApp();
         var indexer = new RowIndexer(filePath);
         indexer.BuildIndex();
-        using var view = JsonArrayTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonArrayTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
         var objects = view.Objects;
         objects.Should().NotBeNull();
         var elementNode = objects.First();
@@ -77,7 +77,7 @@ public sealed partial class JsonArrayTreeViewTests : IDisposable
         var realIndexer = new RowIndexer(filePath);
         realIndexer.BuildIndex();
         var stubIndexer = new StubRowIndexer(realIndexer, 0, fakeIsCompleted: false);
-        using var view = JsonArrayTreeView.Create(stubIndexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonArrayTreeView.Create(stubIndexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Act — simulate progress, then dispose
         stubIndexer.UpdateTotalRows(3000);
@@ -102,7 +102,7 @@ public sealed partial class JsonArrayTreeViewTests : IDisposable
         using var app = CreateTestApp();
         var indexer = new RowIndexer(filePath);
         indexer.BuildIndex();
-        using var view = JsonArrayTreeView.Create(indexer, () => { }, SynchronousUiThreadInvoke);
+        using var view = JsonArrayTreeView.Create(indexer, () => { }, _ => { }, SynchronousUiThreadInvoke);
 
         // Act & Assert — Dispose on fast-path view should not throw
         var act = () => view.Dispose();

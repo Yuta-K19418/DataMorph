@@ -225,6 +225,73 @@ single view's own bounds, not a sibling relationship ("bar above container"), so
 
 ---
 
+## Architectural Decision Records (ADR)
+
+### ADR 1: No `"root"` Prefix on Non-Empty Breadcrumb Paths
+
+**Status:** Accepted
+
+**Context:** The source requirement's example (`root → data → orders[*]`) always prefixes
+`"root"`. An alternative considered during implementation was to always prefix every breadcrumb
+with `"root"` (e.g. `"root > data > orders[*]"`), including for a fully populated path — matching
+the requirement literally and making the hierarchy's starting point explicit at all times, similar
+to a filesystem's `/` or JSONPath's `$`.
+
+**Decision:** Do not prefix `"root"` onto non-empty paths. `KeyPathFormatter.Format` renders an
+empty path as `"root"` alone; a non-empty path renders as just its segments (e.g.
+`"data > orders[*]"`).
+
+**Rationale:**
+1. **Dropping the prefix doesn't make the location ambiguous.** Only one file is open at a time,
+   with one fixed hierarchy for the Tree/FocusedTable session — so seeing `"data > orders[*]"` on
+   screen can only ever mean "starting from this file's root, `data`, then `orders`." There is no
+   second document or alternate root the segments could be confused with. Prefixing every line
+   with `"root >"` would just repeat something already implied; the word only carries information
+   in the one state where the path is otherwise blank (empty path → `"root"` alone).
+2. **Singular/plural mismatch with Full Aggregation.** `FullAggregationDrillDownRequest`
+   (Phase 2) collapses every array index to `[*]`, which signals "every element, aggregated
+   across the whole file." `"root"` reads as one specific, singular location. Always prefixing
+   would render `"root > list[*] > orders"` — a literal singular anchor sitting next to an
+   aggregate/plural marker in the same string, which is misleading: the aggregation spans every
+   record in the file, not one root. Full Aggregation would need a collective word (e.g.
+   `"all"`/`"roots"`) to be accurate, not `"root"`.
+3. **Dropping the prefix sidesteps the mismatch entirely.** `"root"` only ever appears alone (for
+   an empty path); it never co-occurs with `[*]` in the same rendered string, so the
+   singular/plural conflict described above cannot occur, without needing any Phase-1-vs-Phase-2
+   branching in `KeyPathFormatter`.
+4. **Low cost.** Special-casing the prefix by DrillDown phase (e.g. `"root"` for Tree/Phase 1,
+   `"all"` for Phase 2) was considered and rejected for this issue on cost grounds — it would
+   require `KeyPathFormatter.Format` to take on Phase-awareness it doesn't otherwise need, plus
+   doc/test updates, for a distinction that doesn't fully solve the problem anyway (see
+   Consequences below).
+
+**Consequences:**
+- Investigating what "empty path" actually covers surfaced that `KeyPathBuilder.Build` only walks
+  `KeyName`, and the top-level line/element node for JSON Lines / JSON Array
+  (`JsonLinesRangeTreeNode.CreateLineNode` / `JsonArrayRangeTreeNode.CreateElementNode`) has
+  `KeyName = null` (only `RecordPosition` is set). Selecting the record/element itself — not just
+  having nothing selected — also yields an empty path and renders as `"root"`. So `"root"` covers
+  both "nothing selected" and "positioned on any record's own node," indistinguishable from any
+  other record. JSON Object is the exception: its top-level entries are real object keys, so
+  selecting one yields a non-empty path immediately. A future pass could surface `RecordPosition`
+  (e.g. `"Line 1"` / `"[5]"`) as the first breadcrumb segment instead of `"root"`. If picked up, it
+  opens the door to also making the breadcrumb always render as a full
+  `<record> > <level 2> > <level 3>...` chain (no bare `"root"` case at all), and to varying that
+  first segment by DrillDown kind — a single-node `SingleDrillDownRequest` names the one concrete
+  record, while a `FullAggregationDrillDownRequest` (scanning every record) would need a
+  collective label instead of one record's identity, since it aggregates across all of them
+  regardless of whether the path itself contains any array index to collapse to `[*]`.
+- This decision does not fully resolve Phase 1 vs. Phase 2 ambiguity: Full Aggregation DrillDown
+  also runs on paths with **zero array segments** (see
+  `docs/design_drilldown_command_phase2.md`'s "0 arrays in path" examples: `user`, `score`). In
+  that case `[*]` never appears, so a Phase 1 (single-node) and Phase 2 (full-file aggregate)
+  breadcrumb can render as the exact same string (e.g. both just `"user"`). Row count is not a
+  reliable substitute either, since a Phase 1 selection can itself contain an array and render
+  multiple rows. Accepted as a known limitation for this issue rather than solved, per the cost
+  tradeoff in Rationale point 4.
+
+---
+
 ## 4. Testing
 
 - `KeyPathBuilderTests.cs` (moved from `AppKeyHandlerTests.cs`, renamed type only).

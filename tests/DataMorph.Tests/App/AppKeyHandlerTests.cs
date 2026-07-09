@@ -206,6 +206,28 @@ public sealed class AppKeyHandlerTests
     // MessageBox.Query display is not unit-testable; requires TUI event loop integration testing.
 
     [Fact]
+    public void OnGlobalKeyDown_BackspaceInFocusedTableWithDrillDown_CallsReturnFromDrillDown()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public void OnGlobalKeyDown_BackspaceOutsideFocusedTable_ReturnsUnhandled()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
     public void HandleActionMenu_WithJsonObjectFormatAndArrayNode_DispatchesSingleDrillDown()
     {
         // Arrange

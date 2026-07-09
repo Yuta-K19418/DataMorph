@@ -202,7 +202,8 @@ public sealed class FileDialogHandlerTests : IDisposable
         };
         state.DrillDown = new DrillDownState(
             [new FocusedTableRow(JsonRawBytes.Empty, "[0]")],
-            schema);
+            schema,
+            ViewMode.JsonObjectTree);
 
         var handler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
 
@@ -214,5 +215,27 @@ public sealed class FileDialogHandlerTests : IDisposable
 
         // Assert
         state.DrillDown.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task HandleFileSelectedAsync_JsonObjectFile_PopulatesJsonObjectEntries()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public async Task HandleFileSelectedAsync_NonJsonObjectFile_ResetsJsonObjectEntriesToNull()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
     }
 }

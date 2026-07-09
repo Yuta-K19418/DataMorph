@@ -326,6 +326,13 @@ internal sealed class AppKeyHandler : IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Handles back navigation from DrillDown (FocusedTable) via the Backspace key.
+    /// </summary>
+    /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
+    private bool HandleDrillDownBack() =>
+        throw new NotImplementedException();
+
     private void OnGlobalKeyDown(object? sender, Key key)
     {
         if (key.Handled)

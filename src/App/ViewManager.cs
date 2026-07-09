@@ -606,6 +606,14 @@ internal sealed class ViewManager : IDisposable
         RefreshStatusBarHints();
     }
 
+    /// <summary>
+    /// Returns from <see cref="ViewMode.FocusedTable"/> to the tree mode the active DrillDown was
+    /// entered from, rebuilding that tree from its cached backing data on <see cref="AppState"/>.
+    /// A no-op when there is no active DrillDown session.
+    /// </summary>
+    internal void ReturnFromDrillDown() =>
+        throw new NotImplementedException();
+
     /// <inheritdoc/>
     public void Dispose()
     {

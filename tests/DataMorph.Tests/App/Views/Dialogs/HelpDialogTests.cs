@@ -92,6 +92,17 @@ public sealed class HelpDialogTests
     }
 
     [Fact]
+    public void Constructor_HelpText_IncludesBackspaceBinding()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
     public void OnKeyDown_WithOtherKey_DoesNotCloseDialog()
     {
         // Arrange

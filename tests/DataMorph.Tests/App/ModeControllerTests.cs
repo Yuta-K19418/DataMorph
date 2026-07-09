@@ -210,4 +210,26 @@ public sealed class ModeControllerTests : IDisposable
         state.DrillDown.Should().BeNull();
         state.CurrentMode.Should().Be(ViewMode.FileSelection);
     }
+
+    [Fact]
+    public void DrillDown_WhenCalledFromJsonObjectTree_CapturesPreviousModeAsJsonObjectTree()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public async Task FullAggregationDrillDownAsync_WhenCalledFromJsonLinesTree_CapturesPreviousModeAsJsonLinesTree()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
 }

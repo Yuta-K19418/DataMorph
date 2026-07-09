@@ -8,4 +8,5 @@ namespace DataMorph.App;
 /// </summary>
 internal sealed record DrillDownState(
     IReadOnlyList<FocusedTableRow> Rows,
-    TableSchema Schema);
+    TableSchema Schema,
+    ViewMode PreviousMode);

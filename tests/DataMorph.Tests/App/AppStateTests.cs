@@ -115,4 +115,15 @@ public sealed class AppStateTests
         // Assert
         result.Should().BeEmpty();
     }
+
+    [Fact]
+    public void JsonObjectEntries_Default_IsNull()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
 }

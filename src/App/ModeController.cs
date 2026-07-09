@@ -112,7 +112,7 @@ internal sealed class ModeController
             rows[i] = new FocusedTableRow(children[i], $"[{i}]");
         }
 
-        _state.DrillDown = new DrillDownState(rows, result.Value.schema);
+        _state.DrillDown = new DrillDownState(rows, result.Value.schema, default);
         _state.CurrentMode = ViewMode.FocusedTable;
 
         return Results.Success();
@@ -141,6 +141,6 @@ internal sealed class ModeController
             return Results.Failure<DrillDownState>(result.Error);
         }
 
-        return Results.Success(new DrillDownState(result.Value.rows, result.Value.schema));
+        return Results.Success(new DrillDownState(result.Value.rows, result.Value.schema, default));
     }
 }

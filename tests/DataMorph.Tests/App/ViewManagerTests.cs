@@ -188,6 +188,17 @@ public sealed class ViewManagerTests : IDisposable
     }
 
     [Fact]
+    public void RefreshStatusBarHints_WithFocusedTableMode_IncludesBackHint()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
     public async Task ToggleJsonLinesModeAsync_WhenToggleFails_ShowsError()
     {
         // Arrange
@@ -784,6 +795,61 @@ public sealed class ViewManagerTests : IDisposable
 
         // Assert
         window.SubViews.OfType<BreadcrumbBar>().Single().Text.Should().Be("list[*]");
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithJsonLinesTreePreviousMode_RestoresJsonLinesTree()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithJsonArrayTreePreviousMode_RestoresJsonArrayTree()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithJsonObjectTreePreviousMode_RestoresJsonObjectTree()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithNullDrillDown_DoesNothing()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_AfterDisposal_ThrowsObjectDisposedException()
+    {
+        // Arrange
+
+        // Act
+
+        // Assert
+        Assert.Fail("Not implemented");
     }
 
     /// <summary>

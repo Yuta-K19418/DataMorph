@@ -25,7 +25,7 @@ internal sealed class HelpDialog : Dialog
         X = Pos.Center();
         Y = Pos.Center();
         Width = Dim.Absolute(54);
-        Height = Dim.Absolute(32);
+        Height = Dim.Absolute(37);
 
         var helpText = new Label
         {
@@ -48,29 +48,32 @@ internal sealed class HelpDialog : Dialog
         return """
             Global / File Operations
             -------------------------
-            o       : Open File
-            s       : Save Recipe
-            q       : Quit
-            t       : Toggle Tree/Table View (JSON Lines)
-            x       : Context-Sensitive Action Menu
-            c       : Clear all actions from the stack
-            ?       : Help (this overlay)
+            o         : Open File
+            s         : Save Recipe
+            q         : Quit
+            t         : Toggle Tree/Table View (JSON Lines)
+            x         : Context-Sensitive Action Menu
+            c         : Clear all actions from the stack
+            ?         : Help (this overlay)
+            BackSpace : Return to originating tree view
+                        (FocusedTable only)
 
             Navigation
             ----------
-            h/j/k/l : Move Left/Down/Up/Right
-            gg      : Jump to first row
-            G       : Jump to last row
-            Enter   : Expand/Collapse (Tree View)
+            h/j/k/l   : Move Left/Down/Up/Right
+            gg        : Jump to first row
+            G         : Jump to last row
+            Enter     : Expand/Collapse (Tree View)
 
             Context Actions (via 'x' menu)
             ------------------------------
-            Rename  : Rename the current column
-            Delete  : Remove the current column
-            Cast    : Change column data type
-            Filter  : Add a filter based on current column
-            Fill    : Fill empty cells in column
-            Format  : Format timestamp columns
+            Rename    : Rename the current column
+            Delete    : Remove the current column
+            Cast      : Change column data type
+            Filter    : Add a filter based on current column
+            Fill      : Fill empty cells in column
+            Format    : Format timestamp columns
+            DrillDown : Drill into the selected node
             """;
     }
 

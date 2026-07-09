@@ -47,20 +47,52 @@ load and never cleared while that file stays open. `JsonObjectTree`, however, is
 `JsonObjectTree` would require re-running `TopLevelScanner.Scan` against the file (an extra async
 file read) purely to reconstruct a view the app already built once this session.
 
-`AppState` gains one field, cached the same way `RowIndexer` is:
+### 3.1 Element Type: `JsonObjectEntry`, Not a Bare `ValueTuple`
+
+`TopLevelScanner.Scan`'s existing return type, `IReadOnlyList<(string key, JsonRawBytes value)>`,
+is a reasonable shape for a value passed once from a scan to its single caller
+(`SwitchToJsonObjectTree`). Caching it on `AppState`, however, promotes it to a long-lived,
+app-wide domain concept — the same promotion `RowIndexer` already went through — and an unnamed,
+transient tuple shape is not an appropriate type for that role.
+
+**Decision:** introduce a dedicated `readonly record struct JsonObjectEntry(string Key, JsonRawBytes Value)`
+in `Engine.IO.JsonObject` (alongside `TopLevelScanner`, same layer) and use it everywhere this shape
+flows, not just on `AppState`:
+
+```csharp
+/// <summary>A single top-level key/value pair from a JSON Object file, as scanned by <see cref="TopLevelScanner"/>.</summary>
+public readonly record struct JsonObjectEntry(string Key, JsonRawBytes Value);
+```
+
+`record struct` (not a `class`), and `readonly`, briefly: (1) `JsonObjectEntry` is a `struct`, not a
+`class`, keeping the same inline-storage characteristics the existing `ValueTuple` shape already
+has — making it a `class` instead would move each cached entry to the heap individually, adding
+GC-tracked allocations that don't exist today; (2) per the project's immutability standard
+(`.claude/rules/csharp-standards.md`: "Mutable fields and mutable properties require
+justification"), state living on `AppState` should be immutable by default, and there is no
+justification for mutability here.
+
+- `TopLevelScanner.Scan` returns `IReadOnlyList<JsonObjectEntry>` instead of the bare tuple.
+- `JsonObjectTreeView` and `ViewManager.SwitchToJsonObjectTree` take `IReadOnlyList<JsonObjectEntry>`.
+- `AppState.JsonObjectEntries` is `IReadOnlyList<JsonObjectEntry>?`, cached the same way `RowIndexer` is:
 
 ```csharp
 /// <summary>
 /// Gets or sets the cached top-level entries for JSON Object tree reconstruction.
 /// Set once at file load for <see cref="DataFormat.JsonObject"/> files; null for all other formats.
 /// </summary>
-public IReadOnlyList<(string key, JsonRawBytes value)>? JsonObjectEntries { get; set; }
+public IReadOnlyList<JsonObjectEntry>? JsonObjectEntries { get; set; }
 ```
 
 `FileDialogHandler.HandleFileSelectedAsync` resets it to `null` in the existing "Reset state for
 new file" block (alongside `_state.DrillDown = null;`), and sets it in the existing
 `DataFormat.JsonObject` branch right where `_state.CurrentMode = ViewMode.JsonObjectTree;` is set
 today.
+
+Changing the existing `Scan` signature (rather than introducing the struct only for the new
+`AppState` field and converting at the boundary) keeps exactly one shape for this data instead of
+two, and avoids allocating a converted copy purely to satisfy a type mismatch. This widens the
+touched-file set beyond what Backspace navigation alone would require (see §8).
 
 **Alternative considered and rejected:** re-run `TopLevelScanner.Scan` on `Backspace` instead of
 caching, avoiding the extra `AppState` field entirely. Rejected — caching costs one small in-memory
@@ -259,22 +291,38 @@ to a tree node, storing it here would have no consumer).
 - `AppStateTests.cs` — extend for `JsonObjectEntries` default (`null`).
 - `FileDialogHandlerTests.cs` — extend: `JsonObjectEntries` is populated for `DataFormat.JsonObject`
   and reset to `null` for every other format.
+- `TopLevelScannerTests.cs` / `TopLevelScannerTests.Scan.cs` — update existing assertions from
+  tuple construction/comparison to `JsonObjectEntry` construction/comparison; no new test cases,
+  same coverage against the new element type.
+- `JsonObjectTreeViewTests.cs` — same signature-only update (tuple → `JsonObjectEntry`).
 
 ## 8. Files Touched
 
-**Modified (no new files):**
-- `src/App/AppState.cs` — add `JsonObjectEntries`
+**Modified:**
+- `src/App/AppState.cs` — add `JsonObjectEntries` (`IReadOnlyList<JsonObjectEntry>?`)
 - `src/App/DrillDownState.cs` — add `PreviousMode`
 - `src/App/ModeController.cs` — capture `PreviousMode` in `DrillDown` and
   `FullAggregationDrillDownAsync`
-- `src/App/ViewManager.cs` — add `ReturnFromDrillDown()`, `Backspace` status bar hint
+- `src/App/ViewManager.cs` — add `ReturnFromDrillDown()`, `Backspace` status bar hint,
+  `SwitchToJsonObjectTree` parameter type → `IReadOnlyList<JsonObjectEntry>`
 - `src/App/AppKeyHandler.cs` — add `HandleDrillDownBack()`, wire `Backspace` into
   `OnGlobalKeyDown` and `IsGlobalShortcut`
 - `src/App/FileDialogHandler.cs` — reset/populate `JsonObjectEntries`
 - `src/App/Views/Dialogs/HelpDialog.cs` — add `Backspace` line to help text
+- `src/App/Views/JsonObjectTreeView.cs` — parameter type → `IReadOnlyList<JsonObjectEntry>`
+- `src/Engine/IO/JsonObject/TopLevelScanner.cs` — element type swapped throughout, not just the
+  `Scan` return type: `List<(string key, JsonRawBytes value)> result` → `List<JsonObjectEntry>`,
+  threaded through `ProcessToken`/`RecordEntry`, and both tuple-literal construction sites
+  (`result.Add((key, mem))`, `result[idx] = (key, mem)`) → `new JsonObjectEntry(key, mem)`
 - `tests/DataMorph.Tests/App/ModeControllerTests.cs`
 - `tests/DataMorph.Tests/App/ViewManagerTests.cs`
 - `tests/DataMorph.Tests/App/AppKeyHandlerTests.cs`
 - `tests/DataMorph.Tests/App/AppStateTests.cs`
 - `tests/DataMorph.Tests/App/FileDialogHandlerTests.cs`
 - `tests/DataMorph.Tests/App/Views/Dialogs/HelpDialogTests.cs`
+- `tests/DataMorph.Tests/App/Views/JsonObjectTreeViewTests.cs`
+- `tests/DataMorph.Tests/Engine/IO/JsonObject/TopLevelScannerTests.cs`
+- `tests/DataMorph.Tests/Engine/IO/JsonObject/TopLevelScannerTests.Scan.cs`
+
+**New:**
+- `src/Engine/IO/JsonObject/JsonObjectEntry.cs` — `readonly record struct JsonObjectEntry(string Key, JsonRawBytes Value)`

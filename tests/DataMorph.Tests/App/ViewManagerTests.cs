@@ -5,6 +5,7 @@ using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonArray;
+using DataMorph.Engine.IO.JsonObject;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
@@ -464,9 +465,9 @@ public sealed class ViewManagerTests : IDisposable
         using var window = new Window();
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, JsonRawBytes value)> entries =
+        IReadOnlyList<JsonObjectEntry> entries =
         [
-            ("id", System.Text.Encoding.UTF8.GetBytes("1")),
+            new JsonObjectEntry("id", System.Text.Encoding.UTF8.GetBytes("1")),
         ];
 
         // Act
@@ -485,7 +486,7 @@ public sealed class ViewManagerTests : IDisposable
         using var window = new Window();
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, JsonRawBytes value)>? nullEntries = null;
+        IReadOnlyList<JsonObjectEntry>? nullEntries = null;
 
         // Act
         var act = () => viewManager.SwitchToJsonObjectTree(nullEntries!);
@@ -504,7 +505,7 @@ public sealed class ViewManagerTests : IDisposable
         var modeController = new ModeController(state);
         var viewManager = new ViewManager(window, state, modeController, action => action());
         viewManager.Dispose();
-        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
+        IReadOnlyList<JsonObjectEntry> entries = [];
 
         // Act
         var act = () => viewManager.SwitchToJsonObjectTree(entries);
@@ -525,9 +526,9 @@ public sealed class ViewManagerTests : IDisposable
         window.Add(statusBar);
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, JsonRawBytes value)> entries =
+        IReadOnlyList<JsonObjectEntry> entries =
         [
-            ("id", System.Text.Encoding.UTF8.GetBytes("1")),
+            new JsonObjectEntry("id", System.Text.Encoding.UTF8.GetBytes("1")),
         ];
         viewManager.SwitchToJsonObjectTree(entries);
 

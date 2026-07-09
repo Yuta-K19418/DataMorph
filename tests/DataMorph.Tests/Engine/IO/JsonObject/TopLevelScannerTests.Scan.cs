@@ -58,8 +58,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("k");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("\"v\"").ToArray());
+        result[0].Key.Should().Be("k");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("\"v\"").ToArray());
     }
 
     [Fact]
@@ -73,8 +73,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("n");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("42").ToArray());
+        result[0].Key.Should().Be("n");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("42").ToArray());
     }
 
     [Fact]
@@ -88,8 +88,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("n");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("-42").ToArray());
+        result[0].Key.Should().Be("n");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("-42").ToArray());
     }
 
     [Fact]
@@ -103,8 +103,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("n");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("3.14").ToArray());
+        result[0].Key.Should().Be("n");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("3.14").ToArray());
     }
 
     [Fact]
@@ -118,8 +118,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("k");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("\"\"").ToArray());
+        result[0].Key.Should().Be("k");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("\"\"").ToArray());
     }
 
     [Fact]
@@ -133,8 +133,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("o");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("{\"a\":1}").ToArray());
+        result[0].Key.Should().Be("o");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("{\"a\":1}").ToArray());
     }
 
     [Fact]
@@ -148,8 +148,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("a");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("[1,2]").ToArray());
+        result[0].Key.Should().Be("a");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("[1,2]").ToArray());
     }
 
     [Theory]
@@ -165,8 +165,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("k");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8(expectedValue).ToArray());
+        result[0].Key.Should().Be("k");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8(expectedValue).ToArray());
     }
 
     [Fact]
@@ -180,10 +180,10 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(2);
-        result[0].key.Should().Be("b");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("2").ToArray());
-        result[1].key.Should().Be("a");
-        result[1].value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
+        result[0].Key.Should().Be("b");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("2").ToArray());
+        result[1].Key.Should().Be("a");
+        result[1].Value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
     }
 
     [Fact]
@@ -197,8 +197,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("k");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("2").ToArray());
+        result[0].Key.Should().Be("k");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("2").ToArray());
     }
 
     [Fact]
@@ -212,8 +212,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("k");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("3").ToArray());
+        result[0].Key.Should().Be("k");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("3").ToArray());
     }
 
     [Fact]
@@ -227,10 +227,10 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(3);
-        result[0].key.Should().Be("a");
-        result[1].key.Should().Be("k");
-        result[2].key.Should().Be("b");
-        result[1].value.ToArray().Should().BeEquivalentTo(Utf8("2").ToArray());
+        result[0].Key.Should().Be("a");
+        result[1].Key.Should().Be("k");
+        result[2].Key.Should().Be("b");
+        result[1].Value.ToArray().Should().BeEquivalentTo(Utf8("2").ToArray());
     }
 
     [Fact]
@@ -244,8 +244,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("x");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("{\"y\":{\"z\":1}}").ToArray());
+        result[0].Key.Should().Be("x");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("{\"y\":{\"z\":1}}").ToArray());
     }
 
     [Fact]
@@ -259,8 +259,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("日本語キー");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
+        result[0].Key.Should().Be("日本語キー");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
     }
 
     [Fact]
@@ -274,8 +274,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("key\"q\"");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
+        result[0].Key.Should().Be("key\"q\"");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
     }
 
     [Theory]
@@ -292,8 +292,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("k");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8(expectedValue).ToArray());
+        result[0].Key.Should().Be("k");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8(expectedValue).ToArray());
     }
 
     [Fact]
@@ -309,10 +309,10 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(90_000);
-        result[0].key.Should().Be("f0");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("0").ToArray());
-        result[89_999].key.Should().Be("f89999");
-        result[89_999].value.ToArray().Should().BeEquivalentTo(Utf8("89999").ToArray());
+        result[0].Key.Should().Be("f0");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("0").ToArray());
+        result[89_999].Key.Should().Be("f89999");
+        result[89_999].Value.ToArray().Should().BeEquivalentTo(Utf8("89999").ToArray());
     }
 
     [Fact]
@@ -329,8 +329,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("big");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8(innerObject).ToArray());
+        result[0].Key.Should().Be("big");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8(innerObject).ToArray());
     }
 
     [Fact]
@@ -388,8 +388,8 @@ public sealed partial class TopLevelScannerTests
 
         // Assert
         result.Should().HaveCount(1);
-        result[0].key.Should().Be("k");
-        result[0].value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
+        result[0].Key.Should().Be("k");
+        result[0].Value.ToArray().Should().BeEquivalentTo(Utf8("1").ToArray());
     }
 
     [Fact]

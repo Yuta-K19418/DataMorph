@@ -5,6 +5,7 @@ using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonLines;
+using DataMorph.Engine.IO.JsonObject;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
@@ -327,7 +328,7 @@ internal sealed class ViewManager : IDisposable
         Justification = "Child views are owned by the container and disposed via SwapView."
     )]
     internal void SwitchToJsonObjectTree(
-        IReadOnlyList<(string key, JsonRawBytes value)> entries)
+        IReadOnlyList<JsonObjectEntry> entries)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(entries);

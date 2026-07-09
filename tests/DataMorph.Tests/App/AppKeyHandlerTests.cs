@@ -2,6 +2,7 @@ using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO.JsonObject;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
@@ -217,7 +218,7 @@ public sealed class AppKeyHandlerTests
             using var window = new Window();
             var modeController = new ModeController(state);
             using var viewManager = new ViewManager(window, state, modeController, action => action());
-            viewManager.SwitchToJsonObjectTree([("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray())]);
+            viewManager.SwitchToJsonObjectTree([new JsonObjectEntry("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray())]);
             var treeView = (MorphTreeView)viewManager.GetCurrentView()!;
             treeView.SelectedObject = JsonObjectTreeView.CreateKeyNode("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray());
             var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
@@ -256,7 +257,7 @@ public sealed class AppKeyHandlerTests
             using var window = new Window();
             var modeController = new ModeController(state);
             using var viewManager = new ViewManager(window, state, modeController, action => action());
-            viewManager.SwitchToJsonObjectTree([("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray())]);
+            viewManager.SwitchToJsonObjectTree([new JsonObjectEntry("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray())]);
             var treeView = (MorphTreeView)viewManager.GetCurrentView()!;
             treeView.SelectedObject = selectedNode;
             var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });

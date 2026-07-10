@@ -38,7 +38,7 @@ internal sealed class AppKeyHandler : IDisposable
     internal static bool IsGlobalShortcut(KeyCode keyCode)
     {
         var baseKey = keyCode & ~(KeyCode.ShiftMask | KeyCode.CtrlMask | KeyCode.AltMask);
-        return baseKey is KeyCode.O or KeyCode.S or KeyCode.Q or KeyCode.T or KeyCode.X or KeyCode.C or (KeyCode)'?';
+        return baseKey is KeyCode.O or KeyCode.S or KeyCode.Q or KeyCode.T or KeyCode.X or KeyCode.C or KeyCode.Backspace or (KeyCode)'?';
     }
 
     internal AppKeyHandler(
@@ -330,8 +330,16 @@ internal sealed class AppKeyHandler : IDisposable
     /// Handles back navigation from DrillDown (FocusedTable) via the Backspace key.
     /// </summary>
     /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
-    private bool HandleDrillDownBack() =>
-        throw new NotImplementedException();
+    private bool HandleDrillDownBack()
+    {
+        if (_state.CurrentMode != ViewMode.FocusedTable || _state.DrillDown is null)
+        {
+            return false;
+        }
+
+        _viewManager.ReturnFromDrillDown();
+        return true;
+    }
 
     private void OnGlobalKeyDown(object? sender, Key key)
     {
@@ -354,7 +362,7 @@ internal sealed class AppKeyHandler : IDisposable
             current = current.SuperView;
         }
 
-        // Shortcuts like o, s, q, t, x should not have Ctrl or Alt modifiers.
+        // Shortcuts like o, s, q, t, x, Backspace should not have Ctrl or Alt modifiers.
         if ((key.KeyCode & (KeyCode.CtrlMask | KeyCode.AltMask)) != 0)
         {
             return;
@@ -369,6 +377,7 @@ internal sealed class AppKeyHandler : IDisposable
             KeyCode.T => HandleViewToggle(),
             KeyCode.X => HandleActionMenu(),
             KeyCode.C => HandleClearActions(),
+            KeyCode.Backspace => HandleDrillDownBack(),
             (KeyCode)'?' => HandleHelp(),
             _ => false,
         };

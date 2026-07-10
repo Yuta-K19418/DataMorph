@@ -3,6 +3,7 @@ using DataMorph.App;
 using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.DrillDown;
+using DataMorph.Engine.IO.JsonObject;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
@@ -221,21 +222,55 @@ public sealed class FileDialogHandlerTests : IDisposable
     public async Task HandleFileSelectedAsync_JsonObjectFile_PopulatesJsonObjectEntries()
     {
         // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        var handler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
 
         // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_jsonObjectFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
 
         // Assert
-        Assert.Fail("Not implemented");
+        state.JsonObjectEntries.Should().NotBeNull();
+        state.JsonObjectEntries.Should().HaveCount(2);
+        state.JsonObjectEntries.Should().SatisfyRespectively(
+            e => e.Key.Should().Be("name"),
+            e => e.Key.Should().Be("count"));
     }
 
     [Fact]
     public async Task HandleFileSelectedAsync_NonJsonObjectFile_ResetsJsonObjectEntriesToNull()
     {
         // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState
+        {
+            JsonObjectEntries = [new JsonObjectEntry("stale", JsonRawBytes.Empty)],
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        IRowIndexer? capturedIndexer = null;
+        var handler = new FileDialogHandler(app, state, viewManager, indexer =>
+        {
+            capturedIndexer = indexer;
+            Task.Run(() => indexer.BuildIndex());
+        }, () => { });
 
         // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_jsonLinesFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
 
         // Assert
-        Assert.Fail("Not implemented");
+        state.JsonObjectEntries.Should().BeNull();
+        capturedIndexer.Should().NotBeNull();
     }
 }

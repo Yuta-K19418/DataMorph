@@ -120,10 +120,12 @@ public sealed class AppStateTests
     public void JsonObjectEntries_Default_IsNull()
     {
         // Arrange
+        using var state = new AppState();
 
         // Act
+        var result = state.JsonObjectEntries;
 
         // Assert
-        Assert.Fail("Not implemented");
+        result.Should().BeNull();
     }
 }

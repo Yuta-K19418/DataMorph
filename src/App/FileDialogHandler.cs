@@ -61,6 +61,7 @@ internal sealed class FileDialogHandler(
         _state.ActionStack = [];
         _state.RenewCtsWithCancel();
         _state.DrillDown = null;
+        _state.JsonObjectEntries = null;
 
         // JSON Object: scan keys via TopLevelScanner, then switch to tree view directly.
         // No IRowIndexer is needed — keys are not rows.
@@ -79,6 +80,7 @@ internal sealed class FileDialogHandler(
                 _app.Invoke(() =>
                 {
                     _state.CurrentMode = ViewMode.JsonObjectTree;
+                    _state.JsonObjectEntries = entries;
                     _viewManager.SwitchToJsonObjectTree(entries);
                 });
             }

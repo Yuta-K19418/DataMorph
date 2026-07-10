@@ -2,7 +2,10 @@ using AwesomeAssertions;
 using DataMorph.App;
 using DataMorph.App.Views;
 using DataMorph.App.Views.JsonTreeNodes;
+using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonObject;
+using DataMorph.Engine.Models;
+using DataMorph.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
@@ -19,6 +22,7 @@ public sealed class AppKeyHandlerTests
     [InlineData(KeyCode.T)]
     [InlineData(KeyCode.X)]
     [InlineData(KeyCode.C)]
+    [InlineData(KeyCode.Backspace)]
     [InlineData((KeyCode)'?')]
     public void IsGlobalShortcut_WithGlobalShortcutKeys_ReturnsTrue(KeyCode keyCode)
     {
@@ -52,6 +56,7 @@ public sealed class AppKeyHandlerTests
     [InlineData(KeyCode.T | KeyCode.CtrlMask)]
     [InlineData(KeyCode.X | KeyCode.CtrlMask)]
     [InlineData(KeyCode.C | KeyCode.CtrlMask)]
+    [InlineData(KeyCode.Backspace | KeyCode.CtrlMask)]
     [InlineData((KeyCode)'?' | KeyCode.CtrlMask)]
     public void IsGlobalShortcut_WithModifierKeys_ReturnsTrue(KeyCode keyCode)
     {
@@ -209,22 +214,53 @@ public sealed class AppKeyHandlerTests
     public void OnGlobalKeyDown_BackspaceInFocusedTableWithDrillDown_CallsReturnFromDrillDown()
     {
         // Arrange
+        using var app = CreateTestApp();
+        IReadOnlyList<JsonObjectEntry> entries = [new JsonObjectEntry("id", "1"u8.ToArray())];
+        var schema = new TableSchema { SourceFormat = DataFormat.JsonObject, Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }] };
+        using var state = new AppState
+        {
+            CurrentFilePath = "test.json",
+            CurrentMode = ViewMode.FocusedTable,
+            JsonObjectEntries = entries,
+            DrillDown = new DrillDownState(
+                [new FocusedTableRow(JsonRawBytes.Empty, "[0]")], schema, ViewMode.JsonObjectTree),
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        handler.Subscribe();
 
         // Act
+        var handled = app.Keyboard.RaiseKeyDownEvent(KeyCode.Backspace);
 
         // Assert
-        Assert.Fail("Not implemented");
+        handled.Should().BeTrue();
+        state.CurrentMode.Should().Be(ViewMode.JsonObjectTree);
+        state.DrillDown.Should().BeNull();
     }
 
     [Fact]
     public void OnGlobalKeyDown_BackspaceOutsideFocusedTable_ReturnsUnhandled()
     {
         // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentMode = ViewMode.FileSelection };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
+        var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        handler.Subscribe();
 
         // Act
+        var handled = app.Keyboard.RaiseKeyDownEvent(KeyCode.Backspace);
 
         // Assert
-        Assert.Fail("Not implemented");
+        handled.Should().BeFalse();
     }
 
     [Fact]

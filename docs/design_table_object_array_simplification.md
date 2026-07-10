@@ -254,3 +254,82 @@ neither `JsonObjectTreeNodeTests` nor `JsonArrayTreeNodeTests` require updates.
 - `FullAggregationScannerTests`: update the two `ExtractCell` assertions — `"{...}"` →
   `"{Object: 1 properties}"` (the `address` object has one key, `city`), `"[...]"` →
   `"[Array: 2 items]"` (the `tags` array has two elements).
+
+## 5. ADR: Where Object/Array Preview Formatting Lives — Two Valid Models, and Why This Issue Keeps the Current One
+
+### Status
+
+Accepted for this issue. Alternative recorded as a candidate for future work, not rejected.
+
+### Context
+
+While implementing the §3.1 refactor, it was questioned whether `JsonByteExtractor` should
+expose only the counting primitives (`CountObjectProperties` / `CountArrayElements`, returning
+`int`) and leave string formatting (`{Object: N properties}` / `[Array: N items]`) to the App
+layer, in line with a general "Engine computes, App presents" separation.
+
+This is not a case of one design being correct and the other flawed — it is two internally
+coherent models of what a "JSON cell value" is, with a real trade-off between them:
+
+- **Model A (current design in this codebase): value-as-display-text.** A cell's "value" is
+  defined as its display-ready text representation. Extraction and formatting are one step.
+  `JsonObjectCellExtractor` already works this way for every existing token type —
+  `True`/`False`/`<null>`/`<error>` and `N0`-formatted numbers are not raw JSON, they are
+  text invented by this class to be simultaneously human-readable and directly usable by
+  filtering. This model prioritizes consistency with the codebase as it exists today and keeps
+  a single string as the one artifact both rendering and filtering depend on.
+
+- **Model B (the alternative raised in discussion): value-as-typed-data.** A cell's "value" is
+  a typed union (e.g. `JsonCellValue` with variants `String` / `Number` / `Bool` / `Null` /
+  `Object(count)` / `Array(count)` / `Error`). Engine's job ends at producing this typed value;
+  the App layer formats it for display, and filter evaluation dispatches per-type via
+  polymorphism (e.g. each variant implements its own `Contains`/`Equals`/comparison behavior)
+  instead of everything being pre-flattened to text. This model is the more textbook-standard
+  separation of concerns (extraction vs. presentation as distinct responsibilities), and it
+  would additionally enable numeric filter operators to compare typed numbers directly instead
+  of round-tripping through text as `EvaluateNumericLong`/`EvaluateNumericDouble` do today. It
+  would also open the door to new capability this issue does not require, such as numeric
+  filters over an Object's property count or an Array's element count.
+
+### Decision
+
+For this issue, `JsonByteExtractor.FormatObjectPreview` / `FormatArrayPreview` stay in the
+Engine layer as Model A methods returning the final display string, and
+`JsonObjectCellExtractor.FormatValue` (§3.2) calls them directly. Object/Array are made to match
+the same value-as-display-text model already used by every other token type in that class,
+rather than being carved out as a special case.
+
+### Why Model A for this issue specifically
+
+1. **Internal consistency with existing code.** `JsonObjectCellExtractor` already treats every
+   other token type's "value" as finished text. Returning a raw `int` only for Object/Array
+   would make the class inconsistent with itself, not more principled — the class as it exists
+   today is fully committed to Model A already.
+
+2. **`FilterRowIndexer` (Engine layer) depends on `JsonObjectCellExtractor` directly**, so
+   `JsonObjectCellExtractor` cannot move to the App layer. Adopting Model B only partially (App
+   formats for display, but `JsonObjectCellExtractor` still needs text for filtering) would
+   duplicate the `{Object: N properties}` wording template across Engine and App, reintroducing
+   the drift risk this design already solved once by unifying Table Mode's and Tree View's
+   phrasing (§1, "Revised format decision"). Model B only pays off if adopted consistently
+   end-to-end — including `FilterEvaluator`'s operator dispatch — not as a partial change.
+
+3. **Adopting Model B properly is a filtering-engine-wide redesign**, touching
+   `JsonObjectCellExtractor`'s entire return contract, `FilterSpec`, `ColumnType`,
+   `FilterEvaluator`'s operator dispatch (`Contains`/`StartsWith`/`EndsWith`/`Equals` are
+   string-native operators and would need a defined per-type meaning under Model B), and all
+   four `ExtractCell` call sites (Table Mode, DrillDown, CLI filter, CLI export). This is
+   substantially larger than — and orthogonal to — this issue's actual goal (changing what text
+   is shown for Object/Array). Scoping it into this issue would mix an unrelated architectural
+   change into a display-rule change.
+
+### Consequence
+
+`JsonByteExtractor.FormatObjectPreview`/`FormatArrayPreview` stay in Engine, matching Model A as
+already established by `JsonObjectCellExtractor.FormatValue`'s other branches. The
+single-source-of-truth property for wording (Table Mode == DrillDown == CLI == Tree View) is
+preserved without introducing new duplication.
+
+Model B (typed `JsonCellValue` + polymorphic per-type filter evaluation) is recorded here as a
+legitimate future direction — a candidate for a dedicated future issue focused on the filtering
+engine and cell-value representation, not a rejected idea.

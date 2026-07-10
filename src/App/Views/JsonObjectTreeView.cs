@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO.DrillDown;
+using DataMorph.Engine.IO.JsonObject;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views;
@@ -27,7 +28,7 @@ internal sealed class JsonObjectTreeView : MorphTreeView
     /// <param name="onPathChanged">Callback invoked with the current selection's KeyPath whenever the cursor moves.</param>
     /// <returns>A populated <see cref="JsonObjectTreeView"/>.</returns>
     internal static JsonObjectTreeView Create(
-        IReadOnlyList<(string key, JsonRawBytes value)> entries,
+        IReadOnlyList<JsonObjectEntry> entries,
         Action onTableModeToggle,
         Action<IReadOnlyList<KeyPathSegment>> onPathChanged)
     {

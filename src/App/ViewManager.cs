@@ -5,6 +5,7 @@ using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonLines;
+using DataMorph.Engine.IO.JsonObject;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
 using DataMorph.Engine.Types;
@@ -102,6 +103,11 @@ internal sealed class ViewManager : IDisposable
             if (_state.ActionStack.Count > 0)
             {
                 hints.Add("c:Clear");
+            }
+
+            if (_state.CurrentMode == ViewMode.FocusedTable)
+            {
+                hints.Add("bs:Back");
             }
         }
 
@@ -327,7 +333,7 @@ internal sealed class ViewManager : IDisposable
         Justification = "Child views are owned by the container and disposed via SwapView."
     )]
     internal void SwitchToJsonObjectTree(
-        IReadOnlyList<(string key, JsonRawBytes value)> entries)
+        IReadOnlyList<JsonObjectEntry> entries)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(entries);
@@ -603,6 +609,45 @@ internal sealed class ViewManager : IDisposable
         SwapView(view);
         view.SetFocus();
         RefreshStatusBarHints();
+    }
+
+    /// <summary>
+    /// Returns from <see cref="ViewMode.FocusedTable"/> to the tree mode the active DrillDown was
+    /// entered from, rebuilding that tree from its cached backing data on <see cref="AppState"/>.
+    /// A no-op when there is no active DrillDown session.
+    /// </summary>
+    internal void ReturnFromDrillDown()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_state.DrillDown is not { } drillDown)
+        {
+            return;
+        }
+
+        _state.DrillDown = null;
+
+        switch (drillDown.PreviousMode)
+        {
+            case ViewMode.JsonLinesTree when _state.RowIndexer is not null:
+                _state.CurrentMode = ViewMode.JsonLinesTree;
+                SwitchToJsonLinesTree(_state.RowIndexer);
+                break;
+
+            case ViewMode.JsonArrayTree when _state.RowIndexer is not null:
+                _state.CurrentMode = ViewMode.JsonArrayTree;
+                SwitchToJsonArrayTree(_state.RowIndexer);
+                break;
+
+            case ViewMode.JsonObjectTree when _state.JsonObjectEntries is not null:
+                _state.CurrentMode = ViewMode.JsonObjectTree;
+                SwitchToJsonObjectTree(_state.JsonObjectEntries);
+                break;
+
+            default:
+                throw new UnreachableException(
+                    "DrillDownState.PreviousMode must be a tree mode with its backing data still cached on AppState.");
+        }
     }
 
     /// <inheritdoc/>

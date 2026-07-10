@@ -1,7 +1,9 @@
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.DrillDown;
+using DataMorph.Engine.IO.JsonObject;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Models.Actions;
+using DataMorph.Engine.Types;
 
 namespace DataMorph.App;
 
@@ -64,6 +66,12 @@ internal sealed class AppState : IDisposable
     /// Null when not in FocusedTable mode.
     /// </summary>
     public DrillDownState? DrillDown { get; set; }
+
+    /// <summary>
+    /// Gets or sets the cached top-level entries for JSON Object tree reconstruction.
+    /// Set once at file load for <see cref="DataFormat.JsonObject"/> files; null for all other formats.
+    /// </summary>
+    public IReadOnlyList<JsonObjectEntry>? JsonObjectEntries { get; set; }
 
     /// <summary>
     /// Renews the cancellation token source by cancelling the current one and creating a new one.

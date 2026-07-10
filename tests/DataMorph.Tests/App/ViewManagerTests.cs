@@ -5,6 +5,7 @@ using DataMorph.App.Views;
 using DataMorph.Engine.IO;
 using DataMorph.Engine.IO.DrillDown;
 using DataMorph.Engine.IO.JsonArray;
+using DataMorph.Engine.IO.JsonObject;
 using DataMorph.Engine.Models;
 using DataMorph.Engine.Types;
 using Terminal.Gui.App;
@@ -184,6 +185,28 @@ public sealed class ViewManagerTests : IDisposable
                 Enumerable.OfType<Shortcut>(currentStatusBar.SubViews),
                 s => s.HelpText);
         hints.Should().Contain("x:Menu");
+    }
+
+    [Fact]
+    public void RefreshStatusBarHints_WithFocusedTableMode_IncludesBackHint()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".jsonl", "{\"col1\": \"value\"}\n");
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentFilePath = filePath, CurrentMode = ViewMode.FocusedTable };
+        using var window = new Window();
+        using var statusBar = new StatusBar();
+        window.Add(statusBar);
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        // Act
+        viewManager.RefreshStatusBarHints();
+
+        // Assert
+        var currentStatusBar = viewManager.GetCurrentStatusBar();
+        currentStatusBar.Should().NotBeNull();
+        currentStatusBar.SubViews.OfType<Shortcut>().Select(s => s.HelpText).Should().Contain("bs:Back");
     }
 
     [Fact]
@@ -464,9 +487,9 @@ public sealed class ViewManagerTests : IDisposable
         using var window = new Window();
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, JsonRawBytes value)> entries =
+        IReadOnlyList<JsonObjectEntry> entries =
         [
-            ("id", System.Text.Encoding.UTF8.GetBytes("1")),
+            new JsonObjectEntry("id", System.Text.Encoding.UTF8.GetBytes("1")),
         ];
 
         // Act
@@ -485,7 +508,7 @@ public sealed class ViewManagerTests : IDisposable
         using var window = new Window();
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, JsonRawBytes value)>? nullEntries = null;
+        IReadOnlyList<JsonObjectEntry>? nullEntries = null;
 
         // Act
         var act = () => viewManager.SwitchToJsonObjectTree(nullEntries!);
@@ -504,7 +527,7 @@ public sealed class ViewManagerTests : IDisposable
         var modeController = new ModeController(state);
         var viewManager = new ViewManager(window, state, modeController, action => action());
         viewManager.Dispose();
-        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
+        IReadOnlyList<JsonObjectEntry> entries = [];
 
         // Act
         var act = () => viewManager.SwitchToJsonObjectTree(entries);
@@ -525,9 +548,9 @@ public sealed class ViewManagerTests : IDisposable
         window.Add(statusBar);
         var modeController = new ModeController(state);
         using var viewManager = new ViewManager(window, state, modeController, action => action());
-        IReadOnlyList<(string key, JsonRawBytes value)> entries =
+        IReadOnlyList<JsonObjectEntry> entries =
         [
-            ("id", System.Text.Encoding.UTF8.GetBytes("1")),
+            new JsonObjectEntry("id", System.Text.Encoding.UTF8.GetBytes("1")),
         ];
         viewManager.SwitchToJsonObjectTree(entries);
 
@@ -783,6 +806,131 @@ public sealed class ViewManagerTests : IDisposable
 
         // Assert
         window.SubViews.OfType<BreadcrumbBar>().Single().Text.Should().Be("list[*]");
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithJsonLinesTreePreviousMode_RestoresJsonLinesTree()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".jsonl", "{\"col1\": \"value\"}\n");
+        using var app = CreateTestApp();
+        var indexer = new DataMorph.Engine.IO.JsonLines.RowIndexer(filePath);
+        indexer.BuildIndex();
+        var schema = new TableSchema { SourceFormat = DataFormat.JsonLines, Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }] };
+        using var state = new AppState
+        {
+            CurrentFilePath = filePath,
+            CurrentMode = ViewMode.FocusedTable,
+            RowIndexer = indexer,
+            DrillDown = new DrillDownState(
+                [new FocusedTableRow(JsonRawBytes.Empty, "[0]")], schema, ViewMode.JsonLinesTree),
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        // Act
+        viewManager.ReturnFromDrillDown();
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.JsonLinesTree);
+        state.DrillDown.Should().BeNull();
+        viewManager.GetCurrentView().Should().BeOfType<JsonLinesTreeView>();
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithJsonArrayTreePreviousMode_RestoresJsonArrayTree()
+    {
+        // Arrange
+        var filePath = CreateTempFile(".json", "[1,2,3]");
+        using var app = CreateTestApp();
+        var indexer = new RowIndexer(filePath);
+        indexer.BuildIndex();
+        var schema = new TableSchema { SourceFormat = DataFormat.JsonArray, Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }] };
+        using var state = new AppState
+        {
+            CurrentFilePath = filePath,
+            CurrentMode = ViewMode.FocusedTable,
+            RowIndexer = indexer,
+            DrillDown = new DrillDownState(
+                [new FocusedTableRow(JsonRawBytes.Empty, "[0]")], schema, ViewMode.JsonArrayTree),
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        // Act
+        viewManager.ReturnFromDrillDown();
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.JsonArrayTree);
+        state.DrillDown.Should().BeNull();
+        viewManager.GetCurrentView().Should().BeOfType<JsonArrayTreeView>();
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithJsonObjectTreePreviousMode_RestoresJsonObjectTree()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        IReadOnlyList<JsonObjectEntry> entries = [new JsonObjectEntry("id", Encoding.UTF8.GetBytes("1"))];
+        var schema = new TableSchema { SourceFormat = DataFormat.JsonObject, Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }] };
+        using var state = new AppState
+        {
+            CurrentFilePath = "test.json",
+            CurrentMode = ViewMode.FocusedTable,
+            JsonObjectEntries = entries,
+            DrillDown = new DrillDownState(
+                [new FocusedTableRow(JsonRawBytes.Empty, "[0]")], schema, ViewMode.JsonObjectTree),
+        };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        // Act
+        viewManager.ReturnFromDrillDown();
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.JsonObjectTree);
+        state.DrillDown.Should().BeNull();
+        viewManager.GetCurrentView().Should().BeOfType<JsonObjectTreeView>();
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_WithNullDrillDown_DoesNothing()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState { CurrentMode = ViewMode.FileSelection };
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+        viewManager.SwitchToFileSelection();
+
+        // Act
+        viewManager.ReturnFromDrillDown();
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.FileSelection);
+        state.DrillDown.Should().BeNull();
+    }
+
+    [Fact]
+    public void ReturnFromDrillDown_AfterDisposal_ThrowsObjectDisposedException()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        var viewManager = new ViewManager(window, state, modeController, action => action());
+        viewManager.Dispose();
+
+        // Act
+        var act = () => viewManager.ReturnFromDrillDown();
+
+        // Assert
+        act.Should().Throw<ObjectDisposedException>();
     }
 
     /// <summary>

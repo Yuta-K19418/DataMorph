@@ -210,4 +210,49 @@ public sealed class ModeControllerTests : IDisposable
         state.DrillDown.Should().BeNull();
         state.CurrentMode.Should().Be(ViewMode.FileSelection);
     }
+
+    [Fact]
+    public void DrillDown_WhenCalledFromJsonObjectTree_CapturesPreviousModeAsJsonObjectTree()
+    {
+        // Arrange
+        JsonRawBytes nodeBytes = Encoding.UTF8.GetBytes("""[{"id":1}]""");
+        var request = new SingleDrillDownRequest(
+            Format: DataMorph.Engine.Types.DataFormat.JsonObject,
+            NodeBytes: nodeBytes,
+            KeyPath: []);
+        using var state = new AppState { CurrentMode = ViewMode.JsonObjectTree };
+        var controller = new ModeController(state);
+
+        // Act
+        var result = controller.DrillDown(request);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        state.DrillDown.Should().BeOfType<DrillDownState>()
+            .Which.PreviousMode.Should().Be(ViewMode.JsonObjectTree);
+    }
+
+    [Fact]
+    public async Task FullAggregationDrillDownAsync_WhenCalledFromJsonLinesTree_CapturesPreviousModeAsJsonLinesTree()
+    {
+        // Arrange
+        await File.WriteAllTextAsync(
+            _jsonlFilePath, "{\"user\":{\"name\":\"Alice\"}}");
+        using var state = new AppState
+        {
+            CurrentFilePath = _jsonlFilePath,
+            CurrentMode = ViewMode.JsonLinesTree,
+        };
+        var controller = new ModeController(state);
+        var request = new FullAggregationDrillDownRequest(
+            Format: DataMorph.Engine.Types.DataFormat.JsonLines,
+            KeyPath: [new KeyPathSegment("user", KeyPathSegmentKind.Key)]);
+
+        // Act
+        var result = await controller.FullAggregationDrillDownAsync(request);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.PreviousMode.Should().Be(ViewMode.JsonLinesTree);
+    }
 }

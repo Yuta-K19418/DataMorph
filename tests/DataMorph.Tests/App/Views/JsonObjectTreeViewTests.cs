@@ -3,6 +3,7 @@ using AwesomeAssertions;
 using DataMorph.App.Views;
 using DataMorph.App.Views.JsonTreeNodes;
 using DataMorph.Engine.IO.DrillDown;
+using DataMorph.Engine.IO.JsonObject;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 
@@ -109,7 +110,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithNullEntries_ThrowsArgumentNullException()
     {
         // Arrange
-        IReadOnlyList<(string key, JsonRawBytes value)> nullEntries = null!;
+        IReadOnlyList<JsonObjectEntry> nullEntries = null!;
 
         // Act
         var act = () => JsonObjectTreeView.Create(nullEntries, () => { }, _ => { });
@@ -122,7 +123,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithNullToggle_ThrowsArgumentNullException()
     {
         // Arrange
-        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
+        IReadOnlyList<JsonObjectEntry> entries = [];
 
         // Act
         var act = () => JsonObjectTreeView.Create(entries, null!, _ => { });
@@ -135,7 +136,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithNullOnPathChanged_ThrowsArgumentNullException()
     {
         // Arrange
-        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
+        IReadOnlyList<JsonObjectEntry> entries = [];
 
         // Act
         var act = () => JsonObjectTreeView.Create(entries, () => { }, null!);
@@ -148,7 +149,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithEmptyEntries_AddsNoObjects()
     {
         // Arrange
-        IReadOnlyList<(string key, JsonRawBytes value)> entries = [];
+        IReadOnlyList<JsonObjectEntry> entries = [];
 
         // Act
         using var view = JsonObjectTreeView.Create(entries, () => { }, _ => { });
@@ -161,7 +162,7 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_OnSelectionChanged_InvokesOnPathChangedWithExpectedKeyPath()
     {
         // Arrange
-        IReadOnlyList<(string key, JsonRawBytes value)> entries = [("data", ToBytes("{\"a\":1}"))];
+        IReadOnlyList<JsonObjectEntry> entries = [new JsonObjectEntry("data", ToBytes("{\"a\":1}"))];
         List<IReadOnlyList<KeyPathSegment>> observedPaths = [];
         using var view = JsonObjectTreeView.Create(entries, () => { }, path => observedPaths.Add(path));
         var objects = view.Objects;
@@ -180,11 +181,11 @@ public sealed class JsonObjectTreeViewTests : IDisposable
     public void Create_WithEntries_AddsOneNodePerKey()
     {
         // Arrange
-        IReadOnlyList<(string key, JsonRawBytes value)> entries =
+        IReadOnlyList<JsonObjectEntry> entries =
         [
-            ("id", ToBytes("1")),
-            ("name", ToBytes("\"Alice\"")),
-            ("active", ToBytes("true")),
+            new JsonObjectEntry("id", ToBytes("1")),
+            new JsonObjectEntry("name", ToBytes("\"Alice\"")),
+            new JsonObjectEntry("active", ToBytes("true")),
         ];
 
         // Act

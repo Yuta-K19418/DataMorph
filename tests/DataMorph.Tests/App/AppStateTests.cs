@@ -115,4 +115,17 @@ public sealed class AppStateTests
         // Assert
         result.Should().BeEmpty();
     }
+
+    [Fact]
+    public void JsonObjectEntries_Default_IsNull()
+    {
+        // Arrange
+        using var state = new AppState();
+
+        // Act
+        var result = state.JsonObjectEntries;
+
+        // Assert
+        result.Should().BeNull();
+    }
 }

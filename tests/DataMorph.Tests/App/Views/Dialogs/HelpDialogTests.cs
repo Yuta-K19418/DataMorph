@@ -3,6 +3,7 @@ using DataMorph.App.Views.Dialogs;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
+using Terminal.Gui.Views;
 
 namespace DataMorph.Tests.App.Views.Dialogs;
 
@@ -89,6 +90,20 @@ public sealed class HelpDialogTests
 
         // Assert
         dialog.Title.Should().Be("Help - Key Bindings");
+    }
+
+    [Fact]
+    public void Constructor_HelpText_IncludesBackspaceBinding()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+
+        // Act
+        using var dialog = new HelpDialog();
+
+        // Assert
+        var label = dialog.SubViews.OfType<Label>().Single();
+        label.Text.Should().Contain("BackSpace");
     }
 
     [Fact]

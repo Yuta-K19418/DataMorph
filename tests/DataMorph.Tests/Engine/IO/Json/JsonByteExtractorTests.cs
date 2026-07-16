@@ -219,4 +219,36 @@ public sealed class JsonByteExtractorTests
         // Assert
         preview.Should().Be("[Array: 3 items]");
     }
+
+    [Fact]
+    public void FormatObjectPreview_ForEmptyObject_ReturnsZeroPropertiesPreview()
+    {
+        // Arrange
+        var json = "{}";
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read(); // Move to StartObject
+
+        // Act
+        var preview = JsonByteExtractor.FormatObjectPreview(ref reader);
+
+        // Assert
+        preview.Should().Be("{Object: 0 properties}");
+    }
+
+    [Fact]
+    public void FormatArrayPreview_ForEmptyArray_ReturnsZeroItemsPreview()
+    {
+        // Arrange
+        var json = "[]";
+        var rawJson = Encoding.UTF8.GetBytes(json);
+        var reader = new Utf8JsonReader(rawJson);
+        reader.Read(); // Move to StartArray
+
+        // Act
+        var preview = JsonByteExtractor.FormatArrayPreview(ref reader);
+
+        // Assert
+        preview.Should().Be("[Array: 0 items]");
+    }
 }

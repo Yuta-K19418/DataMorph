@@ -118,6 +118,48 @@ public sealed class JsonObjectCellExtractorTests
     }
 
     [Fact]
+    public void ExtractCell_EmptyObject_ReturnsCollapsedPreview()
+    {
+        // Arrange
+        var line = "{\"address\": {}}"u8;
+        var columnName = "address"u8;
+
+        // Act
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public void ExtractCell_EmptyArray_ReturnsCollapsedPreview()
+    {
+        // Arrange
+        var line = "{\"tags\": []}"u8;
+        var columnName = "tags"u8;
+
+        // Act
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
+    public void ExtractCell_ObjectWithNestedContainer_ReturnsDirectPropertyCount()
+    {
+        // Arrange
+        var line = "{\"address\": {\"city\": \"Tokyo\", \"coords\": {\"lat\": 1, \"lng\": 2}}}"u8;
+        var columnName = "address"u8;
+
+        // Act
+        var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
+
+        // Assert
+        Assert.Fail("Not implemented");
+    }
+
+    [Fact]
     public void ExtractCell_MissingKey_ReturnsNullPlaceholder()
     {
         // Arrange

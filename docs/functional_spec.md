@@ -21,8 +21,9 @@ DataMorph is a high-performance TUI/CLI tool built with C# (.NET 10, Native AOT)
 - **Explorer Mode**: Lazy-load node children. Use `ENTER` to expand and `M` to Morph the selected array/object into a table.
 - **Simplification Rule**: To maintain fixed row height and performance:
     - Primitives (String/Num/Bool): Displayed as-is.
-    - Objects/Arrays: Displayed as `{ Object }` or `[ n items ]`.
-    - Logic: Use `Utf8JsonReader.Skip()` for deep structures unless manually expanded.
+    - Objects/Arrays: Displayed as `{Object: N properties}` or `[Array: N items]`.
+    - Logic: Count top-level children via depth-tracking (not a full-value `Skip()`) so the
+      count is exact without parsing past the value's own boundary.
 
 ## 5. Priority 3: Transformation Actions (Morphism)
 ### 5.1 CSV Specific

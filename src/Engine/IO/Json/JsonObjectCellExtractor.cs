@@ -61,7 +61,7 @@ public static class JsonObjectCellExtractor
                     return "<error>";
                 }
 
-                return FormatValue(reader.TokenType, reader.ValueSpan);
+                return FormatValue(ref reader);
             }
 
             return "<null>";
@@ -72,21 +72,21 @@ public static class JsonObjectCellExtractor
         }
     }
 
-    private static string FormatValue(JsonTokenType tokenType, ReadOnlySpan<byte> valueSpan)
+    private static string FormatValue(ref Utf8JsonReader reader)
     {
-        if (tokenType == JsonTokenType.Number)
+        if (reader.TokenType == JsonTokenType.Number)
         {
-            return FormatNumber(valueSpan);
+            return FormatNumber(reader.ValueSpan);
         }
 
-        return tokenType switch
+        return reader.TokenType switch
         {
-            JsonTokenType.String => Encoding.UTF8.GetString(valueSpan),
+            JsonTokenType.String => Encoding.UTF8.GetString(reader.ValueSpan),
             JsonTokenType.True => "True",
             JsonTokenType.False => "False",
             JsonTokenType.Null => "<null>",
-            JsonTokenType.StartObject => "{...}",
-            JsonTokenType.StartArray => "[...]",
+            JsonTokenType.StartObject => JsonByteExtractor.FormatObjectPreview(ref reader),
+            JsonTokenType.StartArray => JsonByteExtractor.FormatArrayPreview(ref reader),
             _ => "<null>",
         };
     }

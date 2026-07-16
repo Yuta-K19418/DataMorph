@@ -1,4 +1,5 @@
 using System.Text.Json;
+using DataMorph.Engine.IO.Json;
 using Terminal.Gui.Views;
 
 namespace DataMorph.App.Views.JsonTreeNodes;
@@ -127,33 +128,6 @@ internal sealed class JsonObjectTreeNode : TreeNode
             return "{Invalid Object}";
         }
 
-        var propertyCount = 0;
-        var depth = 1;
-
-        while (reader.Read())
-        {
-            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
-            {
-                depth++;
-                continue;
-            }
-
-            if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
-            {
-                depth--;
-            }
-
-            if (depth == 0)
-            {
-                break;
-            }
-
-            if (depth == 1 && reader.TokenType == JsonTokenType.PropertyName)
-            {
-                propertyCount++;
-            }
-        }
-
-        return FormattableString.Invariant($"{{Object: {propertyCount:N0} properties}}");
+        return JsonByteExtractor.FormatObjectPreview(ref reader);
     }
 }

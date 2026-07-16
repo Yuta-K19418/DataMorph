@@ -3,8 +3,9 @@ using System.Text.Json;
 namespace DataMorph.Engine.IO.Json;
 
 /// <summary>
-/// Shared Engine-layer utility for extracting the raw bytes of a nested JSON value
-/// (Object or Array) by tracking brace/bracket depth. Extracted to a common location so the
+/// Shared Engine-layer utility for JSON traversal primitives: extracting the raw bytes of a
+/// nested value, counting an Object's top-level properties or an Array's top-level elements,
+/// and formatting collapsed preview text for both. Extracted to a common location so the
 /// App-layer tree node helper can reuse it without duplicating the depth-tracking logic.
 /// </summary>
 public static class JsonByteExtractor
@@ -40,5 +41,89 @@ public static class JsonByteExtractor
 
         var endPosition = (int)reader.TokenStartIndex + 1;
         return rawJson.Slice(startPosition, endPosition - startPosition);
+    }
+
+    /// <summary>
+    /// Counts the top-level properties of a JSON object by tracking brace/bracket depth.
+    /// The reader must be positioned at a <see cref="JsonTokenType.StartObject"/> token; on return
+    /// the reader has consumed the entire object, ending at its matching EndObject token.
+    /// </summary>
+    public static int CountObjectProperties(ref Utf8JsonReader reader)
+    {
+        var propertyCount = 0;
+        var depth = 1;
+
+        while (depth > 0 && reader.Read())
+        {
+            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                depth++;
+                continue;
+            }
+
+            if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+            {
+                depth--;
+            }
+
+            if (depth == 1 && reader.TokenType == JsonTokenType.PropertyName)
+            {
+                propertyCount++;
+            }
+        }
+
+        return propertyCount;
+    }
+
+    /// <summary>
+    /// Counts the top-level elements of a JSON array by tracking bracket/brace depth.
+    /// The reader must be positioned at a <see cref="JsonTokenType.StartArray"/> token; on return
+    /// the reader has consumed the entire array, ending at its matching EndArray token.
+    /// </summary>
+    public static int CountArrayElements(ref Utf8JsonReader reader)
+    {
+        var elementCount = 0;
+        var depth = 1;
+
+        while (depth > 0 && reader.Read())
+        {
+            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                depth++;
+                continue;
+            }
+
+            if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+            {
+                depth--;
+            }
+
+            if (depth == 1)
+            {
+                elementCount++;
+            }
+        }
+
+        return elementCount;
+    }
+
+    /// <summary>
+    /// Formats a JSON object's collapsed preview text (e.g. "{Object: 3 properties}"). The reader
+    /// must be positioned at a <see cref="JsonTokenType.StartObject"/> token.
+    /// </summary>
+    public static string FormatObjectPreview(ref Utf8JsonReader reader)
+    {
+        var propertyCount = CountObjectProperties(ref reader);
+        return FormattableString.Invariant($"{{Object: {propertyCount:N0} properties}}");
+    }
+
+    /// <summary>
+    /// Formats a JSON array's collapsed preview text (e.g. "[Array: 3 items]"). The reader must be
+    /// positioned at a <see cref="JsonTokenType.StartArray"/> token.
+    /// </summary>
+    public static string FormatArrayPreview(ref Utf8JsonReader reader)
+    {
+        var elementCount = CountArrayElements(ref reader);
+        return FormattableString.Invariant($"[Array: {elementCount:N0} items]");
     }
 }

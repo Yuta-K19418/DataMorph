@@ -348,7 +348,7 @@ public sealed class FullAggregationScannerTests : IDisposable
     [Theory]
     [InlineData(DataFormat.JsonLines)]
     [InlineData(DataFormat.JsonArray)]
-    public void Scan_NestedObjectOrArrayCellValue_RendersAsEllipsisPlaceholder(DataFormat format)
+    public void Scan_NestedObjectOrArrayCellValue_RendersAsCollapsedPreview(DataFormat format)
     {
         // Arrange
         var path = CreateTempFile(
@@ -361,8 +361,8 @@ public sealed class FullAggregationScannerTests : IDisposable
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.rows.Should().HaveCount(1);
-        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, "address"u8).Should().Be("{...}");
-        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, "tags"u8).Should().Be("[...]");
+        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, "address"u8).Should().Be("{Object: 1 properties}");
+        JsonObjectCellExtractor.ExtractCell(result.Value.rows[0].Bytes.Span, "tags"u8).Should().Be("[Array: 2 items]");
     }
 
     [Theory]

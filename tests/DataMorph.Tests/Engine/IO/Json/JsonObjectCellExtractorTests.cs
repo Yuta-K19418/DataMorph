@@ -100,7 +100,7 @@ public sealed class JsonObjectCellExtractorTests
         var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
-        result.Should().Be("{...}");
+        result.Should().Be("{Object: 1 properties}");
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class JsonObjectCellExtractorTests
         var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
-        result.Should().Be("[...]");
+        result.Should().Be("[Array: 2 items]");
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class JsonObjectCellExtractorTests
         var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
-        Assert.Fail("Not implemented");
+        result.Should().Be("{Object: 0 properties}");
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public sealed class JsonObjectCellExtractorTests
         var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
-        Assert.Fail("Not implemented");
+        result.Should().Be("[Array: 0 items]");
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public sealed class JsonObjectCellExtractorTests
         var result = JsonObjectCellExtractor.ExtractCell(line, columnName);
 
         // Assert
-        Assert.Fail("Not implemented");
+        result.Should().Be("{Object: 2 properties}");
     }
 
     [Fact]

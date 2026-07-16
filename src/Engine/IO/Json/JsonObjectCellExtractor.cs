@@ -85,8 +85,8 @@ public static class JsonObjectCellExtractor
             JsonTokenType.True => "True",
             JsonTokenType.False => "False",
             JsonTokenType.Null => "<null>",
-            JsonTokenType.StartObject => "{...}",
-            JsonTokenType.StartArray => "[...]",
+            JsonTokenType.StartObject => JsonByteExtractor.FormatObjectPreview(ref reader),
+            JsonTokenType.StartArray => JsonByteExtractor.FormatArrayPreview(ref reader),
             _ => "<null>",
         };
     }

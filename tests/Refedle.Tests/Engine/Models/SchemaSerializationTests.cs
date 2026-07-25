@@ -1,9 +1,9 @@
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.Models;
+namespace Refedle.Tests.Engine.Models;
 
 public sealed class SchemaSerializationTests
 {
@@ -21,10 +21,10 @@ public sealed class SchemaSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(schema, DataMorphJsonContext.Default.ColumnSchema);
+        var json = JsonSerializer.Serialize(schema, JsonContext.Default.ColumnSchema);
         var deserialized = JsonSerializer.Deserialize(
             json,
-            DataMorphJsonContext.Default.ColumnSchema
+            JsonContext.Default.ColumnSchema
         );
 
         // Assert
@@ -46,10 +46,10 @@ public sealed class SchemaSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(schema, DataMorphJsonContext.Default.ColumnSchema);
+        var json = JsonSerializer.Serialize(schema, JsonContext.Default.ColumnSchema);
         var deserialized = JsonSerializer.Deserialize(
             json,
-            DataMorphJsonContext.Default.ColumnSchema
+            JsonContext.Default.ColumnSchema
         );
 
         // Assert
@@ -89,10 +89,10 @@ public sealed class SchemaSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(schema, DataMorphJsonContext.Default.TableSchema);
+        var json = JsonSerializer.Serialize(schema, JsonContext.Default.TableSchema);
         var deserialized = JsonSerializer.Deserialize(
             json,
-            DataMorphJsonContext.Default.TableSchema
+            JsonContext.Default.TableSchema
         );
 
         // Assert
@@ -243,7 +243,7 @@ public sealed class SchemaSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(schema, DataMorphJsonContext.Default.ColumnSchema);
+        var json = JsonSerializer.Serialize(schema, JsonContext.Default.ColumnSchema);
 
         // Assert
         json.Should().Contain("\"name\":");

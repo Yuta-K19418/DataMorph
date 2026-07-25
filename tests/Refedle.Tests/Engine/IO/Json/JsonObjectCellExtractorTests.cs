@@ -1,7 +1,7 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO.Json;
+using Refedle.Engine.IO.Json;
 
-namespace DataMorph.Tests.Engine.IO.Json;
+namespace Refedle.Tests.Engine.IO.Json;
 
 public sealed class JsonObjectCellExtractorTests
 {

@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO.DrillDown;
+namespace Refedle.Engine.IO.DrillDown;
 
 /// <summary>
 /// Whether a <see cref="KeyPathSegment"/> addresses a JSON object property or a JSON array element.

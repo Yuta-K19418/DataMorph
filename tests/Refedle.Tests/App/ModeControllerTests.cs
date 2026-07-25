@@ -1,10 +1,10 @@
 using System.Text;
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.App;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonLines;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class ModeControllerTests : IDisposable
 {
@@ -77,10 +77,10 @@ public sealed class ModeControllerTests : IDisposable
     public async Task ToggleJsonLinesModeAsync_WithCachedSchema_ReusesSchema()
     {
         // Arrange
-        var cachedSchema = new DataMorph.Engine.Models.TableSchema
+        var cachedSchema = new Refedle.Engine.Models.TableSchema
         {
-            Columns = [new DataMorph.Engine.Models.ColumnSchema { Name = "id", Type = DataMorph.Engine.Types.ColumnType.WholeNumber }],
-            SourceFormat = DataMorph.Engine.Types.DataFormat.JsonLines
+            Columns = [new Refedle.Engine.Models.ColumnSchema { Name = "id", Type = Refedle.Engine.Types.ColumnType.WholeNumber }],
+            SourceFormat = Refedle.Engine.Types.DataFormat.JsonLines
         };
 
         using var state = new AppState
@@ -151,7 +151,7 @@ public sealed class ModeControllerTests : IDisposable
         var children = string.Join(",", Enumerable.Range(0, childCount).Select(i => $$"""{"id":{{i}}}"""));
         JsonRawBytes nodeBytes = Encoding.UTF8.GetBytes($"[{children}]");
         var request = new SingleDrillDownRequest(
-            Format: DataMorph.Engine.Types.DataFormat.JsonObject,
+            Format: Refedle.Engine.Types.DataFormat.JsonObject,
             NodeBytes: nodeBytes,
             KeyPath: []);
         using var state = new AppState();
@@ -176,7 +176,7 @@ public sealed class ModeControllerTests : IDisposable
         using var state = new AppState { CurrentFilePath = _jsonlFilePath };
         var controller = new ModeController(state);
         var request = new FullAggregationDrillDownRequest(
-            Format: DataMorph.Engine.Types.DataFormat.JsonLines,
+            Format: Refedle.Engine.Types.DataFormat.JsonLines,
             KeyPath: [new KeyPathSegment("user", KeyPathSegmentKind.Key)]);
 
         // Act
@@ -198,7 +198,7 @@ public sealed class ModeControllerTests : IDisposable
         using var state = new AppState { CurrentFilePath = _jsonlFilePath };
         var controller = new ModeController(state);
         var request = new FullAggregationDrillDownRequest(
-            Format: DataMorph.Engine.Types.DataFormat.JsonLines,
+            Format: Refedle.Engine.Types.DataFormat.JsonLines,
             KeyPath: [new KeyPathSegment("missing", KeyPathSegmentKind.Key)]);
 
         // Act
@@ -217,7 +217,7 @@ public sealed class ModeControllerTests : IDisposable
         // Arrange
         JsonRawBytes nodeBytes = Encoding.UTF8.GetBytes("""[{"id":1}]""");
         var request = new SingleDrillDownRequest(
-            Format: DataMorph.Engine.Types.DataFormat.JsonObject,
+            Format: Refedle.Engine.Types.DataFormat.JsonObject,
             NodeBytes: nodeBytes,
             KeyPath: []);
         using var state = new AppState { CurrentMode = ViewMode.JsonObjectTree };
@@ -245,7 +245,7 @@ public sealed class ModeControllerTests : IDisposable
         };
         var controller = new ModeController(state);
         var request = new FullAggregationDrillDownRequest(
-            Format: DataMorph.Engine.Types.DataFormat.JsonLines,
+            Format: Refedle.Engine.Types.DataFormat.JsonLines,
             KeyPath: [new KeyPathSegment("user", KeyPathSegmentKind.Key)]);
 
         // Act

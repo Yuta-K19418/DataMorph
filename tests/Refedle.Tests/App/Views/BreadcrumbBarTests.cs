@@ -1,8 +1,8 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.App.Views;
+using Refedle.Engine.IO.DrillDown;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed class BreadcrumbBarTests
 {

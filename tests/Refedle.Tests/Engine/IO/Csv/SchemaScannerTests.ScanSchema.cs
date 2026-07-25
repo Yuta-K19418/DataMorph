@@ -1,9 +1,9 @@
 using System.Globalization;
 using AwesomeAssertions;
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.Types;
+using Refedle.Engine.IO.Csv;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.IO.Csv;
+namespace Refedle.Tests.Engine.IO.Csv;
 
 public sealed partial class SchemaScannerTests
 {

@@ -1,10 +1,10 @@
-using DataMorph.App.Views.JsonRangeTreeNodes;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.App.Views.JsonRangeTreeNodes;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonLines;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// A <see cref="RangeTreeViewBase"/> that displays JSON Lines data as a hierarchical tree.

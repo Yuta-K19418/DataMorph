@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
-namespace DataMorph.Engine.IO.Json;
+namespace Refedle.Engine.IO.Json;
 
 /// <summary>
 /// Extracts cell values from a raw JSON Object value by property (column) name.

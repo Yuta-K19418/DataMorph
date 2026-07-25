@@ -1,7 +1,7 @@
 
 using System.Text;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 internal static class CsvEscaper
 {

@@ -1,11 +1,11 @@
 using System.Text;
 using AwesomeAssertions;
-using DataMorph.App.Views.JsonRangeTreeNodes;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.App.Views.JsonRangeTreeNodes;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.JsonLines;
 
-namespace DataMorph.Tests.App.Views.JsonRangeTreeNodes;
+namespace Refedle.Tests.App.Views.JsonRangeTreeNodes;
 
 public sealed class JsonLinesRangeTreeNodeTests : IDisposable
 {

@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Types;
+using Refedle.App;
+using Refedle.Engine.IO.Csv;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class RowIndexerFactoryTests : IDisposable
 {

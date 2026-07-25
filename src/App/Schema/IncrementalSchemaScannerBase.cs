@@ -1,6 +1,6 @@
-using DataMorph.Engine.Models;
+using Refedle.Engine.Models;
 
-namespace DataMorph.App.Schema;
+namespace Refedle.App.Schema;
 
 /// <summary>
 /// Base class for incremental schema scanners that perform initial scan and background refinement.

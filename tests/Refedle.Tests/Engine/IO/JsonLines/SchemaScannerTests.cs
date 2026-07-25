@@ -1,9 +1,9 @@
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.IO.JsonLines;
+namespace Refedle.Tests.Engine.IO.JsonLines;
 
 public sealed partial class SchemaScannerTests
 {

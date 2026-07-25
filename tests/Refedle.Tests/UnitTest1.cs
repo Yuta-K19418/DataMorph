@@ -1,4 +1,4 @@
-namespace DataMorph.Tests;
+namespace Refedle.Tests;
 
 public sealed class UnitTest1
 {

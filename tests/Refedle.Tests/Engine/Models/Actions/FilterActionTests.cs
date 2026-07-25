@@ -1,9 +1,9 @@
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Models.Actions;
+using Refedle.Engine.Models;
+using Refedle.Engine.Models.Actions;
 
-namespace DataMorph.Tests.Engine.Models.Actions;
+namespace Refedle.Tests.Engine.Models.Actions;
 
 public sealed class FilterActionTests
 {
@@ -55,8 +55,8 @@ public sealed class FilterActionTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(action, DataMorphJsonContext.Default.FilterAction);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.FilterAction);
+        var json = JsonSerializer.Serialize(action, JsonContext.Default.FilterAction);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.FilterAction);
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -79,7 +79,7 @@ public sealed class FilterActionTests
         // Act
         var json = JsonSerializer.Serialize(
             (MorphAction)action,
-            DataMorphJsonContext.Default.MorphAction
+            JsonContext.Default.MorphAction
         );
 
         // Assert
@@ -112,7 +112,7 @@ public sealed class FilterActionTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(action, DataMorphJsonContext.Default.FilterAction);
+        var json = JsonSerializer.Serialize(action, JsonContext.Default.FilterAction);
 
         // Assert
         json.Should().Contain($"\"{expectedJsonValue}\"");

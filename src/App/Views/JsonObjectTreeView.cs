@@ -1,10 +1,10 @@
 using System.Text.Json;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonObject;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonObject;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// <see cref="MorphTreeView"/> subclass for JSON Object files.

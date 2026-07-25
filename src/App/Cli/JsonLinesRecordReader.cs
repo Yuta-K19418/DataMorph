@@ -1,11 +1,11 @@
 using System.Text;
-using DataMorph.Engine;
-using DataMorph.Engine.Filtering;
-using DataMorph.Engine.IO.Json;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Models;
+using Refedle.Engine;
+using Refedle.Engine.Filtering;
+using Refedle.Engine.IO.Json;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Models;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 internal struct JsonLinesRecordReader : IRecordReader
 {

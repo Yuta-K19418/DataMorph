@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.IO.DrillDown;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Builds an ordered KeyPath from a selected tree node by walking its <c>ParentNode</c> chain

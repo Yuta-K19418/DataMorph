@@ -1,7 +1,7 @@
-using DataMorph.Engine;
-using DataMorph.Engine.Types;
+using Refedle.Engine;
+using Refedle.Engine.Types;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 [RecordWriter(DataFormat.JsonLines)]
 internal readonly struct JsonLinesRecordWriterFactory : IRecordWriterFactory<JsonLinesRecordWriter>

@@ -1,7 +1,7 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
+using Refedle.App.Views;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed class ViewportStateTests
 {

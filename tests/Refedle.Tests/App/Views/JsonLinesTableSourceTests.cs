@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.App.Views;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed class JsonLinesTableSourceTests : IDisposable
 {

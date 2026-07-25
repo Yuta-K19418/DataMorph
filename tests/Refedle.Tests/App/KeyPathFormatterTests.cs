@@ -1,8 +1,8 @@
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.App;
+using Refedle.Engine.IO.DrillDown;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class KeyPathFormatterTests
 {

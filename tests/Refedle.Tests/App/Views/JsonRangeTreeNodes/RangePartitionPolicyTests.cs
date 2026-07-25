@@ -1,7 +1,7 @@
 using AwesomeAssertions;
-using DataMorph.App.Views.JsonRangeTreeNodes;
+using Refedle.App.Views.JsonRangeTreeNodes;
 
-namespace DataMorph.Tests.App.Views.JsonRangeTreeNodes;
+namespace Refedle.Tests.App.Views.JsonRangeTreeNodes;
 
 public sealed class RangePartitionPolicyTests
 {

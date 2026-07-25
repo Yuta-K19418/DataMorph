@@ -1,8 +1,8 @@
 using System.Globalization;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.Filtering;
+namespace Refedle.Engine.Filtering;
 
 /// <summary>
 /// Provides stateless, allocation-free filter evaluation for a single cell value

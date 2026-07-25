@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 /// <summary>
 /// Provides an interface for indexing rows in a file for random access.

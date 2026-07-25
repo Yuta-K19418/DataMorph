@@ -1,4 +1,4 @@
-namespace DataMorph.Engine;
+namespace Refedle.Engine;
 
 /// <summary>
 /// Provides factory methods for creating Result and Result{T} instances.

@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Attributes;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.Engine.IO.JsonLines;
 
-namespace DataMorph.Tests.Engine.IO.JsonLines;
+namespace Refedle.Tests.Engine.IO.JsonLines;
 
 [MemoryDiagnoser]
 public class RowIndexerBenchmarks

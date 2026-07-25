@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.App.Views.Dialogs;
-using DataMorph.Engine.Models.Actions;
+using Refedle.App.Views.Dialogs;
+using Refedle.Engine.Models.Actions;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App.Views.Dialogs;
+namespace Refedle.Tests.App.Views.Dialogs;
 
 public sealed class OptionSelectorExtensionsTests
 {

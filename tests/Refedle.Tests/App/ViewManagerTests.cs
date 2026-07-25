@@ -1,18 +1,18 @@
 using System.Text;
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.App.Views;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonArray;
-using DataMorph.Engine.IO.JsonObject;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.App;
+using Refedle.App.Views;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonArray;
+using Refedle.Engine.IO.JsonObject;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class ViewManagerTests : IDisposable
 {
@@ -814,7 +814,7 @@ public sealed class ViewManagerTests : IDisposable
         // Arrange
         var filePath = CreateTempFile(".jsonl", "{\"col1\": \"value\"}\n");
         using var app = CreateTestApp();
-        var indexer = new DataMorph.Engine.IO.JsonLines.RowIndexer(filePath);
+        var indexer = new Refedle.Engine.IO.JsonLines.RowIndexer(filePath);
         indexer.BuildIndex();
         var schema = new TableSchema { SourceFormat = DataFormat.JsonLines, Columns = [new ColumnSchema { Name = "col1", Type = ColumnType.Text }] };
         using var state = new AppState

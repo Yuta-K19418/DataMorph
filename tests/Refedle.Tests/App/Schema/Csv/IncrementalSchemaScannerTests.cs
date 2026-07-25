@@ -1,8 +1,8 @@
 using AwesomeAssertions;
-using DataMorph.App.Schema.Csv;
-using DataMorph.Engine.Types;
+using Refedle.App.Schema.Csv;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.App.Schema;
+namespace Refedle.Tests.App.Schema;
 
 public sealed class IncrementalSchemaScannerTests : IDisposable
 {

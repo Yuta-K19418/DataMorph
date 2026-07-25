@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.Models;
+using Refedle.App.Views;
+using Refedle.Engine.IO.Csv;
+using Refedle.Engine.Models;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed class VirtualTableSourceTests : IDisposable
 {
@@ -34,10 +34,10 @@ public sealed class VirtualTableSourceTests : IDisposable
         {
             Columns =
             [
-                new ColumnSchema { ColumnIndex = 0, Name = "col1", Type = DataMorph.Engine.Types.ColumnType.Text },
-                new ColumnSchema { ColumnIndex = 1, Name = "col2", Type = DataMorph.Engine.Types.ColumnType.Text }
+                new ColumnSchema { ColumnIndex = 0, Name = "col1", Type = Refedle.Engine.Types.ColumnType.Text },
+                new ColumnSchema { ColumnIndex = 1, Name = "col2", Type = Refedle.Engine.Types.ColumnType.Text }
             ],
-            SourceFormat = DataMorph.Engine.Types.DataFormat.Csv
+            SourceFormat = Refedle.Engine.Types.DataFormat.Csv
         };
         using var source = new VirtualTableSource(indexer, schema);
         _ = source[0, 0]; // Ensure cache and reader are initialized

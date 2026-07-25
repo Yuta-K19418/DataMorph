@@ -1,4 +1,4 @@
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Manages viewport scrolling state for virtual grid rendering.

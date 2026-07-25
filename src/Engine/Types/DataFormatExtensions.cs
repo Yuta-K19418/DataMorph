@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.Types;
+namespace Refedle.Engine.Types;
 
 /// <summary>
 /// Provides extension methods for the <see cref="DataFormat"/> enumeration.

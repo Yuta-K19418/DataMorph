@@ -1,9 +1,9 @@
 using System.Text.Json;
-using DataMorph.Engine.IO.Json;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.IO.Json;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO.DrillDown;
+namespace Refedle.Engine.IO.DrillDown;
 
 /// <summary>
 /// Parses a selected node's raw bytes in memory and returns the inferred schema

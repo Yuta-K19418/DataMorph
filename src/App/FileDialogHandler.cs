@@ -1,11 +1,11 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.App.Schema.Csv;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.Types;
+using Refedle.App.Schema.Csv;
+using Refedle.Engine.IO;
+using Refedle.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Handles file dialog operations for opening data files.

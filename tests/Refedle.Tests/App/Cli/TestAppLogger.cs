@@ -1,9 +1,9 @@
-namespace DataMorph.Tests.App.Cli;
+namespace Refedle.Tests.App.Cli;
 
 /// <summary>
 /// Captures log messages for testing purposes.
 /// </summary>
-internal sealed class TestAppLogger : DataMorph.App.Cli.IAppLogger
+internal sealed class TestAppLogger : Refedle.App.Cli.IAppLogger
 {
     private readonly List<string> _infos = [];
     private readonly List<string> _warnings = [];

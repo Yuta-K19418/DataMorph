@@ -1,12 +1,12 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
-using DataMorph.Engine.Filtering;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.App.Views;
+using Refedle.Engine.Filtering;
+using Refedle.Engine.Models;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed class LazyTransformerTests
 {

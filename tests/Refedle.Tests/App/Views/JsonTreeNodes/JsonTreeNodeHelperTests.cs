@@ -1,13 +1,13 @@
 using System.Text;
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.App.Views.JsonTreeNodes;
+using Refedle.App.Views.JsonTreeNodes;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App.Views.JsonTreeNodes;
+namespace Refedle.Tests.App.Views.JsonTreeNodes;
 
 /// <summary>
-/// Tests for the <see cref="DataMorph.App.Views.JsonTreeNodes.JsonTreeNodeHelper"/> class.
+/// Tests for the <see cref="Refedle.App.Views.JsonTreeNodes.JsonTreeNodeHelper"/> class.
 /// </summary>
 public sealed class JsonTreeNodeHelperTests
 {

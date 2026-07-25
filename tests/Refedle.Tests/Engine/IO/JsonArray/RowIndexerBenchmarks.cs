@@ -1,8 +1,8 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
-using DataMorph.Engine.IO.JsonArray;
+using Refedle.Engine.IO.JsonArray;
 
-namespace DataMorph.Tests.Engine.IO.JsonArray;
+namespace Refedle.Tests.Engine.IO.JsonArray;
 
 [SimpleJob(RuntimeMoniker.NativeAot80)]
 [MemoryDiagnoser]

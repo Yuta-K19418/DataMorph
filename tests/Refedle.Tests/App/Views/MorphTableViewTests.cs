@@ -1,8 +1,8 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
+using Refedle.App.Views;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed class MorphTableViewTests
 {

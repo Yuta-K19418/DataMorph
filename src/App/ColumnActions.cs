@@ -1,4 +1,4 @@
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Constants for column morph action names.

@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.App;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.JsonLines;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class IndexTaskManagerTests : IDisposable
 {

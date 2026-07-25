@@ -1,4 +1,4 @@
-namespace DataMorph.Engine;
+namespace Refedle.Engine;
 
 /// <summary>
 /// Represents an error message in a Result type.

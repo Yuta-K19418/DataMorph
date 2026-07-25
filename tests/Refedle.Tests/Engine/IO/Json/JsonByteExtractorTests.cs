@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.IO.Json;
+using Refedle.Engine.IO.Json;
 
-namespace DataMorph.Tests.Engine.IO.Json;
+namespace Refedle.Tests.Engine.IO.Json;
 
 /// <summary>
 /// Tests for the <see cref="JsonByteExtractor"/> class.

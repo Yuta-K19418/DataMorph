@@ -1,9 +1,9 @@
 using System.Text;
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.DrillDown;
 
-namespace DataMorph.Tests.Engine.IO.DrillDown;
+namespace Refedle.Tests.Engine.IO.DrillDown;
 
 /// <summary>
 /// Tests for <see cref="FileChunkReader"/>'s buffer-refill path, CRLF trimming, UTF-8 BOM skipping,

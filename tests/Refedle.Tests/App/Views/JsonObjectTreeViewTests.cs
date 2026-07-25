@@ -1,13 +1,13 @@
 using System.Text;
 using AwesomeAssertions;
-using DataMorph.App.Views;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonObject;
+using Refedle.App.Views;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonObject;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed class JsonObjectTreeViewTests : IDisposable
 {

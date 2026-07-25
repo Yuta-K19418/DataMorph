@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App.Views.Dialogs;
+using Refedle.App.Views.Dialogs;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 
-namespace DataMorph.Tests.App.Views.Dialogs;
+namespace Refedle.Tests.App.Views.Dialogs;
 
 public sealed class ActionMenuDialogTests
 {

@@ -1,7 +1,7 @@
-using DataMorph.Engine;
-using DataMorph.Engine.Types;
+using Refedle.Engine;
+using Refedle.Engine.Types;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Detects the data format of a file based on its extension.

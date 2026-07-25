@@ -1,8 +1,8 @@
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.App.Views.JsonTreeNodes;
+using Refedle.App.Views.JsonTreeNodes;
 
-namespace DataMorph.Tests.App.Views.JsonTreeNodes;
+namespace Refedle.Tests.App.Views.JsonTreeNodes;
 
 /// <summary>
 /// Tests for the <see cref="JsonValueTreeNode"/> class.

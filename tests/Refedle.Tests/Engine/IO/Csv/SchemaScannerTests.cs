@@ -1,8 +1,8 @@
 using AwesomeAssertions;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.IO.Csv;
+namespace Refedle.Tests.Engine.IO.Csv;
 
 public sealed partial class SchemaScannerTests
 {

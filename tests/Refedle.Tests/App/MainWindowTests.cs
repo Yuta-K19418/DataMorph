@@ -1,12 +1,12 @@
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.Engine.Models.Actions;
+using Refedle.App;
+using Refedle.Engine.Models.Actions;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class MainWindowTests
 {

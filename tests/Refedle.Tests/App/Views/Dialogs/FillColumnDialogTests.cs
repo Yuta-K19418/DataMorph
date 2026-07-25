@@ -1,7 +1,7 @@
 using AwesomeAssertions;
-using DataMorph.App.Views.Dialogs;
+using Refedle.App.Views.Dialogs;
 
-namespace DataMorph.Tests.App.Views.Dialogs;
+namespace Refedle.Tests.App.Views.Dialogs;
 
 public sealed class FillColumnDialogTests
 {

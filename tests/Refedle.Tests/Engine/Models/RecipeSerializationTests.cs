@@ -1,10 +1,10 @@
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.Models;
+namespace Refedle.Tests.Engine.Models;
 
 public sealed class RecipeSerializationTests
 {
@@ -19,8 +19,8 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(action, DataMorphJsonContext.Default.RenameColumnAction);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.RenameColumnAction);
+        var json = JsonSerializer.Serialize(action, JsonContext.Default.RenameColumnAction);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.RenameColumnAction);
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -38,8 +38,8 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(action, DataMorphJsonContext.Default.DeleteColumnAction);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.DeleteColumnAction);
+        var json = JsonSerializer.Serialize(action, JsonContext.Default.DeleteColumnAction);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.DeleteColumnAction);
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -58,8 +58,8 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(action, DataMorphJsonContext.Default.CastColumnAction);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.CastColumnAction);
+        var json = JsonSerializer.Serialize(action, JsonContext.Default.CastColumnAction);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.CastColumnAction);
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -85,8 +85,8 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(recipe, DataMorphJsonContext.Default.Recipe);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.Recipe);
+        var json = JsonSerializer.Serialize(recipe, JsonContext.Default.Recipe);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.Recipe);
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -123,8 +123,8 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(actions, DataMorphJsonContext.Default.ListMorphAction);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.ListMorphAction);
+        var json = JsonSerializer.Serialize(actions, JsonContext.Default.ListMorphAction);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.ListMorphAction);
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -148,7 +148,7 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(recipe, DataMorphJsonContext.Default.Recipe);
+        var json = JsonSerializer.Serialize(recipe, JsonContext.Default.Recipe);
 
         // Assert
         json.Should().Contain("\"name\":");
@@ -169,7 +169,7 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(recipe, DataMorphJsonContext.Default.Recipe);
+        var json = JsonSerializer.Serialize(recipe, JsonContext.Default.Recipe);
 
         // Assert
         json.Should().NotContain("description");
@@ -187,7 +187,7 @@ public sealed class RecipeSerializationTests
         """;
 
         // Act
-        var recipe = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.Recipe);
+        var recipe = JsonSerializer.Deserialize(json, JsonContext.Default.Recipe);
 
         // Assert
         recipe.Should().NotBeNull();
@@ -203,7 +203,7 @@ public sealed class RecipeSerializationTests
         var invalidJson = """{ "name": "Test", "actions": "not-an-array" }""";
 
         // Act
-        var act = () => JsonSerializer.Deserialize(invalidJson, DataMorphJsonContext.Default.Recipe);
+        var act = () => JsonSerializer.Deserialize(invalidJson, JsonContext.Default.Recipe);
 
         // Assert
         act.Should().Throw<JsonException>();
@@ -216,7 +216,7 @@ public sealed class RecipeSerializationTests
         var malformedJson = """{ "name": "Test", "actions": [ }""";
 
         // Act
-        var act = () => JsonSerializer.Deserialize(malformedJson, DataMorphJsonContext.Default.Recipe);
+        var act = () => JsonSerializer.Deserialize(malformedJson, JsonContext.Default.Recipe);
 
         // Assert
         act.Should().Throw<JsonException>();
@@ -229,7 +229,7 @@ public sealed class RecipeSerializationTests
         var jsonWithoutName = """{ "actions": [] }""";
 
         // Act
-        var act = () => JsonSerializer.Deserialize(jsonWithoutName, DataMorphJsonContext.Default.Recipe);
+        var act = () => JsonSerializer.Deserialize(jsonWithoutName, JsonContext.Default.Recipe);
 
         // Assert
         act.Should().Throw<JsonException>();
@@ -252,7 +252,7 @@ public sealed class RecipeSerializationTests
         """;
 
         // Act
-        var act = () => JsonSerializer.Deserialize(jsonWithUnknownType, DataMorphJsonContext.Default.Recipe);
+        var act = () => JsonSerializer.Deserialize(jsonWithUnknownType, JsonContext.Default.Recipe);
 
         // Assert
         act.Should().Throw<JsonException>();
@@ -275,7 +275,7 @@ public sealed class RecipeSerializationTests
         """;
 
         // Act
-        var act = () => JsonSerializer.Deserialize(jsonWithMissingProperty, DataMorphJsonContext.Default.Recipe);
+        var act = () => JsonSerializer.Deserialize(jsonWithMissingProperty, JsonContext.Default.Recipe);
 
         // Assert
         act.Should().Throw<JsonException>();
@@ -295,8 +295,8 @@ public sealed class RecipeSerializationTests
         };
 
         // Act
-        var json = JsonSerializer.Serialize(recipe, DataMorphJsonContext.Default.Recipe);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.Recipe);
+        var json = JsonSerializer.Serialize(recipe, JsonContext.Default.Recipe);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.Recipe);
 
         // Assert
         deserialized.Should().NotBeNull();

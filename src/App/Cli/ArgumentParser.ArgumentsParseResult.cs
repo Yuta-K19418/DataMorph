@@ -1,4 +1,4 @@
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 internal static partial class ArgumentParser
 {

@@ -1,10 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Types;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.IO.JsonLines;
+namespace Refedle.Tests.Engine.IO.JsonLines;
 
 public sealed class TypeInferrerTests
 {

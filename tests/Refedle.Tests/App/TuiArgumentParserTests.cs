@@ -1,7 +1,7 @@
 using AwesomeAssertions;
-using DataMorph.App;
+using Refedle.App;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class TuiArgumentParserTests
 {

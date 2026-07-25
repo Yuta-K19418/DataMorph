@@ -3,9 +3,9 @@ using System.Buffers.Text;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO.JsonLines;
+namespace Refedle.Engine.IO.JsonLines;
 
 /// <summary>
 /// Infers column type from JSON token data.

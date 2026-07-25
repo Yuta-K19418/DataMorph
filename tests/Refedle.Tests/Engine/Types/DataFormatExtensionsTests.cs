@@ -1,7 +1,7 @@
 using AwesomeAssertions;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.Types;
+namespace Refedle.Tests.Engine.Types;
 
 /// <summary>
 /// Tests for <see cref="DataFormatExtensions"/>.

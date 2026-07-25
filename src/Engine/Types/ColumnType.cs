@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.Types;
+namespace Refedle.Engine.Types;
 
 /// <summary>
 /// Supported column data types for schema inference.

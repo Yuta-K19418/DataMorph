@@ -1,8 +1,8 @@
 using AwesomeAssertions;
-using DataMorph.App.Schema.JsonLines;
-using DataMorph.Engine.Types;
+using Refedle.App.Schema.JsonLines;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.App.Schema.JsonLines;
+namespace Refedle.Tests.App.Schema.JsonLines;
 
 public sealed class IncrementalSchemaScannerTests : IDisposable
 {

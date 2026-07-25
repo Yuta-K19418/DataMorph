@@ -1,8 +1,8 @@
 using System.Text;
 using AwesomeAssertions;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.Engine.IO.JsonLines;
 
-namespace DataMorph.Tests.Engine.IO.JsonLines;
+namespace Refedle.Tests.Engine.IO.JsonLines;
 
 public sealed class RowReaderTests : IDisposable
 {

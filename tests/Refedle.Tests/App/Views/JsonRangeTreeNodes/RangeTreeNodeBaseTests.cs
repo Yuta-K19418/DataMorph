@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.App.Views.JsonRangeTreeNodes;
-using DataMorph.App.Views.JsonTreeNodes;
+using Refedle.App.Views.JsonRangeTreeNodes;
+using Refedle.App.Views.JsonTreeNodes;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App.Views.JsonRangeTreeNodes;
+namespace Refedle.Tests.App.Views.JsonRangeTreeNodes;
 
 public sealed class RangeTreeNodeBaseTests
 {

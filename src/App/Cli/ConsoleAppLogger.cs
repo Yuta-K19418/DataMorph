@@ -1,4 +1,4 @@
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 /// <summary>
 /// Provides a console-based implementation of the <see cref="IAppLogger"/>.

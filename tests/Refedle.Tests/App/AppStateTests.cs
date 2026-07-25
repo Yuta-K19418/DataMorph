@@ -1,9 +1,9 @@
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.App;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class AppStateTests
 {

@@ -4,7 +4,7 @@
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.Dialogs;
+namespace Refedle.App.Views.Dialogs;
 
 /// <summary>
 /// Extension methods for <see cref="OptionSelector{TEnum}"/> to enable auto-select and Vim key navigation.

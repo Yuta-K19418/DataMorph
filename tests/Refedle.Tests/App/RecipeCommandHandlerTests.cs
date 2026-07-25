@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App;
+using Refedle.App;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class RecipeCommandHandlerTests
 {

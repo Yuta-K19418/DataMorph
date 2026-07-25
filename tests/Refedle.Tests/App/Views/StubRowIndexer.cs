@@ -1,6 +1,6 @@
-using DataMorph.Engine.IO;
+using Refedle.Engine.IO;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 /// <summary>
 /// Stub <see cref="IRowIndexer"/> that overrides <see cref="IRowIndexer.TotalRows"/> and

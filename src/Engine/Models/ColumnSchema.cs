@@ -1,6 +1,6 @@
-using DataMorph.Engine.Types;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.Models;
+namespace Refedle.Engine.Models;
 
 /// <summary>
 /// Represents the schema information for a single column in the dataset.

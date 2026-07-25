@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace DataMorph.Engine.IO.JsonObject;
+namespace Refedle.Engine.IO.JsonObject;
 
 /// <summary>
 /// Scans a JSON Object file and extracts all top-level key-value pairs in a single pass.

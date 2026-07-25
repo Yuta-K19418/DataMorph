@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.Models.Actions;
+namespace Refedle.Engine.Models.Actions;
 
 /// <summary>
 /// Represents an action to rename a column in the dataset.

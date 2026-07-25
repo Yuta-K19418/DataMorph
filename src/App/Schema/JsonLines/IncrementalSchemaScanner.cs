@@ -1,7 +1,7 @@
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Models;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Models;
 
-namespace DataMorph.App.Schema.JsonLines;
+namespace Refedle.App.Schema.JsonLines;
 
 /// <summary>
 /// Performs incremental schema inference for JSON Lines files.

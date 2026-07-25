@@ -1,7 +1,7 @@
 using AwesomeAssertions;
-using DataMorph.App.Cli;
+using Refedle.App.Cli;
 
-namespace DataMorph.Tests.App.Cli;
+namespace Refedle.Tests.App.Cli;
 
 public sealed class ArgumentParserTests
 {

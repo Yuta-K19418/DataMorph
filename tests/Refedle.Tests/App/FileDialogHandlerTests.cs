@@ -1,16 +1,16 @@
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.App.Views;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonObject;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.App;
+using Refedle.App.Views;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonObject;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class FileDialogHandlerTests : IDisposable
 {

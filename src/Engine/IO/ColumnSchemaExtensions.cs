@@ -1,7 +1,7 @@
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 /// <summary>
 /// Extension methods for ColumnSchema to handle type updates with early-exit optimization.

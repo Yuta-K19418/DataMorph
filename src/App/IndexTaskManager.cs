@@ -1,6 +1,6 @@
-using DataMorph.Engine.IO;
+using Refedle.Engine.IO;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Manages the lifecycle of background indexing tasks.

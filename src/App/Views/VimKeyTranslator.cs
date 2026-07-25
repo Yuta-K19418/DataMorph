@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Terminal.Gui.Drivers;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Translates raw key input into <see cref="VimAction"/> values.

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace DataMorph.Engine;
+namespace Refedle.Engine;
 
 /// <summary>
 /// Represents the result of an operation that can fail with an error.

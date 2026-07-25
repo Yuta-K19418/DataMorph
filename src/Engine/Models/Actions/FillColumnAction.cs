@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.Models.Actions;
+namespace Refedle.Engine.Models.Actions;
 
 /// <summary>
 /// Represents an action to overwrite every value in a named column with a fixed string.

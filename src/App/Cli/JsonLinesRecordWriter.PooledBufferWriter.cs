@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 internal partial struct JsonLinesRecordWriter
 {

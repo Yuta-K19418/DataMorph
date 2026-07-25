@@ -1,11 +1,11 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.App.Views;
+using Refedle.Engine.IO.JsonLines;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed partial class JsonLinesTreeViewTests : IDisposable
 {

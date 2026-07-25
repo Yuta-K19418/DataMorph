@@ -1,7 +1,7 @@
-using DataMorph.Engine.Filtering;
-using DataMorph.Engine.IO.Json;
+using Refedle.Engine.Filtering;
+using Refedle.Engine.IO.Json;
 
-namespace DataMorph.Engine.IO.JsonLines;
+namespace Refedle.Engine.IO.JsonLines;
 
 /// <summary>
 /// JSON Lines-specific implementation of <see cref="IFilterRowIndexer"/>.

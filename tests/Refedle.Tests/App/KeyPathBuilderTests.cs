@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.App;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.IO.DrillDown;
 using Terminal.Gui.Views;
 
-namespace DataMorph.Tests.App;
+namespace Refedle.Tests.App;
 
 public sealed class KeyPathBuilderTests
 {

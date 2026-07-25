@@ -1,7 +1,7 @@
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// A view that displays instructions for file selection.
@@ -20,7 +20,7 @@ internal sealed class FileSelectionView : View
             {
                 X = Pos.Center(),
                 Y = Pos.Center() - 1,
-                Text = "Welcome to DataMorph",
+                Text = "Welcome to Refedle",
             },
             new Label
             {

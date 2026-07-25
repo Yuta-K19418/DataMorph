@@ -1,13 +1,13 @@
 using System.Text;
 using AwesomeAssertions;
-using DataMorph.Engine.IO;
+using Refedle.Engine.IO;
 
-namespace DataMorph.Tests.Engine.IO;
+namespace Refedle.Tests.Engine.IO;
 
 public sealed class MmapServiceTests : IDisposable
 {
     private readonly string _testFilePath;
-    private const string TestContent = "Hello, DataMorph!";
+    private const string TestContent = "Hello, Refedle!";
 
     public MmapServiceTests()
     {

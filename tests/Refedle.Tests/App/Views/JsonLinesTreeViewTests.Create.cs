@@ -1,10 +1,10 @@
 using AwesomeAssertions;
-using DataMorph.App.Views;
-using DataMorph.App.Views.JsonRangeTreeNodes;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonLines;
+using Refedle.App.Views;
+using Refedle.App.Views.JsonRangeTreeNodes;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonLines;
 
-namespace DataMorph.Tests.App.Views;
+namespace Refedle.Tests.App.Views;
 
 public sealed partial class JsonLinesTreeViewTests
 {

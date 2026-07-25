@@ -1,4 +1,4 @@
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 /// <summary>
 /// Provides logging capabilities for CLI operations.

@@ -1,9 +1,9 @@
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Models.Actions;
+using Refedle.Engine.Models;
+using Refedle.Engine.Models.Actions;
 
-namespace DataMorph.Tests.Engine.Models.Actions;
+namespace Refedle.Tests.Engine.Models.Actions;
 
 public sealed class FillColumnActionTests
 {
@@ -35,8 +35,8 @@ public sealed class FillColumnActionTests
         var action = new FillColumnAction { ColumnName = "Phone", Value = "***" };
 
         // Act
-        var json = JsonSerializer.Serialize(action, DataMorphJsonContext.Default.FillColumnAction);
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.FillColumnAction);
+        var json = JsonSerializer.Serialize(action, JsonContext.Default.FillColumnAction);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.FillColumnAction);
 
         // Assert
         deserialized.Should().NotBeNull();
@@ -57,7 +57,7 @@ public sealed class FillColumnActionTests
         // Act
         var json = JsonSerializer.Serialize(
             (MorphAction)action,
-            DataMorphJsonContext.Default.MorphAction
+            JsonContext.Default.MorphAction
         );
 
         // Assert

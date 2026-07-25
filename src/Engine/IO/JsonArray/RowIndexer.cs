@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Text.Json;
 
-namespace DataMorph.Engine.IO.JsonArray;
+namespace Refedle.Engine.IO.JsonArray;
 
 /// <summary>
 /// Indexes JSON Array files by element position for efficient random access.

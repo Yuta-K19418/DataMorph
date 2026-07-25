@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace DataMorph.Engine.IO.JsonLines;
+namespace Refedle.Engine.IO.JsonLines;
 
 /// <summary>
 /// Indexes JSON Lines files by row position for efficient random access.

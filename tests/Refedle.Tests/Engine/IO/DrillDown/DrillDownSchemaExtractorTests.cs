@@ -1,8 +1,8 @@
 using AwesomeAssertions;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.Types;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Tests.Engine.IO.DrillDown;
+namespace Refedle.Tests.Engine.IO.DrillDown;
 
 public sealed class DrillDownSchemaExtractorTests
 {

@@ -1,17 +1,17 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.App.Views;
-using DataMorph.App.Views.Dialogs;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.Types;
+using Refedle.App.Views;
+using Refedle.App.Views.Dialogs;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
-/// Handles global keyboard shortcuts for DataMorph application.
+/// Handles global keyboard shortcuts for Refedle application.
 /// </summary>
 internal sealed class AppKeyHandler : IDisposable
 {

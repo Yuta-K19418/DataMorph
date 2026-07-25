@@ -1,7 +1,7 @@
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO.Csv;
+namespace Refedle.Engine.IO.Csv;
 
 /// <summary>
 /// Scans CSV data to infer schema (header + column types).

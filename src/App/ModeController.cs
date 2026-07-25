@@ -1,8 +1,8 @@
-using DataMorph.App.Schema.JsonLines;
-using DataMorph.Engine;
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.App.Schema.JsonLines;
+using Refedle.Engine;
+using Refedle.Engine.IO.DrillDown;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Orchestrates view mode transitions and associated lazy initialization logic.

@@ -1,7 +1,7 @@
 using System.Text;
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.Engine.IO.DrillDown;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Formats a KeyPath into the breadcrumb display string (e.g. <c>"data > orders[*]"</c>).

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace DataMorph.Engine.Models.Actions;
+namespace Refedle.Engine.Models.Actions;
 
 /// <summary>
 /// Defines the comparison operator for a <see cref="FilterAction"/> condition.

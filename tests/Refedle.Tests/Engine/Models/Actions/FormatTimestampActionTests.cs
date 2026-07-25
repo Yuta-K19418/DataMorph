@@ -1,9 +1,9 @@
 using System.Text.Json;
 using AwesomeAssertions;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Models.Actions;
+using Refedle.Engine.Models;
+using Refedle.Engine.Models.Actions;
 
-namespace DataMorph.Tests.Engine.Models.Actions;
+namespace Refedle.Tests.Engine.Models.Actions;
 
 public sealed class FormatTimestampActionTests
 {
@@ -29,9 +29,9 @@ public sealed class FormatTimestampActionTests
         // Act
         var json = JsonSerializer.Serialize(
             (MorphAction)action,
-            DataMorphJsonContext.Default.MorphAction
+            JsonContext.Default.MorphAction
         );
-        var deserialized = JsonSerializer.Deserialize(json, DataMorphJsonContext.Default.MorphAction);
+        var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.MorphAction);
 
         // Assert
         json.Should().Contain("\"type\": \"format_timestamp\"");

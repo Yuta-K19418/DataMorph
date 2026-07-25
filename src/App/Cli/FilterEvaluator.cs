@@ -1,9 +1,9 @@
-using DataMorph.Engine.Filtering;
-using DataMorph.Engine.IO.Json;
 using nietras.SeparatedValues;
-using EngineFilterEvaluator = DataMorph.Engine.Filtering.FilterEvaluator;
+using Refedle.Engine.Filtering;
+using Refedle.Engine.IO.Json;
+using EngineFilterEvaluator = Refedle.Engine.Filtering.FilterEvaluator;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 /// <summary>
 /// Evaluates filter specifications against CSV rows and JSON Lines records.

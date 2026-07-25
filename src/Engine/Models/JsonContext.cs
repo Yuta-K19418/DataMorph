@@ -1,11 +1,11 @@
 using System.Text.Json.Serialization;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.Models;
+namespace Refedle.Engine.Models;
 
 /// <summary>
-/// JSON serialization context for DataMorph models.
+/// JSON serialization context for Refedle models.
 /// Uses System.Text.Json Source Generators for Native AOT compatibility.
 /// Provides high-performance, zero-reflection JSON serialization.
 /// </summary>
@@ -29,6 +29,6 @@ namespace DataMorph.Engine.Models;
 [JsonSerializable(typeof(DataFormat))]
 [JsonSerializable(typeof(List<MorphAction>))]
 [JsonSerializable(typeof(List<ColumnSchema>))]
-public partial class DataMorphJsonContext : JsonSerializerContext
+public partial class JsonContext : JsonSerializerContext
 {
 }

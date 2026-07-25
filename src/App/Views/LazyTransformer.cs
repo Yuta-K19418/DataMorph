@@ -1,12 +1,12 @@
 using System.Globalization;
-using DataMorph.Engine.Filtering;
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Filtering;
+using Refedle.Engine.IO.Csv;
+using Refedle.Engine.Models;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Wraps an <see cref="ITableSource"/> and applies an ordered Action Stack of

@@ -98,7 +98,7 @@ duplicates that logic.
 
 ### 3.1 Engine: `JsonArray.ElementReader`
 
-**Namespace**: `DataMorph.Engine.IO.JsonArray`
+**Namespace**: `Refedle.Engine.IO.JsonArray`
 
 **Responsibility**: Read raw element bytes from a JSON Array file given a checkpoint byte
 offset. Mirrors `JsonLines.RowReader` but uses `Utf8JsonReader` to locate element
@@ -173,7 +173,7 @@ public sealed class ElementReader : IDisposable
 
 ### 3.2 Engine: `JsonArray.ElementByteCache`
 
-**Namespace**: `DataMorph.Engine.IO.JsonArray`
+**Namespace**: `Refedle.Engine.IO.JsonArray`
 
 **Responsibility**: Sliding window LRU cache for element bytes. Extends
 `SlidingWindowLruCache<ReadOnlyMemory<byte>>` and delegates to `ElementReader`.
@@ -216,7 +216,7 @@ public sealed class ElementByteCache(
 
 ### 3.3 App: `JsonArrayRangeTreeNode`
 
-**Namespace**: `DataMorph.App.Views`
+**Namespace**: `Refedle.App.Views`
 
 **Responsibility**: Represents a 1,000-item range within a large JSON Array (used only when
 `TotalRows > 1,000`). On first `Children` access (lazy), reads element bytes from
@@ -285,7 +285,7 @@ internal sealed class JsonArrayRangeTreeNode : TreeNode
 
 ### 3.4 App: `MorphTreeView`
 
-**Namespace**: `DataMorph.App.Views`
+**Namespace**: `Refedle.App.Views`
 
 **Responsibility**: Abstract base class for all format-specific tree views. Provides
 Vim-key navigation (h/j/k/l/g/G/Ctrl+d/Ctrl+u), `'t'`-key table-mode toggle,
@@ -355,7 +355,7 @@ internal abstract class MorphTreeView : TreeView
 
 ### 3.5 App: `JsonArrayTreeView`
 
-**Namespace**: `DataMorph.App.Views`
+**Namespace**: `Refedle.App.Views`
 
 **Responsibility**: `MorphTreeView` subclass. Creates `ElementByteCache` and populates the
 tree root directly — without a wrapper node. For arrays of ≤ 1,000 items, element nodes are
@@ -423,10 +423,10 @@ internal sealed class JsonArrayTreeView : MorphTreeView
 | `src/App/Views/MorphTreeView.cs` | App | Abstract base: Vim-key navigation + Enter toggle |
 | `src/App/Views/JsonArrayRangeTreeNode.cs` | App | 1,000-item range node; lazy-loads child element nodes on first expansion |
 | `src/App/Views/JsonArrayTreeView.cs` | App | `MorphTreeView` subclass; orchestrates cache + range/element nodes |
-| `tests/DataMorph.Tests/Engine/IO/JsonArray/ElementReaderTests.cs` | Tests | Unit tests for `ElementReader` |
-| `tests/DataMorph.Tests/Engine/IO/JsonArray/ElementByteCacheTests.cs` | Tests | Unit tests for `ElementByteCache` |
-| `tests/DataMorph.Tests/Engine/IO/JsonArray/ElementByteCacheBenchmarks.cs` | Tests | BenchmarkDotNet perf tests for `ElementByteCache` hot path |
-| `tests/DataMorph.Tests/App/Views/JsonArrayRangeTreeNodeTests.cs` | Tests | Unit tests for range-node tree-building logic |
+| `tests/Refedle.Tests/Engine/IO/JsonArray/ElementReaderTests.cs` | Tests | Unit tests for `ElementReader` |
+| `tests/Refedle.Tests/Engine/IO/JsonArray/ElementByteCacheTests.cs` | Tests | Unit tests for `ElementByteCache` |
+| `tests/Refedle.Tests/Engine/IO/JsonArray/ElementByteCacheBenchmarks.cs` | Tests | BenchmarkDotNet perf tests for `ElementByteCache` hot path |
+| `tests/Refedle.Tests/App/Views/JsonArrayRangeTreeNodeTests.cs` | Tests | Unit tests for range-node tree-building logic |
 
 ### Files to Modify
 

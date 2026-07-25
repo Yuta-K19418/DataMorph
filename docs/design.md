@@ -1,7 +1,7 @@
-# design_doc.md - DataMorph Architecture Design (C#/.NET 10)
+# design_doc.md - Refedle Architecture Design (C#/.NET 10)
 
 ## 1. Architecture Overview
-DataMorph is designed as a high-performance pipeline. It avoids Garbage Collection (GC) pressure by using modern .NET memory management patterns.
+Refedle is designed as a high-performance pipeline. It avoids Garbage Collection (GC) pressure by using modern .NET memory management patterns.
 
 ## 2. Core Modules
 ### 2.1 Zero-Allocation Input Layer

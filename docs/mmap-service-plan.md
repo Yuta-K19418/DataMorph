@@ -1,7 +1,7 @@
 # MmapService Implementation
 
 ## Overview
-MmapService provides efficient memory-mapped file access for the DataMorph Engine project. This service offers high-performance random access to large files using MemoryMappedFile with a safe, ArrayPool-based implementation.
+MmapService provides efficient memory-mapped file access for the Refedle Engine project. This service offers high-performance random access to large files using MemoryMappedFile with a safe, ArrayPool-based implementation.
 
 ## Architecture
 
@@ -55,7 +55,7 @@ public sealed class MmapService : IDisposable
 src/Engine/IO/
   └── MmapService.cs
 
-tests/DataMorph.Tests/IO/
+tests/Refedle.Tests/IO/
   ├── MmapServiceTests.cs
   └── MmapServiceBenchmarks.cs
 ```
@@ -116,7 +116,7 @@ tests/DataMorph.Tests/IO/
 
 ### 3. Implement Unit Tests
 
-**File:** `tests/DataMorph.Tests/IO/MmapServiceTests.cs`
+**File:** `tests/Refedle.Tests/IO/MmapServiceTests.cs`
 
 **Framework:** xUnit with AwesomeAssertions
 
@@ -165,9 +165,9 @@ Disposal (5 tests):
 
 ### 4. Implement Performance Benchmarks
 
-**File:** `tests/DataMorph.Tests/IO/MmapServiceBenchmarks.cs`
+**File:** `tests/Refedle.Tests/IO/MmapServiceBenchmarks.cs`
 
-**Add dependency:** BenchmarkDotNet to DataMorph.Tests.csproj
+**Add dependency:** BenchmarkDotNet to Refedle.Tests.csproj
 
 **Benchmarks:**
 - `Read_SmallChunk()` - 1KB reads (baseline)
@@ -193,7 +193,7 @@ Disposal (5 tests):
    - Verify 100% pass rate
    - Check code coverage for MmapService
 
-2. Run benchmarks: `dotnet run -c Release --project tests/DataMorph.Tests`
+2. Run benchmarks: `dotnet run -c Release --project tests/Refedle.Tests`
    - Verify zero allocations in GetSpan
    - Document baseline performance
 
@@ -317,8 +317,8 @@ Console.WriteLine($"File size: {fileSize} bytes");
 1. **src/Engine/IO/MmapService.cs** - Core implementation (220 lines)
 2. **src/Engine/Results.cs** - Factory methods (existing)
 3. **src/Engine/Result.cs** - Result types (existing)
-4. **tests/DataMorph.Tests/IO/MmapServiceTests.cs** - Unit tests (24 tests including overflow protection)
-5. **tests/DataMorph.Tests/IO/MmapServiceBenchmarks.cs** - Performance benchmarks
+4. **tests/Refedle.Tests/IO/MmapServiceTests.cs** - Unit tests (24 tests including overflow protection)
+5. **tests/Refedle.Tests/IO/MmapServiceBenchmarks.cs** - Performance benchmarks
 6. **.editorconfig** - Test-specific analyzer suppressions
 
 ## Future Integration

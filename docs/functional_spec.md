@@ -1,7 +1,7 @@
 # Functional Specification
 
 ## 1. Project Overview
-DataMorph is a high-performance TUI/CLI tool built with C# (.NET 10, Native AOT) for browsing and transforming massive JSON and CSV files. It utilizes an "Explorer-First" paradigm, allowing users to navigate hierarchical data and "morph" specific branches into structured tables.
+Refedle is a high-performance TUI/CLI tool built with C# (.NET 10, Native AOT) for browsing and transforming massive JSON and CSV files. It utilizes an "Explorer-First" paradigm, allowing users to navigate hierarchical data and "morph" specific branches into structured tables.
 
 ## 2. Format Identification & Initial State
 | Format | Header/Indicator | Initial Mode | Indexing Target |

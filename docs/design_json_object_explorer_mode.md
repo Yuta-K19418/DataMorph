@@ -94,7 +94,7 @@ other tree views. No new Engine types are required.
 
 ### 3.1 App: `JsonObjectTreeView`
 
-**Namespace**: `DataMorph.App.Views`
+**Namespace**: `Refedle.App.Views`
 
 **Responsibility**: `MorphTreeView` subclass for JSON Object files. Receives pre-scanned
 key-value pairs and adds one root-level node per key via `AddObject`. Constructor is
@@ -299,7 +299,7 @@ internal void StopCurrentIndexing()
 | File | Layer | Purpose |
 |------|-------|---------|
 | `src/App/Views/JsonObjectTreeView.cs` | App | `MorphTreeView` subclass; one root-level node per key |
-| `tests/DataMorph.Tests/App/Views/JsonObjectTreeViewTests.cs` | Tests | Unit tests for `JsonObjectTreeView.Create` and `CreateKeyNode` |
+| `tests/Refedle.Tests/App/Views/JsonObjectTreeViewTests.cs` | Tests | Unit tests for `JsonObjectTreeView.Create` and `CreateKeyNode` |
 
 ### Files to Modify
 
@@ -311,7 +311,7 @@ internal void StopCurrentIndexing()
 | `src/App/FileDialogHandler.cs` | Add `stopIndexing: Action` constructor param; add `JsonObject` early-return branch |
 | `src/App/IndexTaskManager.cs` | Add `CancelCurrent()`; update `Dispose()` to set `_cts = null` |
 | `src/App/MainWindow.cs` | Add `StopCurrentIndexing()`; pass it to `FileDialogHandler` |
-| `tests/DataMorph.Tests/App/FileDialogHandlerTests.cs` | Update constructor call sites for new `stopIndexing` parameter |
+| `tests/Refedle.Tests/App/FileDialogHandlerTests.cs` | Update constructor call sites for new `stopIndexing` parameter |
 
 **Not modified**: `AppState.cs`, `RowIndexerFactory.cs` — scan results are ephemeral and
 passed directly from `FileDialogHandler` to `ViewManager`; no persistent state storage needed.

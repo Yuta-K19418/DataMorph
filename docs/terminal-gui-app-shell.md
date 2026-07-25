@@ -2,7 +2,7 @@
 
 ## Overview
 
-Implement the Terminal.Gui v2.0 application shell as the foundation for DataMorph's TUI interface. This is the first step in a three-phase implementation (Application Shell → VirtualGridView → CSV Table Mode).
+Implement the Terminal.Gui v2.0 application shell as the foundation for Refedle's TUI interface. This is the first step in a three-phase implementation (Application Shell → VirtualGridView → CSV Table Mode).
 
 ## Background
 
@@ -23,7 +23,7 @@ Implement the Terminal.Gui v2.0 application shell as the foundation for DataMorp
 
 ### 1. Package Dependencies
 
-**Add to `src/App/DataMorph.App.csproj`:**
+**Add to `src/App/Refedle.App.csproj`:**
 ```xml
 <PackageReference Include="Terminal.Gui" Version="2.0.0-develop.4828" />
 ```
@@ -132,7 +132,7 @@ internal enum ViewMode
 ### 4. Program.cs Entry Point
 
 ```csharp
-using DataMorph.App;
+using Refedle.App;
 
 var result = TuiApplication.Create();
 using var app = result.app;
@@ -164,7 +164,7 @@ app.Run(mainWindow);
 
 ### Unit Tests
 
-**Create: `tests/DataMorph.Tests/App/`**
+**Create: `tests/Refedle.Tests/App/`**
 
 1. **TuiApplicationTests.cs**
    - Test state initialization
@@ -196,7 +196,7 @@ app.Run(mainWindow);
 ## Critical Files
 
 **To Modify:**
-- `src/App/DataMorph.App.csproj` - Add Terminal.Gui package
+- `src/App/Refedle.App.csproj` - Add Terminal.Gui package
 - `src/App/Program.cs` - Replace placeholder
 
 **Created:**
@@ -208,8 +208,8 @@ app.Run(mainWindow);
 - `src/App/Views/PlaceholderView.cs`
 
 **Not Yet Created (Future Work):**
-- `tests/DataMorph.Tests/App/TuiApplicationTests.cs`
-- `tests/DataMorph.Tests/App/AppStateTests.cs`
+- `tests/Refedle.Tests/App/TuiApplicationTests.cs`
+- `tests/Refedle.Tests/App/AppStateTests.cs`
 
 **Reference Files:**
 - `src/Engine/Models/TableSchema.cs` - Model pattern reference

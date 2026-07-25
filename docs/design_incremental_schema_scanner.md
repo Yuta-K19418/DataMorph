@@ -62,7 +62,7 @@ CSV File Load (LoadCsvFileAsync)
 
 **Class Structure**:
 ```csharp
-namespace DataMorph.App.Schema;
+namespace Refedle.App.Schema;
 
 internal sealed class IncrementalSchemaScanner
 {

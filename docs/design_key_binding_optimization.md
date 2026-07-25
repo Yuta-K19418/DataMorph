@@ -2,7 +2,7 @@
 
 ## Overview
 
-This design document outlines the optimization of key bindings for MorphActions and file operations in DataMorph, focusing on **ergonomics**, **discoverability** through a context-sensitive menu (`x`), and **efficiency** through single-key shortcuts.
+This design document outlines the optimization of key bindings for MorphActions and file operations in Refedle, focusing on **ergonomics**, **discoverability** through a context-sensitive menu (`x`), and **efficiency** through single-key shortcuts.
 
 **Research Sources:** This design is inspired by modern TUI tools like `lazydocker`, `k9s`, and `ranger`.
 
@@ -25,7 +25,7 @@ This design document outlines the optimization of key bindings for MorphActions 
 ### ADR 1: Adoption of `x` for Context-Sensitive Action Menu
 
 **Status:** Accepted  
-**Context:** MorphActions in DataMorph require choosing an operation for the current column. Previous `Shift+letter` combinations were non-discoverable and ergonomically taxing.  
+**Context:** MorphActions in Refedle require choosing an operation for the current column. Previous `Shift+letter` combinations were non-discoverable and ergonomically taxing.  
 **Decision:** Adopt `x` as the primary trigger for a context-sensitive action menu, following the pattern established by modern TUI tools like `lazydocker`.  
 **Rationale:** 
 1. **Ergonomics:** `x` is located on the left hand's home row area, allowing the right hand to stay on `hjkl` for navigation. This "right-hand navigates, left-hand acts" split improves operational tempo, as seen in `lazydocker`.
@@ -41,7 +41,7 @@ This design document outlines the optimization of key bindings for MorphActions 
 **Context:** Common operations like Open, Save, and Quit were bound to `Ctrl+O/S/X`.  
 **Decision:** Introduce single-key shortcuts `o`, `s`, and `q` as the primary methods for these operations.  
 **Rationale:** 
-1. **Efficiency:** DataMorph is an interactive tool where users frequently open and close files. Removing the `Ctrl` modifier reduces physical strain.
+1. **Efficiency:** Refedle is an interactive tool where users frequently open and close files. Removing the `Ctrl` modifier reduces physical strain.
 2. **Consistency:** Many high-performance TUI tools (e.g., `htop`, `btop`, `lazygit`) use `q` for quit.
 3. **Safety:** While single-key actions can be accidental, `q` and `s` will trigger confirmation dialogs when unsaved changes exist (Recipes), mitigating risk.
 

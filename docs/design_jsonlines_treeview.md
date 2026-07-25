@@ -90,7 +90,7 @@ public interface ITreeNode
 }
 ```
 
-**Namespace**: `DataMorph.App.Views`
+**Namespace**: `Refedle.App.Views`
 
 Custom node types inheriting from `TreeNode`:
 
@@ -183,7 +183,7 @@ internal sealed class JsonValueTreeNode : TreeNode
 
 ### 3.2 Class: `JsonLineReader`
 
-**Namespace**: `DataMorph.Engine.IO.JsonLines`
+**Namespace**: `Refedle.Engine.IO.JsonLines`
 
 **Responsibilities**:
 - Read JSON line bytes from file using indexed byte offsets
@@ -204,7 +204,7 @@ public sealed class JsonLineReader(string filePath)
 
 ### 3.3 Class: `JsonLineByteCache`
 
-**Namespace**: `DataMorph.Engine.IO.JsonLines`
+**Namespace**: `Refedle.Engine.IO.JsonLines`
 
 **Responsibilities**:
 - Maintain sliding window cache for raw line bytes (each JSON line = `ReadOnlyMemory<byte>`)
@@ -222,7 +222,7 @@ public sealed class JsonLineByteCache(RowIndexer indexer, int cacheSize = 200)
 
 ### 3.4 Class: `JsonLinesTreeView`
 
-**Namespace**: `DataMorph.App.Views`
+**Namespace**: `Refedle.App.Views`
 
 **Responsibilities**:
 - Use non-generic `TreeView` (works with `ITreeNode`)

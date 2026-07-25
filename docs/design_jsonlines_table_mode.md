@@ -63,7 +63,7 @@ File → RowIndexer (existing) → RowByteCache (existing)
 | `src/App/ViewMode.cs` | Add `JsonLinesTable` enum value |
 | `src/App/MainWindow.cs` | Store `JsonLinesIndexer` in `AppState`; add `SwitchToJsonLinesTableView`; add `t` key toggle |
 | `src/App/AppState.cs` | Add `JsonLinesIndexer` and `JsonLinesSchemaScanner` properties |
-| `src/App/Schema/IncrementalSchemaScanner.cs` | Move to `src/App/Schema/Csv/IncrementalSchemaScanner.cs` (namespace → `DataMorph.App.Schema.Csv`) |
+| `src/App/Schema/IncrementalSchemaScanner.cs` | Move to `src/App/Schema/Csv/IncrementalSchemaScanner.cs` (namespace → `Refedle.App.Schema.Csv`) |
 
 ### 2.4 Reused Existing Components
 
@@ -85,7 +85,7 @@ File → RowIndexer (existing) → RowByteCache (existing)
 ### 3.1 CellExtractor
 
 **File:** `src/Engine/IO/JsonLines/CellExtractor.cs`
-**Namespace:** `DataMorph.Engine.IO.JsonLines`
+**Namespace:** `Refedle.Engine.IO.JsonLines`
 **Estimated size:** ~80 lines
 
 Static class with a single public method.
@@ -133,7 +133,7 @@ public static string ExtractCell(
 ### 3.2 JsonLinesTableSource
 
 **File:** `src/App/Views/JsonLinesTableSource.cs`
-**Namespace:** `DataMorph.App.Views`
+**Namespace:** `Refedle.App.Views`
 **Estimated size:** ~80 lines
 
 Implements `Terminal.Gui.Views.ITableSource`, following the same pattern as `VirtualTableSource`
@@ -186,11 +186,11 @@ this[row, col]:
 ### 3.3 IncrementalSchemaScanner (JSON Lines)
 
 **File:** `src/App/Schema/JsonLines/IncrementalSchemaScanner.cs`
-**Namespace:** `DataMorph.App.Schema.JsonLines`
+**Namespace:** `Refedle.App.Schema.JsonLines`
 **Estimated size:** ~100 lines
 
 Orchestrates initial and background schema scanning, following the same pattern as
-`IncrementalSchemaScanner` in `DataMorph.App.Schema.Csv`.
+`IncrementalSchemaScanner` in `Refedle.App.Schema.Csv`.
 
 #### API
 
@@ -437,13 +437,13 @@ After initial scan:
 | `src/Engine/IO/JsonLines/CellExtractor.cs` | **Create** | Cell value extraction from raw JSON bytes |
 | `src/App/Views/JsonLinesTableSource.cs` | **Create** | `ITableSource` implementation for JSON Lines |
 | `src/App/Schema/JsonLines/IncrementalSchemaScanner.cs` | **Create** | Incremental schema scanning orchestration |
-| `src/App/Schema/Csv/IncrementalSchemaScanner.cs` | Move (rename namespace) | Existing CSV schema scanner; namespace → `DataMorph.App.Schema.Csv` |
+| `src/App/Schema/Csv/IncrementalSchemaScanner.cs` | Move (rename namespace) | Existing CSV schema scanner; namespace → `Refedle.App.Schema.Csv` |
 | `src/App/ViewMode.cs` | Modify | Add `JsonLinesTable` enum value |
 | `src/App/MainWindow.cs` | Modify | Store `JsonLinesIndexer` in `AppState`; add `SwitchToJsonLinesTableView`; add `t` key toggle |
 | `src/App/AppState.cs` | Modify | Add `JsonLinesIndexer` and `JsonLinesSchemaScanner` properties |
-| `tests/DataMorph.Tests/Engine/IO/JsonLines/CellExtractorTests.cs` | **Create** | Cell extraction tests |
-| `tests/DataMorph.Tests/App/Views/JsonLinesTableSourceTests.cs` | **Create** | Table source tests |
-| `tests/DataMorph.Tests/App/Schema/JsonLines/IncrementalSchemaScannerTests.cs` | **Create** | Schema scanner tests |
+| `tests/Refedle.Tests/Engine/IO/JsonLines/CellExtractorTests.cs` | **Create** | Cell extraction tests |
+| `tests/Refedle.Tests/App/Views/JsonLinesTableSourceTests.cs` | **Create** | Table source tests |
+| `tests/Refedle.Tests/App/Schema/JsonLines/IncrementalSchemaScannerTests.cs` | **Create** | Schema scanner tests |
 | `docs/design_jsonlines_table_mode.md` | **Create** | This document |
 
 ---

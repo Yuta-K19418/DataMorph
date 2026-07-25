@@ -329,7 +329,7 @@ known — and carries its own bytes. `FocusedTableSource` reads `_rows[row].Hash
 ### 3.1 FocusedTableRow (new)
 
 **File:** `src/Engine/IO/DrillDown/FocusedTableRow.cs`
-**Namespace:** `DataMorph.Engine.IO.DrillDown`
+**Namespace:** `Refedle.Engine.IO.DrillDown`
 **Estimated size:** ~5 lines
 
 ```csharp
@@ -458,7 +458,7 @@ construction time.
 ### 3.6 SchemaScanner (new)
 
 **File:** `src/Engine/IO/DrillDown/SchemaScanner.cs`
-**Namespace:** `DataMorph.Engine.IO.DrillDown`
+**Namespace:** `Refedle.Engine.IO.DrillDown`
 
 Stateless static class holding the schema-accumulation logic previously private to
 `DrillDownSchemaExtractor`. Both `DrillDownSchemaExtractor.BuildSchema` (Phase 1) and
@@ -532,7 +532,7 @@ private static Result<TableSchema> BuildSchema(List<JsonRawBytes> childRawValues
 ### 3.7 FullAggregationScanner (new)
 
 **File:** `src/Engine/IO/DrillDown/FullAggregationScanner.cs`
-**Namespace:** `DataMorph.Engine.IO.DrillDown`
+**Namespace:** `Refedle.Engine.IO.DrillDown`
 **Estimated size:** ~250 lines
 
 `public` visibility: called by `ModeController` (App layer) cross-assembly.

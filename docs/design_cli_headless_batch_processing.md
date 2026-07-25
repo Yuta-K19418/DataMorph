@@ -8,7 +8,7 @@ streaming the transformed output to a new file.
 **Invocation:**
 
 ```
-data-morph --cli --input <input> --recipe <recipe.yaml> --output <output>
+refedle --cli --input <input> --recipe <recipe.yaml> --output <output>
 ```
 
 **Supported input/output formats:**
@@ -57,9 +57,9 @@ match the input format (e.g., `.csv` input → `.jsonl` output is valid).
 
 | File | Covers |
 |------|--------|
-| `tests/DataMorph.Tests/Engine/ActionApplierTests.cs` | `ActionApplier.BuildOutputSchema` under all action combinations |
-| `tests/DataMorph.Tests/App/Cli/ArgumentParserTests.cs` | All valid and invalid argument scenarios |
-| `tests/DataMorph.Tests/App/Cli/RunnerTests.cs` | End-to-end: real temp files for both CSV and JSON Lines, verifies output content |
+| `tests/Refedle.Tests/Engine/ActionApplierTests.cs` | `ActionApplier.BuildOutputSchema` under all action combinations |
+| `tests/Refedle.Tests/App/Cli/ArgumentParserTests.cs` | All valid and invalid argument scenarios |
+| `tests/Refedle.Tests/App/Cli/RunnerTests.cs` | End-to-end: real temp files for both CSV and JSON Lines, verifies output content |
 
 ---
 

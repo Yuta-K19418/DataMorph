@@ -35,7 +35,7 @@ applies uniformly to CSV and JSON Lines formats via the existing `CellTransformS
 **File**: `src/Engine/Models/Actions/FormatTimestampAction.cs`
 
 ```csharp
-namespace DataMorph.Engine.Models.Actions;
+namespace Refedle.Engine.Models.Actions;
 
 public sealed record FormatTimestampAction : MorphAction
 {
@@ -80,16 +80,16 @@ This activates the commented-out extension point already present in
 | File | Purpose |
 |------|---------|
 | `src/Engine/Models/Actions/FormatTimestampAction.cs` | New record |
-| `tests/DataMorph.Tests/Engine/Models/Actions/FormatTimestampActionTests.cs` | Unit tests for the record |
-| `tests/DataMorph.Tests/Engine/ActionApplierTests.FormatTimestamp.cs` | `ActionApplier` tests for the new action |
-| `tests/DataMorph.Tests/App/Cli/RecordProcessorFormatTimestampTests.cs` | `RecordProcessor` transform tests |
+| `tests/Refedle.Tests/Engine/Models/Actions/FormatTimestampActionTests.cs` | Unit tests for the record |
+| `tests/Refedle.Tests/Engine/ActionApplierTests.FormatTimestamp.cs` | `ActionApplier` tests for the new action |
+| `tests/Refedle.Tests/App/Cli/RecordProcessorFormatTimestampTests.cs` | `RecordProcessor` transform tests |
 
 ### Modified
 
 | File | Change |
 |------|--------|
 | `src/Engine/Models/Actions/MorphAction.cs` | Add `[JsonDerivedType(typeof(FormatTimestampAction), typeDiscriminator: "format_timestamp")]` |
-| `src/Engine/Models/DataMorphJsonContext.cs` | Add `[JsonSerializable(typeof(FormatTimestampAction))]` |
+| `src/Engine/Models/JsonContext.cs` | Add `[JsonSerializable(typeof(FormatTimestampAction))]` |
 | `src/Engine/Models/CellTransformSpec.cs` | Uncomment / add `TimestampFormatSpec` subtype |
 | `src/Engine/ActionApplier.cs` | Handle `FormatTimestampAction`; validate column type; emit `TimestampFormatSpec` |
 | `src/App/Cli/RecordProcessor.cs` | Add `TimestampFormatSpec` arm to the transform switch |
@@ -192,7 +192,7 @@ This is a breaking change for all callers. Known call sites:
 | Caller | Required change |
 |--------|----------------|
 | `src/App/Cli/Runner.cs` | Unwrap `Result`; propagate failure to `ExitCode.Failure` |
-| `tests/DataMorph.Tests/Engine/ActionApplierTests.cs` | All existing tests unwrap `.Value` or assert on `Result.IsSuccess` |
+| `tests/Refedle.Tests/Engine/ActionApplierTests.cs` | All existing tests unwrap `.Value` or assert on `Result.IsSuccess` |
 
 ---
 

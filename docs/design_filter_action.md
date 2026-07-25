@@ -258,8 +258,8 @@ In practice, `BuildIndex` completes well within user reaction time for files up 
 | `src/App/Views/Dialogs/FilterColumnDialog.cs` | New dialog |
 | `src/App/Views/CsvTableView.cs` | Add `Shift+F` → `HandleFilterColumn()` with BuildIndex guard |
 | `src/App/Views/JsonLinesTableView.cs` | Add `Shift+F` → `HandleFilterColumn()` with BuildIndex guard |
-| `tests/DataMorph.Tests/App/Views/LazyTransformerTests.cs` | Add filter test cases |
-| `tests/DataMorph.Tests/Engine/Models/Actions/FilterActionTests.cs` | New test file |
+| `tests/Refedle.Tests/App/Views/LazyTransformerTests.cs` | Add filter test cases |
+| `tests/Refedle.Tests/Engine/Models/Actions/FilterActionTests.cs` | New test file |
 
 ---
 

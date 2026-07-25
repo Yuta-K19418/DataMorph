@@ -1,4 +1,4 @@
-# DataMorph - Development Guidelines
+# Refedle - Development Guidelines
 
 All development guidelines have been organized into `.claude/rules/` for better maintainability.
 

@@ -7,19 +7,19 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "App", "App", "{547E75E0-49BC-27F6-65D6-DF25CFFB661A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataMorph.App", "src\App\DataMorph.App.csproj", "{EA7AAC5C-2434-40CF-9F7A-80AF652FAF88}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Refedle.App", "src\App\Refedle.App.csproj", "{EA7AAC5C-2434-40CF-9F7A-80AF652FAF88}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Engine", "Engine", "{581C1AFC-A79E-7578-3E64-521365DC72E1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataMorph.Engine", "src\Engine\DataMorph.Engine.csproj", "{CD03D0FA-F71F-465B-BCCD-E5AB48DDD3E5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Refedle.Engine", "src\Engine\Refedle.Engine.csproj", "{CD03D0FA-F71F-465B-BCCD-E5AB48DDD3E5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataMorph.Tests", "tests\DataMorph.Tests\DataMorph.Tests.csproj", "{B9770FE1-72BB-44D6-BE03-8D9F9146AC4E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Refedle.Tests", "tests\Refedle.Tests\Refedle.Tests.csproj", "{B9770FE1-72BB-44D6-BE03-8D9F9146AC4E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Generators", "Generators", "{C698E06C-1649-8066-6D27-72E3631D092E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataMorph.Generators", "src\Generators\DataMorph.Generators.csproj", "{ABFC2782-1549-4B91-851C-BD44B71C1349}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Refedle.Generators", "src\Generators\Refedle.Generators.csproj", "{ABFC2782-1549-4B91-851C-BD44B71C1349}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

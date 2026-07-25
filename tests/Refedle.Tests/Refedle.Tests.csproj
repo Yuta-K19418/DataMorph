@@ -33,8 +33,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Engine\DataMorph.Engine.csproj" />
-    <ProjectReference Include="..\..\src\App\DataMorph.App.csproj" />
+    <ProjectReference Include="..\..\src\Engine\Refedle.Engine.csproj" />
+    <ProjectReference Include="..\..\src\App\Refedle.App.csproj" />
   </ItemGroup>
 
 </Project>

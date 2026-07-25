@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="DataMorph.Tests" />
+    <InternalsVisibleTo Include="Refedle.Tests" />
   </ItemGroup>
 
 </Project>

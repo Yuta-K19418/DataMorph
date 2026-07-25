@@ -1,4 +1,4 @@
-namespace DataMorph.App.Views.JsonRangeTreeNodes;
+namespace Refedle.App.Views.JsonRangeTreeNodes;
 
 /// <summary>
 /// Stateless policy that determines how a large JSON file's rows are partitioned into range nodes

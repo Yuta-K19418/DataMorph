@@ -1,8 +1,8 @@
-using DataMorph.Engine.Models.Actions;
+using Refedle.Engine.Models.Actions;
 using Terminal.Gui.Input;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Base class for table views that support column morph actions.

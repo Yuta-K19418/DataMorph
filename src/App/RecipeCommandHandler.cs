@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Recipes;
+using Refedle.Engine.Models;
+using Refedle.Engine.Recipes;
 using Terminal.Gui.App;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Handles recipe save and load operations.

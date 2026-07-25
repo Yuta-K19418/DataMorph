@@ -16,7 +16,7 @@ Add a `FillColumnAction` that overwrites every value in a named column with a fi
 | File | Change |
 |------|--------|
 | `src/Engine/Models/Actions/MorphAction.cs` | Add `[JsonDerivedType(typeof(FillColumnAction), typeDiscriminator: "fill")]` |
-| `src/Engine/Models/DataMorphJsonContext.cs` | Add `[JsonSerializable(typeof(FillColumnAction))]` |
+| `src/Engine/Models/JsonContext.cs` | Add `[JsonSerializable(typeof(FillColumnAction))]` |
 | `src/Engine/BatchOutputSchema.cs` | Add `CellTransformSpec?` to `BatchOutputColumn` |
 | `src/Engine/ActionApplier.cs` | Handle `FillColumnAction`; set `Transform = new FillSpec(value)` on the output column |
 | `src/App/Cli/RecordProcessor.cs` | Change `outputColumnCount: int` → `columns: IReadOnlyList<BatchOutputColumn>`; apply transform per cell |

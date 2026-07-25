@@ -76,7 +76,7 @@ Interaction behaviour:
 | File | Purpose |
 |------|---------|
 | `src/App/Views/Dialogs/FormatTimestampDialog.cs` | New dialog |
-| `tests/DataMorph.Tests/App/Views/Dialogs/FormatTimestampDialogTests.cs` | Dialog unit tests |
+| `tests/Refedle.Tests/App/Views/Dialogs/FormatTimestampDialogTests.cs` | Dialog unit tests |
 
 ### Modified
 
@@ -85,7 +85,7 @@ Interaction behaviour:
 | `src/App/Views/CsvTableView.cs` | Add `Shift+T` dispatch + `HandleFormatTimestamp()` |
 | `src/App/Views/JsonLinesTableView.cs` | Add `Shift+T` dispatch + `HandleFormatTimestamp()` |
 | `src/App/Views/LazyTransformer.cs` | Handle `FormatTimestampAction` in `BuildTransformedSchema`; propagate `TargetFormat` to `FormatCellValue` |
-| `tests/DataMorph.Tests/App/Views/LazyTransformerTests.cs` | Tests for `FormatTimestampAction` rendering |
+| `tests/Refedle.Tests/App/Views/LazyTransformerTests.cs` | Tests for `FormatTimestampAction` rendering |
 
 ---
 

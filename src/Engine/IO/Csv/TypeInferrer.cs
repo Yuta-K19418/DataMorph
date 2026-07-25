@@ -1,7 +1,7 @@
 using System.Globalization;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO.Csv;
+namespace Refedle.Engine.IO.Csv;
 
 /// <summary>
 /// Infers column type from char data.

@@ -164,10 +164,10 @@ Output: List of checkpoints (every 1000 rows)
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/Engine/IO/CsvRowIndexer.cs` | Create | Core indexing logic |
-| `tests/DataMorph.Tests/IO/CsvRowIndexerTests.cs` | Create | Base test class with common setup |
-| `tests/DataMorph.Tests/IO/CsvRowIndexerTests.BuildIndex.cs` | Create | BuildIndex unit tests |
-| `tests/DataMorph.Tests/IO/CsvRowIndexerTests.GetCheckPoint.cs` | Create | GetCheckPoint unit tests |
-| `tests/DataMorph.Tests/IO/CsvRowIndexerBenchmarks.cs` | Create | Performance benchmarks |
+| `tests/Refedle.Tests/IO/CsvRowIndexerTests.cs` | Create | Base test class with common setup |
+| `tests/Refedle.Tests/IO/CsvRowIndexerTests.BuildIndex.cs` | Create | BuildIndex unit tests |
+| `tests/Refedle.Tests/IO/CsvRowIndexerTests.GetCheckPoint.cs` | Create | GetCheckPoint unit tests |
+| `tests/Refedle.Tests/IO/CsvRowIndexerBenchmarks.cs` | Create | Performance benchmarks |
 
 ---
 

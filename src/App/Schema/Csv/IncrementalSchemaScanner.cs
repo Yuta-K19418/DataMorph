@@ -1,8 +1,8 @@
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.Models;
 using nietras.SeparatedValues;
+using Refedle.Engine.IO.Csv;
+using Refedle.Engine.Models;
 
-namespace DataMorph.App.Schema.Csv;
+namespace Refedle.App.Schema.Csv;
 
 /// <summary>
 /// Performs incremental schema inference for CSV files.

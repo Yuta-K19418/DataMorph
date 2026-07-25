@@ -1,10 +1,10 @@
-using DataMorph.App.Schema.Csv;
-using DataMorph.Engine;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Recipes;
-using DataMorph.Engine.Types;
+using Refedle.App.Schema.Csv;
+using Refedle.Engine;
+using Refedle.Engine.Models;
+using Refedle.Engine.Recipes;
+using Refedle.Engine.Types;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 /// <summary>
 /// Orchestrates CLI headless batch processing pipeline:
@@ -83,7 +83,7 @@ internal static class Runner
             return await new IncrementalSchemaScanner(inputFile).InitialScanAsync().ConfigureAwait(false);
         }
 
-        var jsonLinesScanner = new DataMorph.App.Schema.JsonLines.IncrementalSchemaScanner(inputFile);
+        var jsonLinesScanner = new Refedle.App.Schema.JsonLines.IncrementalSchemaScanner(inputFile);
         return await jsonLinesScanner.InitialScanAsync().ConfigureAwait(false);
     }
 

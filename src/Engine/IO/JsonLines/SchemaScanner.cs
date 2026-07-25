@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Text.Json;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO.JsonLines;
+namespace Refedle.Engine.IO.JsonLines;
 
 /// <summary>
 /// Schema scanner for JSON Lines format.

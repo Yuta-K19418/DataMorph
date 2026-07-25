@@ -1,4 +1,4 @@
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 /// <summary>
 /// Holds validated CLI argument values parsed from the command line.

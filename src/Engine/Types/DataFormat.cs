@@ -1,7 +1,7 @@
-namespace DataMorph.Engine.Types;
+namespace Refedle.Engine.Types;
 
 /// <summary>
-/// Supported data file formats for DataMorph.
+/// Supported data file formats for Refedle.
 /// </summary>
 public enum DataFormat
 {

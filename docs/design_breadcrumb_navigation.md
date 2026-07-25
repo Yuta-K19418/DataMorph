@@ -315,9 +315,9 @@ empty path as `"root"` alone; a non-empty path renders as just its segments (e.g
 - `src/App/KeyPathBuilder.cs`
 - `src/App/KeyPathFormatter.cs`
 - `src/App/Views/BreadcrumbBar.cs`
-- `tests/DataMorph.Tests/App/KeyPathBuilderTests.cs`
-- `tests/DataMorph.Tests/App/KeyPathFormatterTests.cs`
-- `tests/DataMorph.Tests/App/Views/BreadcrumbBarTests.cs`
+- `tests/Refedle.Tests/App/KeyPathBuilderTests.cs`
+- `tests/Refedle.Tests/App/KeyPathFormatterTests.cs`
+- `tests/Refedle.Tests/App/Views/BreadcrumbBarTests.cs`
 
 **Modified:**
 - `src/App/AppState.cs` — add `CurrentKeyPath`
@@ -330,4 +330,4 @@ empty path as `"root"` alone; a non-empty path renders as just its segments (e.g
   reaches `MorphTreeView` from `JsonLinesTreeView`/`JsonArrayTreeView`
 - `src/App/Views/JsonLinesTreeView.cs`, `JsonArrayTreeView.cs`, `JsonObjectTreeView.cs` —
   `onPathChanged` parameter threaded through `Create`
-- `tests/DataMorph.Tests/App/AppKeyHandlerTests.cs` — remove moved `BuildKeyPath` tests
+- `tests/Refedle.Tests/App/AppKeyHandlerTests.cs` — remove moved `BuildKeyPath` tests

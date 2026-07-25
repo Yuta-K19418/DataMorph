@@ -6,7 +6,7 @@ using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.Dialogs;
+namespace Refedle.App.Views.Dialogs;
 
 /// <summary>
 /// Modal dialog for context-sensitive action menu.

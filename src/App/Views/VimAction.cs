@@ -1,4 +1,4 @@
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Represents the navigation action resolved by <see cref="VimKeyTranslator"/>.

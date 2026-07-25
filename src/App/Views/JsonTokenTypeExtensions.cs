@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 internal static class JsonTokenTypeExtensions
 {

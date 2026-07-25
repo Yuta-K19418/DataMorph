@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace DataMorph.Engine.IO.Json;
+namespace Refedle.Engine.IO.Json;
 
 /// <summary>
 /// Shared Engine-layer utility for JSON traversal primitives: extracting the raw bytes of a

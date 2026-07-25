@@ -1,7 +1,7 @@
 # Marketing Strategy
 
 ## 1. Executive Summary
-DataMorph is positioned as the "Swiss Army Knife" for Data Engineers and SREs who deal with massive, messy datasets. While existing tools focus either on pure CLI manipulation (jq) or pure tabular viewing (Visidata), DataMorph bridges the gap with a **Native AOT-powered TUI** that allows users to visually "explore" deep JSON nests and "morph" them into clean CSVs.
+Refedle is positioned as the "Swiss Army Knife" for Data Engineers and SREs who deal with massive, messy datasets. While existing tools focus either on pure CLI manipulation (jq) or pure tabular viewing (Visidata), Refedle bridges the gap with a **Native AOT-powered TUI** that allows users to visually "explore" deep JSON nests and "morph" them into clean CSVs.
 
 ---
 
@@ -14,7 +14,7 @@ DataMorph is positioned as the "Swiss Army Knife" for Data Engineers and SREs wh
 
 ## 3. Competitive Landscape & Differentiation
 
-| Feature | jq / fx | VisiData | DuckDB CLI | **DataMorph** |
+| Feature | jq / fx | VisiData | DuckDB CLI | **Refedle** |
 | :--- | :--- | :--- | :--- | :--- |
 | **Startup Speed** | Instant | Slow (Python-based) | Instant | **Extreme (Native AOT)** |
 | **Giga-file Support** | Streaming only | Memory-heavy | Great | **Optimized (Mem-Mapped)** |
@@ -22,9 +22,9 @@ DataMorph is positioned as the "Swiss Army Knife" for Data Engineers and SREs wh
 | **Native Binaries** | Yes | No (Needs Python) | Yes | **Yes (Zero Dependencies)** |
 | **Morphism UI** | No | Manual | No | **Path-to-Table (One Key)** |
 
-### Why DataMorph Wins:
-1. **Zero-Dependency Portability**: Unlike VisiData or various JS-based viewers, DataMorph is a single binary. It can be dropped onto any production server and run immediately.
-2. **The "Morph" Workflow**: Most tools require you to know the schema before viewing. DataMorph allows you to **find** the schema in Tree Mode and then **convert** it to Table Mode on the fly.
+### Why Refedle Wins:
+1. **Zero-Dependency Portability**: Unlike VisiData or various JS-based viewers, Refedle is a single binary. It can be dropped onto any production server and run immediately.
+2. **The "Morph" Workflow**: Most tools require you to know the schema before viewing. Refedle allows you to **find** the schema in Tree Mode and then **convert** it to Table Mode on the fly.
 3. **Performance/Safety Hybrid**: By using .NET 10's `Span<T>` and `Native AOT`, we achieve C++ speeds with C# memory safety, outperforming interpreted tools for massive dataset scans.
 
 ---
@@ -38,7 +38,7 @@ DataMorph is positioned as the "Swiss Army Knife" for Data Engineers and SREs wh
 
 ## 5. Distribution & Growth Strategy
 - **The "Binary-First" Approach**: Distribute via Homebrew, Scoop, and direct GitHub Releases. No `dotnet tool install` requirement.
-- **Viral "Before/After" Content**: Show a video of VS Code freezing on a 5GB file vs. DataMorph opening it and exploding a nested array in seconds.
+- **Viral "Before/After" Content**: Show a video of VS Code freezing on a 5GB file vs. Refedle opening it and exploding a nested array in seconds.
 - **Data Engineering Communities**: Focus on platforms like Reddit (r/dataengineering), Hacker News, and Twitter where "Log Analysis" and "JSON Hell" are common pain points.
 
 ---

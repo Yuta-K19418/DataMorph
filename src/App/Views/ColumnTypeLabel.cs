@@ -1,6 +1,6 @@
-using DataMorph.Engine.Types;
+using Refedle.Engine.Types;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Provides display labels for column types in table view headers.

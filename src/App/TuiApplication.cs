@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.App;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
-/// Main Terminal.Gui application shell for DataMorph.
+/// Main Terminal.Gui application shell for Refedle.
 /// Manages application lifecycle, window creation, and view orchestration.
 /// </summary>
 internal static class TuiApplication

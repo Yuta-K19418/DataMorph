@@ -1,5 +1,5 @@
-using DataMorph.App;
-using DataMorph.App.Cli;
+using Refedle.App;
+using Refedle.App.Cli;
 
 if (args.Contains("--cli"))
 {

@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO.JsonObject;
+namespace Refedle.Engine.IO.JsonObject;
 
 internal ref struct BufferState(long fileSize)
 {

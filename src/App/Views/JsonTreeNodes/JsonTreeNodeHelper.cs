@@ -1,8 +1,8 @@
 using System.Text.Json;
-using DataMorph.Engine.IO.Json;
+using Refedle.Engine.IO.Json;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.JsonTreeNodes;
+namespace Refedle.App.Views.JsonTreeNodes;
 
 /// <summary>
 /// Shared utilities for JSON tree node parsing and display.

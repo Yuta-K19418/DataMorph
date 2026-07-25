@@ -30,7 +30,7 @@ The following decisions were made through design discussion.
 On a cache miss for row N, rows `[N-10, N+9]` (clamped to valid range) are loaded in a single I/O.
 
 **Considered:** Forward-biased window (N to N+19) to optimize downward scrolling.  
-**Rejected:** DataMorph supports bidirectional scrolling, so center-aligned is more appropriate.
+**Rejected:** Refedle supports bidirectional scrolling, so center-aligned is more appropriate.
 
 **Note on multiple I/O per render:** If the terminal displays more rows than the prefetch window size, the initial render may trigger more than one I/O. This was explicitly accepted as a non-issue — the improvement to scrolling hit rate outweighs the minor cost of occasional extra I/O on first render. Prefetch window size is configurable via the constructor to allow tuning if needed.
 
@@ -57,12 +57,12 @@ This avoids redundant node allocations for already-cached rows while keeping the
 
 #### Code unification: ~~interface +~~ abstract base class
 
-~~**Interface `IRowCache<TRow>`** (`DataMorph.Engine.IO` namespace):~~
+~~**Interface `IRowCache<TRow>`** (`Refedle.Engine.IO` namespace):~~
 - ~~Single method: `TRow Get(int index)`~~
 - ~~All external classes and unit tests reference this interface only~~
 - ~~Ensures testability via mocking and allows future alternative implementations without inheriting the base class~~
 
-**Abstract base class `SlidingWindowLruCache<TRow>`** (`DataMorph.Engine.IO` namespace):
+**Abstract base class `SlidingWindowLruCache<TRow>`** (`Refedle.Engine.IO` namespace):
 - ~~Implements `IRowCache<TRow>`~~
 - Encapsulates LRU structure (`Dictionary` + `LinkedList`), prefetch logic, and node reuse
 - Is an implementation detail — external classes must not reference it directly
@@ -109,7 +109,7 @@ Before implementing the cache strategy, a standalone commit renames `GetLineByte
 ### ~~2.1 Interface: `IRowCache<TRow>`~~
 
 ```csharp
-~~namespace DataMorph.Engine.IO;
+~~namespace Refedle.Engine.IO;
 
 public interface IRowCache<TRow>
 {
@@ -168,7 +168,7 @@ This avoids the null-forgiving operator (`!`) while keeping `CacheEntry` free of
 #### API
 
 ```csharp
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 public abstract class SlidingWindowLruCache<TRow> ~~: IRowCache<TRow>~~
 {

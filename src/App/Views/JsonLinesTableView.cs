@@ -1,4 +1,4 @@
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// A TableView for JSON Lines data that provides vim-like key navigation

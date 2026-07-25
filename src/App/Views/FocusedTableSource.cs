@@ -1,10 +1,10 @@
 using System.Text;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.Json;
-using DataMorph.Engine.Models;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.Json;
+using Refedle.Engine.Models;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// ITableSource backed by pre-materialized <see cref="FocusedTableRow"/> rows.

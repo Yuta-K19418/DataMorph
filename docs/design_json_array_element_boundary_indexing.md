@@ -48,7 +48,7 @@ the JSON structure.
 ### 3.1 Class: `JsonArray.RowIndexer`
 
 ```csharp
-namespace DataMorph.Engine.IO.JsonArray;
+namespace Refedle.Engine.IO.JsonArray;
 
 public sealed class RowIndexer : RowIndexerBase
 {
@@ -292,10 +292,10 @@ finally:
 |------|--------|---------|
 | `src/Engine/IO/JsonArray/RowIndexer.cs` | Create | Core streaming indexer |
 | `src/App/RowIndexerFactory.cs` | Modify | Add `DataFormat.JsonArray` case |
-| `tests/DataMorph.Tests/Engine/IO/JsonArray/RowIndexerTests.cs` | Create | Shared fixtures |
-| `tests/DataMorph.Tests/Engine/IO/JsonArray/RowIndexerTests.BuildIndex.cs` | Create | `BuildIndex` correctness tests |
-| `tests/DataMorph.Tests/Engine/IO/JsonArray/RowIndexerTests.GetCheckPoint.cs` | Create | `GetCheckPoint` correctness + concurrency tests |
-| `tests/DataMorph.Tests/Engine/IO/JsonArray/RowIndexerBenchmarks.cs` | Create | BenchmarkDotNet perf tests |
+| `tests/Refedle.Tests/Engine/IO/JsonArray/RowIndexerTests.cs` | Create | Shared fixtures |
+| `tests/Refedle.Tests/Engine/IO/JsonArray/RowIndexerTests.BuildIndex.cs` | Create | `BuildIndex` correctness tests |
+| `tests/Refedle.Tests/Engine/IO/JsonArray/RowIndexerTests.GetCheckPoint.cs` | Create | `GetCheckPoint` correctness + concurrency tests |
+| `tests/Refedle.Tests/Engine/IO/JsonArray/RowIndexerBenchmarks.cs` | Create | BenchmarkDotNet perf tests |
 
 ---
 

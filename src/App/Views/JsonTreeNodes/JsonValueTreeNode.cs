@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.JsonTreeNodes;
+namespace Refedle.App.Views.JsonTreeNodes;
 
 /// <summary>
 /// Represents a JSON primitive value (string, number, boolean, null).

@@ -1,10 +1,10 @@
 using System.Text;
-using DataMorph.Engine.IO.Json;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Models;
+using Refedle.Engine.IO.Json;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Models;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Provides virtual table data source for Terminal.Gui's TableView for JSON Lines files.

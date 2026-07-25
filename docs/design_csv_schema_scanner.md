@@ -241,8 +241,8 @@ public static bool TryParseFloatingPoint(ReadOnlySpan<char> value, out double re
 |------|--------|---------|
 | `src/Engine/IO/CsvTypeInferrer.cs` | Create | Type inference |
 | `src/Engine/IO/CsvSchemaScanner.cs` | Create | Schema scanning coordination |
-| `tests/DataMorph.Tests/IO/CsvTypeInferrerTests.cs` | Create | Type inference unit tests |
-| `tests/DataMorph.Tests/IO/CsvSchemaScannerTests.cs` | Create | Schema scanner integration tests |
+| `tests/Refedle.Tests/IO/CsvTypeInferrerTests.cs` | Create | Type inference unit tests |
+| `tests/Refedle.Tests/IO/CsvSchemaScannerTests.cs` | Create | Schema scanner integration tests |
 
 ---
 
@@ -568,8 +568,8 @@ For future thread-safe scenarios, consider:
 | `src/Engine/IO/ColumnTypeResolver.cs` | Create | Pure type resolution logic |
 | `src/Engine/IO/ColumnSchemaExtensions.cs` | Create | Extension methods with early-exit optimization |
 | `src/Engine/Models/ColumnSchema.cs` | Modify | Change `Type` and `IsNullable` from `init` to `set` |
-| `tests/DataMorph.Tests/IO/ColumnTypeResolverTests.cs` | Create | Type resolution unit tests |
-| `tests/DataMorph.Tests/IO/ColumnSchemaExtensionsTests.cs` | Create | Extension method unit tests |
+| `tests/Refedle.Tests/IO/ColumnTypeResolverTests.cs` | Create | Type resolution unit tests |
+| `tests/Refedle.Tests/IO/ColumnSchemaExtensionsTests.cs` | Create | Extension method unit tests |
 
 ### 10.8 Test Scenarios
 

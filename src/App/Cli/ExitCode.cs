@@ -1,4 +1,4 @@
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 /// <summary>
 /// Defines the exit codes for the application.

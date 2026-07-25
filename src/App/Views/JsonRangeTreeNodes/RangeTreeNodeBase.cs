@@ -1,6 +1,6 @@
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.JsonRangeTreeNodes;
+namespace Refedle.App.Views.JsonRangeTreeNodes;
 
 /// <summary>
 /// Abstract base class for range-based tree nodes (<see cref="JsonLinesRangeTreeNode"/>,

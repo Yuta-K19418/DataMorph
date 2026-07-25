@@ -1,4 +1,4 @@
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Defines the available view modes in the TUI application.

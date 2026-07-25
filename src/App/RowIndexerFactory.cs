@@ -1,10 +1,10 @@
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Types;
-using JsonArray = DataMorph.Engine.IO.JsonArray;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.Csv;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Types;
+using JsonArray = Refedle.Engine.IO.JsonArray;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// A factory for creating the appropriate <see cref="IRowIndexer"/> based on the data format.

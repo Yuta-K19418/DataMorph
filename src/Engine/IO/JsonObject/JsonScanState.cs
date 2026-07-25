@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace DataMorph.Engine.IO.JsonObject;
+namespace Refedle.Engine.IO.JsonObject;
 
 internal ref struct JsonScanState(long fileSize)
 {

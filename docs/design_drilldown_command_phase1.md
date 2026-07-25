@@ -160,7 +160,7 @@ FocusedTableView  (new, App)  →  Terminal.Gui TableView
 
 | File | Change |
 |------|--------|
-| `src/Engine/IO/JsonLines/CellExtractor.cs` | Move to `src/Engine/IO/Json/JsonObjectCellExtractor.cs`; update namespace to `DataMorph.Engine.IO.Json`; keep identical logic |
+| `src/Engine/IO/JsonLines/CellExtractor.cs` | Move to `src/Engine/IO/Json/JsonObjectCellExtractor.cs`; update namespace to `Refedle.Engine.IO.Json`; keep identical logic |
 | `src/App/ViewMode.cs` | Add `FocusedTable` |
 | `src/App/ViewManager.cs` | Add `DrillDownAsync()` and `SwitchToFocusedTable()` (with `OnSchemaRefined = null` cleanup); update `RefreshStatusBarHints` to exclude `FocusedTable` mode and include `MorphTreeView` |
 | `src/App/ModeController.cs` | Add `DrillDownAsync()` |
@@ -190,7 +190,7 @@ FocusedTableView  (new, App)  →  Terminal.Gui TableView
 ### 3.1 DrillDownRequest
 
 **File:** `src/App/DrillDownRequest.cs`
-**Namespace:** `DataMorph.App`
+**Namespace:** `Refedle.App`
 **Estimated size:** ~10 lines
 
 Primary constructor form per project standards (no validation logic required):
@@ -304,7 +304,7 @@ if (reader.TokenType == JsonTokenType.StartArray)
 ### 3.3 JsonByteExtractor (new Engine utility)
 
 **File:** `src/Engine/IO/Json/JsonByteExtractor.cs`
-**Namespace:** `DataMorph.Engine.IO.Json`
+**Namespace:** `Refedle.Engine.IO.Json`
 **Estimated size:** ~30 lines
 
 Shared Engine-layer utility for extracting raw bytes of a nested JSON value. Extracted here so
@@ -332,7 +332,7 @@ public static class JsonByteExtractor
 
 **Original file:** `src/Engine/IO/JsonLines/CellExtractor.cs`  
 **New file:** `src/Engine/IO/Json/JsonObjectCellExtractor.cs`  
-**Namespace:** `DataMorph.Engine.IO.Json`  
+**Namespace:** `Refedle.Engine.IO.Json`  
 **Estimated change:** rename class + update namespace; logic unchanged
 
 Extracts a single cell value from a raw JSON Object value one level deep. Previously used only
@@ -356,7 +356,7 @@ The public API surface and cell rendering rules remain identical to the existing
 ### 3.5 DrillDownSchemaExtractor
 
 **File:** `src/Engine/IO/DrillDown/DrillDownSchemaExtractor.cs`
-**Namespace:** `DataMorph.Engine.IO.DrillDown`
+**Namespace:** `Refedle.Engine.IO.DrillDown`
 **Estimated size:** ~100 lines
 
 Parses the selected `JsonArrayTreeNode`'s raw bytes in memory — no file scan required.
@@ -394,7 +394,7 @@ public static class DrillDownSchemaExtractor
 ### 3.6 FocusedTableSource
 
 **File:** `src/App/Views/FocusedTableSource.cs`
-**Namespace:** `DataMorph.App.Views`
+**Namespace:** `Refedle.App.Views`
 **Estimated size:** ~90 lines
 
 `ITableSource` backed by pre-materialized child object bytes; renders the `#` column using
@@ -463,7 +463,7 @@ this[row, col]:
 ### 3.7 FocusedTableView
 
 **File:** `src/App/Views/FocusedTableView.cs`
-**Namespace:** `DataMorph.App.Views`
+**Namespace:** `Refedle.App.Views`
 **Estimated size:** ~5 lines
 
 Empty `MorphTableView` subclass, following the same pattern as `JsonLinesTableView`.
@@ -681,7 +681,7 @@ if ((GetCurrentView() is MorphTableView && _state.CurrentMode != ViewMode.Focuse
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/Engine/IO/Json/JsonByteExtractor.cs` | Create | Shared Engine utility: `ExtractNestedBytes` (no layer dependency) |
-| `src/Engine/IO/Json/JsonObjectCellExtractor.cs` | Move + rename from `src/Engine/IO/JsonLines/CellExtractor.cs` | Format-agnostic object cell extraction; namespace updated to `DataMorph.Engine.IO.Json` |
+| `src/Engine/IO/Json/JsonObjectCellExtractor.cs` | Move + rename from `src/Engine/IO/JsonLines/CellExtractor.cs` | Format-agnostic object cell extraction; namespace updated to `Refedle.Engine.IO.Json` |
 | `src/Engine/IO/DrillDown/DrillDownSchemaExtractor.cs` | Create | Schema + child bytes from in-memory node |
 | `src/App/DrillDownRequest.cs` | Create | DrillDown context data bag (primary constructor record) |
 | `src/App/Views/FocusedTableSource.cs` | Create | `ITableSource` for FocusedTable; format-aware `#` column; bounds checking |
@@ -697,7 +697,7 @@ if ((GetCurrentView() is MorphTableView && _state.CurrentMode != ViewMode.Focuse
 | `src/App/Views/JsonTreeNodes/JsonTreeNodeHelper.cs` | Modify | Accept `recordPosition`; set `KeyName`/`RecordPosition`; delegate to `JsonByteExtractor.ExtractNestedBytes` |
 | `src/App/Views/JsonRangeTreeNodes/JsonLinesRangeTreeNode.cs` | Modify | Set `RecordPosition` (1-based, checked cast) on root nodes in `CreateLineNode` |
 | `src/App/Views/JsonRangeTreeNodes/JsonArrayRangeTreeNode.cs` | Modify | Set `RecordPosition` (0-based, checked cast) on root nodes in `CreateElementNode` |
-| Callers of `CellExtractor` in `JsonLines` sources | Modify | Update `using` / class name to `JsonObjectCellExtractor` in `DataMorph.Engine.IO.Json` |
+| Callers of `CellExtractor` in `JsonLines` sources | Modify | Update `using` / class name to `JsonObjectCellExtractor` in `Refedle.Engine.IO.Json` |
 | `tests/.../JsonObjectCellExtractorTests.cs` | Rename from `CellExtractorTests.cs` | Cell extractor unit tests (rename in-place; tests unchanged) |
 | `tests/.../DrillDownSchemaExtractorTests.cs` | Create | Schema extractor unit tests |
 | `tests/.../FocusedTableSourceTests.cs` | Create | Table source unit tests |

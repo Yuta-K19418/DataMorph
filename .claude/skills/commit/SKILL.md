@@ -1,7 +1,7 @@
 ---
 name: commit
 description: >
-  Automate the DataMorph commit workflow: run dotnet format, build (verify zero
+  Automate the Refedle commit workflow: run dotnet format, build (verify zero
   warnings), and test, then generate a Conventional Commit message in English
   and commit changes automatically.
 
@@ -12,7 +12,7 @@ description: >
 
 # Commit Skill
 
-Use this skill to perform a standardized commit process for the DataMorph project. This ensures that all commits meet the project's quality standards and follow the Conventional Commits specification.
+Use this skill to perform a standardized commit process for the Refedle project. This ensures that all commits meet the project's quality standards and follow the Conventional Commits specification.
 
 ## High-Level Process
 

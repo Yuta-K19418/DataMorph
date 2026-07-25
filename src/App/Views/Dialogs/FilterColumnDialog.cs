@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.Engine.Models.Actions;
+using Refedle.Engine.Models.Actions;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.Dialogs;
+namespace Refedle.App.Views.Dialogs;
 
 /// <summary>
 /// Modal dialog for adding a row-level filter condition on a column.

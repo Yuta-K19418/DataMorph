@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using DataMorph.Engine;
+using Refedle.Engine;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "JsonLinesRecordWriter is a struct designed for monomorphization as per ADR. It implements IRecordWriter which inherits from IDisposable and IAsyncDisposable, but CA1001 analyzer may be confused by structs or specific field types.")]
 internal partial struct JsonLinesRecordWriter : IRecordWriter

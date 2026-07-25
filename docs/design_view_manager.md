@@ -130,7 +130,7 @@ MainWindow ──► FileLoader  (knows Engine + AppState; no TUI)
 **File:** `src/App/FileLoader.cs`
 
 ```csharp
-namespace DataMorph.App;
+namespace Refedle.App;
 
 internal sealed class FileLoader : IDisposable
 {
@@ -193,7 +193,7 @@ CurrentMode == JsonLinesTree   →
 **File:** `src/App/ViewManager.cs`
 
 ```csharp
-namespace DataMorph.App;
+namespace Refedle.App;
 
 internal sealed class ViewManager : IDisposable
 {
@@ -345,7 +345,7 @@ built-in handler.
 
 ### Unit Tests
 
-**New file:** `tests/DataMorph.Tests/App/FileLoaderTests.cs`
+**New file:** `tests/Refedle.Tests/App/FileLoaderTests.cs`
 
 | Test | Validates |
 |---|---|
@@ -355,7 +355,7 @@ built-in handler.
 | `ToggleJsonLinesMode_TableToTree_RestoresTree` | Switching back sets mode to `JsonLinesTree` |
 | `LoadUnsupportedFormat_SetsLastError` | Unsupported extension sets `_state.LastError`, mode unchanged |
 
-**New file:** `tests/DataMorph.Tests/App/ViewManagerTests.cs`
+**New file:** `tests/Refedle.Tests/App/ViewManagerTests.cs`
 
 Because Terminal.Gui views cannot be instantiated headlessly, `ViewManager`
 tests are limited to integration/manual verification. Unit test focus is on

@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Text.Json;
 
-namespace DataMorph.Engine.IO.JsonArray;
+namespace Refedle.Engine.IO.JsonArray;
 
 /// <summary>
 /// Reads raw JSON element bytes from a JSON Array file given a checkpoint byte offset.

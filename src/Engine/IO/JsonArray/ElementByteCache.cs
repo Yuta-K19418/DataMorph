@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO.JsonArray;
+namespace Refedle.Engine.IO.JsonArray;
 
 /// <summary>
 /// Sliding window LRU cache for JSON Array element bytes.

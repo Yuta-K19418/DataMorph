@@ -1,10 +1,10 @@
 using System.Text.Json;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.JsonArray;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.JsonArray;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.JsonRangeTreeNodes;
+namespace Refedle.App.Views.JsonRangeTreeNodes;
 
 /// <summary>
 /// Represents a range within a large JSON Array.

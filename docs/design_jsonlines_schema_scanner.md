@@ -105,7 +105,7 @@ if (current == ColumnType.JsonObject || current == ColumnType.JsonArray ||
 ### 2.3 Class: `SchemaScanner` (JsonLines)
 
 **File:** `src/Engine/IO/JsonLines/SchemaScanner.cs`
-**Namespace:** `DataMorph.Engine.IO.JsonLines`
+**Namespace:** `Refedle.Engine.IO.JsonLines`
 
 Static class with two public methods and two private helpers.
 
@@ -323,9 +323,9 @@ Once nullable, a column stays nullable (one-way flag).
 | `src/Engine/Types/ColumnType.cs` | Modify | Add `JsonObject`, `JsonArray` members |
 | `src/Engine/IO/ColumnTypeResolver.cs` | Modify | Handle `JsonObject`/`JsonArray` |
 | `src/Engine/IO/JsonLines/SchemaScanner.cs` | **Create** | Schema scanning implementation |
-| `tests/DataMorph.Tests/Engine/IO/JsonLines/SchemaScannerTests.cs` | **Create** | Base test class |
-| `tests/DataMorph.Tests/Engine/IO/JsonLines/SchemaScannerTests.ScanSchema.cs` | **Create** | ScanSchema test cases |
-| `tests/DataMorph.Tests/Engine/IO/JsonLines/SchemaScannerTests.RefineSchema.cs` | **Create** | RefineSchema test cases |
+| `tests/Refedle.Tests/Engine/IO/JsonLines/SchemaScannerTests.cs` | **Create** | Base test class |
+| `tests/Refedle.Tests/Engine/IO/JsonLines/SchemaScannerTests.ScanSchema.cs` | **Create** | ScanSchema test cases |
+| `tests/Refedle.Tests/Engine/IO/JsonLines/SchemaScannerTests.RefineSchema.cs` | **Create** | RefineSchema test cases |
 | `docs/design_jsonlines_schema_scanner.md` | **Create** | This document |
 
 ### Reused Existing Components

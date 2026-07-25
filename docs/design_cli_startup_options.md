@@ -16,7 +16,7 @@
 |------|---------|
 | `src/App/TuiStartupOptions.cs` | Record holding optional startup arguments for TUI mode |
 | `src/App/TuiArgumentParser.cs` | Parses `--file` / `--recipe` from `args[]` in TUI mode |
-| `tests/DataMorph.Tests/App/Cli/TuiArgumentParserTests.cs` | Unit tests for `TuiArgumentParser` |
+| `tests/Refedle.Tests/App/Cli/TuiArgumentParserTests.cs` | Unit tests for `TuiArgumentParser` |
 
 ### Modified Files
 
@@ -31,7 +31,7 @@
 ### `TuiStartupOptions` Record
 
 ```csharp
-namespace DataMorph.App;
+namespace Refedle.App;
 
 internal sealed record TuiStartupOptions(string? InputFile = null, string? RecipeFile = null)
 {
@@ -136,7 +136,7 @@ The existing `LoadAsync()` is refactored to delegate to `LoadFromPathAsync` to a
 ## Interaction Flow (with both options)
 
 ```
-$ data-morph --file data.csv --recipe transforms.yaml
+$ refedle --file data.csv --recipe transforms.yaml
 
 Program.cs
   ├── TuiArgumentParser.Parse → TuiStartupOptions { InputFile, RecipeFile }

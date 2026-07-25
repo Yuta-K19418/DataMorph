@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 
-namespace DataMorph.Generators;
+namespace Refedle.Generators;
 
 [Generator]
 public class FormatDispatcherGenerator : IIncrementalGenerator
@@ -166,12 +166,12 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Threading;");
         sb.AppendLine("using System.Threading.Tasks;");
-        sb.AppendLine("using DataMorph.Engine;");
-        sb.AppendLine("using DataMorph.Engine.Models;");
-        sb.AppendLine("using DataMorph.Engine.Types;");
-        sb.AppendLine("using DataMorph.App.Cli;");
+        sb.AppendLine("using Refedle.Engine;");
+        sb.AppendLine("using Refedle.Engine.Models;");
+        sb.AppendLine("using Refedle.Engine.Types;");
+        sb.AppendLine("using Refedle.App.Cli;");
         sb.AppendLine();
-        sb.AppendLine("namespace DataMorph.App.Cli.Generated;");
+        sb.AppendLine("namespace Refedle.App.Cli.Generated;");
         sb.AppendLine();
         sb.AppendLine("internal static class FormatDispatcher");
         sb.AppendLine("{");

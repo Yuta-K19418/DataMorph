@@ -59,7 +59,7 @@ For JSON Lines, we can simplify by removing:
 - Quote state tracking (`inQuotes` flag)
 - Header skipping logic
 
-### 3.2 Class: `RowIndexer` (in `DataMorph.Engine.IO.JsonLines` namespace)
+### 3.2 Class: `RowIndexer` (in `Refedle.Engine.IO.JsonLines` namespace)
 
 #### Responsibilities
 - Build an index of row positions in a JSON Lines file
@@ -69,7 +69,7 @@ For JSON Lines, we can simplify by removing:
 #### API Design
 
 ```csharp
-namespace DataMorph.Engine.IO.JsonLines;
+namespace Refedle.Engine.IO.JsonLines;
 
 public sealed class RowIndexer
 {
@@ -190,10 +190,10 @@ Unlike CSV's `"\n\""u8`, JSON Lines only needs to search for newlines, making it
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/Engine/IO/JsonLines/RowIndexer.cs` | Create | Core indexing logic |
-| `tests/DataMorph.Tests/IO/JsonLines/RowIndexerTests.cs` | Create | Base test class |
-| `tests/DataMorph.Tests/IO/JsonLines/RowIndexerTests.BuildIndex.cs` | Create | BuildIndex unit tests |
-| `tests/DataMorph.Tests/IO/JsonLines/RowIndexerTests.GetCheckPoint.cs` | Create | GetCheckPoint unit tests |
-| `tests/DataMorph.Tests/IO/JsonLines/RowIndexerBenchmarks.cs` | Create | Performance benchmarks |
+| `tests/Refedle.Tests/IO/JsonLines/RowIndexerTests.cs` | Create | Base test class |
+| `tests/Refedle.Tests/IO/JsonLines/RowIndexerTests.BuildIndex.cs` | Create | BuildIndex unit tests |
+| `tests/Refedle.Tests/IO/JsonLines/RowIndexerTests.GetCheckPoint.cs` | Create | GetCheckPoint unit tests |
+| `tests/Refedle.Tests/IO/JsonLines/RowIndexerBenchmarks.cs` | Create | Performance benchmarks |
 
 ---
 

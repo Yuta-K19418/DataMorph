@@ -1,7 +1,7 @@
 using System.Text;
 using nietras.SeparatedValues;
 
-namespace DataMorph.Engine.IO.Csv;
+namespace Refedle.Engine.IO.Csv;
 
 /// <summary>
 /// Low-level CSV row reader that reads raw CSV data from a file stream.

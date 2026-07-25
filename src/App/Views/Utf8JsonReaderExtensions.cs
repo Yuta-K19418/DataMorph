@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text.Json;
-using DataMorph.App.Views.JsonTreeNodes;
+using Refedle.App.Views.JsonTreeNodes;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 internal static class Utf8JsonReaderExtensions
 {

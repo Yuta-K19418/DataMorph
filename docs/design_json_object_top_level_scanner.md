@@ -60,7 +60,7 @@ while the design complexity (new lazy-loading node types) is significant.
 ### 3.1 Class: `JsonObject.TopLevelScanner`
 
 ```csharp
-namespace DataMorph.Engine.IO.JsonObject;
+namespace Refedle.Engine.IO.JsonObject;
 
 internal sealed class TopLevelScanner
 {
@@ -215,9 +215,9 @@ Japanese — which is sufficient for all practical single-value strings.
 | File | Action | Purpose |
 |------|--------|---------|
 | `src/Engine/IO/JsonObject/TopLevelScanner.cs` | Create | Streaming scanner; returns key-value list |
-| `tests/DataMorph.Tests/Engine/IO/JsonObject/TopLevelScannerTests.cs` | Create | Unit tests (shared fixtures) |
-| `tests/DataMorph.Tests/Engine/IO/JsonObject/TopLevelScannerTests.Scan.cs` | Create | `Scan` correctness tests |
-| `tests/DataMorph.Tests/Engine/IO/JsonObject/TopLevelScannerBenchmarks.cs` | Create | BenchmarkDotNet perf tests |
+| `tests/Refedle.Tests/Engine/IO/JsonObject/TopLevelScannerTests.cs` | Create | Unit tests (shared fixtures) |
+| `tests/Refedle.Tests/Engine/IO/JsonObject/TopLevelScannerTests.Scan.cs` | Create | `Scan` correctness tests |
+| `tests/Refedle.Tests/Engine/IO/JsonObject/TopLevelScannerBenchmarks.cs` | Create | BenchmarkDotNet perf tests |
 
 ---
 

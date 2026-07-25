@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace DataMorph.Engine.IO.Csv;
+namespace Refedle.Engine.IO.Csv;
 
 /// <summary>
 /// Indexes CSV data rows (excluding header) for efficient random access.

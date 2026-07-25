@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 /// <summary>
 /// Provides specialized extension methods for <see cref="LinkedList{T}"/> of <see cref="CacheEntry{TRow}"/>

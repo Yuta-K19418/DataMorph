@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO.JsonLines;
+namespace Refedle.Engine.IO.JsonLines;
 
 /// <summary>
 /// Manages a sliding window LRU cache of JSON line bytes for efficient virtual scrolling.

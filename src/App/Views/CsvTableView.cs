@@ -1,4 +1,4 @@
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// A TableView for CSV data that adds vim-like key navigation

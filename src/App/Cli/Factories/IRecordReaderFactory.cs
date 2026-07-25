@@ -1,7 +1,7 @@
-using DataMorph.Engine;
-using DataMorph.Engine.Models;
+using Refedle.Engine;
+using Refedle.Engine.Models;
 
-namespace DataMorph.App.Cli;
+namespace Refedle.App.Cli;
 
 internal interface IRecordReaderFactory<TReader> where TReader : struct, IRecordReader
 {

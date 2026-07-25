@@ -256,8 +256,8 @@ Ctrl+S  "Save Recipe"  → HandleSaveRecipeAsync()
 | `src/Engine/RecipeManager.cs` | New: public sealed class |
 | `src/Engine/RecipeYamlSerializer.cs` | New: internal sealed class |
 | `src/App/MainWindow.cs` | Add `_recipeManager`, File menu items, `Ctrl+S` shortcut |
-| `tests/DataMorph.Tests/Engine/RecipeYamlSerializerTests.cs` | New: unit tests for serializer |
-| `tests/DataMorph.Tests/Engine/RecipeManagerTests.cs` | New: unit tests for file I/O |
+| `tests/Refedle.Tests/Engine/RecipeYamlSerializerTests.cs` | New: unit tests for serializer |
+| `tests/Refedle.Tests/Engine/RecipeManagerTests.cs` | New: unit tests for file I/O |
 
 ---
 
@@ -338,7 +338,7 @@ multi-document streams, or complex types are needed.
 
 Given this limited surface area, a custom serializer is:
 - **AOT-safe**: zero reflection, zero dynamic dispatch.
-- **Dependency-free**: keeps `DataMorph.Engine.csproj` free of new NuGet packages.
+- **Dependency-free**: keeps `Refedle.Engine.csproj` free of new NuGet packages.
 - **Deterministic**: the writer produces canonical output, which simplifies the reader to a
   simple line-by-line state machine.
 - **Extensible**: supporting a new `MorphAction` subtype requires adding one `case` branch in

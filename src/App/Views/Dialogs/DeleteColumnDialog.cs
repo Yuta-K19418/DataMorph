@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.Dialogs;
+namespace Refedle.App.Views.Dialogs;
 
 /// <summary>
 /// Modal dialog for confirming column deletion.

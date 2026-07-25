@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.Filtering;
+namespace Refedle.Engine.Filtering;
 
 /// <summary>
 /// Builds and exposes a pre-computed index of source row positions that satisfy

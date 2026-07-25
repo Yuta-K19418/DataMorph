@@ -1,9 +1,9 @@
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.Csv;
-using DataMorph.Engine.Models;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.Csv;
+using Refedle.Engine.Models;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Provides virtual table data source for Terminal.Gui's TableView.

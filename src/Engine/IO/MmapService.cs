@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.MemoryMappedFiles;
 
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 /// <summary>
 /// Provides memory-mapped file access for efficient data reading.

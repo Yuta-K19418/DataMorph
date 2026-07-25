@@ -314,15 +314,15 @@ to a tree node, storing it here would have no consumer).
   `Scan` return type: `List<(string key, JsonRawBytes value)> result` → `List<JsonObjectEntry>`,
   threaded through `ProcessToken`/`RecordEntry`, and both tuple-literal construction sites
   (`result.Add((key, mem))`, `result[idx] = (key, mem)`) → `new JsonObjectEntry(key, mem)`
-- `tests/DataMorph.Tests/App/ModeControllerTests.cs`
-- `tests/DataMorph.Tests/App/ViewManagerTests.cs`
-- `tests/DataMorph.Tests/App/AppKeyHandlerTests.cs`
-- `tests/DataMorph.Tests/App/AppStateTests.cs`
-- `tests/DataMorph.Tests/App/FileDialogHandlerTests.cs`
-- `tests/DataMorph.Tests/App/Views/Dialogs/HelpDialogTests.cs`
-- `tests/DataMorph.Tests/App/Views/JsonObjectTreeViewTests.cs`
-- `tests/DataMorph.Tests/Engine/IO/JsonObject/TopLevelScannerTests.cs`
-- `tests/DataMorph.Tests/Engine/IO/JsonObject/TopLevelScannerTests.Scan.cs`
+- `tests/Refedle.Tests/App/ModeControllerTests.cs`
+- `tests/Refedle.Tests/App/ViewManagerTests.cs`
+- `tests/Refedle.Tests/App/AppKeyHandlerTests.cs`
+- `tests/Refedle.Tests/App/AppStateTests.cs`
+- `tests/Refedle.Tests/App/FileDialogHandlerTests.cs`
+- `tests/Refedle.Tests/App/Views/Dialogs/HelpDialogTests.cs`
+- `tests/Refedle.Tests/App/Views/JsonObjectTreeViewTests.cs`
+- `tests/Refedle.Tests/Engine/IO/JsonObject/TopLevelScannerTests.cs`
+- `tests/Refedle.Tests/Engine/IO/JsonObject/TopLevelScannerTests.Scan.cs`
 
 **New:**
 - `src/Engine/IO/JsonObject/JsonObjectEntry.cs` — `readonly record struct JsonObjectEntry(string Key, JsonRawBytes Value)`

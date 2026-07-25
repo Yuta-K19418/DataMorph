@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO.Csv;
+namespace Refedle.Engine.IO.Csv;
 
 /// <summary>
 /// Manages a sliding window LRU cache of CSV data rows for efficient virtual scrolling.

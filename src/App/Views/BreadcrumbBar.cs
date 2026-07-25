@@ -1,7 +1,7 @@
-using DataMorph.Engine.IO.DrillDown;
+using Refedle.Engine.IO.DrillDown;
 using Terminal.Gui.ViewBase;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// A single-row bar directly below the <c>MenuBar</c> that renders the current JSON hierarchy

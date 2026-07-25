@@ -1,7 +1,7 @@
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// A placeholder view that displays the loaded file path.

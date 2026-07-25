@@ -1,9 +1,9 @@
 using System.Text.Json;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Types;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.Models;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO.DrillDown;
+namespace Refedle.Engine.IO.DrillDown;
 
 /// <summary>
 /// Stateless schema-accumulation helpers shared by <see cref="DrillDownSchemaExtractor"/> and the

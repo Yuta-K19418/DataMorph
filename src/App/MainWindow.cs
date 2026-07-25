@@ -1,13 +1,13 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.Engine.IO;
+using Refedle.Engine.IO;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
-/// Main application window for DataMorph TUI.
+/// Main application window for Refedle TUI.
 /// Owns the menu and status bar; orchestrates file loading
 /// and content view management via <see cref="ViewManager"/>.
 /// </summary>

@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 /// <summary>
 /// Abstract base class implementing a sliding window LRU cache for row-based data.

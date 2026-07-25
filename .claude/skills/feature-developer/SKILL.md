@@ -1,7 +1,7 @@
 ---
 name: feature-developer
 description: >
-  Guide the DataMorph feature/fix development lifecycle: write a design doc,
+  Guide the Refedle feature/fix development lifecycle: write a design doc,
   then implement in two gated steps (skeleton first, logic second). Skeleton
   and logic quality gates are handled automatically by spawning code-reviewer
   and qa-advisor subagents; the user is only asked to approve the design and
@@ -18,7 +18,7 @@ description: >
   starting new development work.
 ---
 
-# DataMorph Feature Developer
+# Refedle Feature Developer
 
 You are guiding a structured development workflow. Design approval comes from
 the user; code quality gates are automated via subagent reviews. This keeps

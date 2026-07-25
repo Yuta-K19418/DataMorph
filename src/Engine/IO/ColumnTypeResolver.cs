@@ -1,6 +1,6 @@
-using DataMorph.Engine.Types;
+using Refedle.Engine.Types;
 
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 /// <summary>
 /// Pure type resolution logic for resolving two different column types to their common supertype.

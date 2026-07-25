@@ -78,7 +78,7 @@ to `VimKeyTranslator`.
 | **Modify** | `src/App/ViewManager.cs` |
 | **Modify** | `src/App/Views/CsvTableView.cs` |
 | **Modify** | `src/App/Views/JsonLinesTableView.cs` |
-| **Create** | `tests/DataMorph.Tests/App/AppStateTests.cs` |
+| **Create** | `tests/Refedle.Tests/App/AppStateTests.cs` |
 
 No changes to `FileLoader`, `MainWindow`, `LazyTransformer`, or any Engine class.
 
@@ -364,7 +364,7 @@ Step 2 — cursor on column "age", press Shift+D
 
 ### Unit Tests
 
-**New file:** `tests/DataMorph.Tests/App/AppStateTests.cs`
+**New file:** `tests/Refedle.Tests/App/AppStateTests.cs`
 
 | Test | Validates |
 |------|-----------|

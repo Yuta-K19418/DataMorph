@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO.DrillDown;
+namespace Refedle.Engine.IO.DrillDown;
 
 /// <summary>
 /// Stateless buffer-management helpers for chunked forward scans over a memory-mapped file.

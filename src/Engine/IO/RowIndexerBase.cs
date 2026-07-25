@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO;
+namespace Refedle.Engine.IO;
 
 /// <summary>
 /// Base class for row indexers providing common event handling logic.

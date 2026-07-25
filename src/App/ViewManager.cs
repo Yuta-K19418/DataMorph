@@ -1,19 +1,19 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using DataMorph.App.Views;
-using DataMorph.Engine.IO;
-using DataMorph.Engine.IO.DrillDown;
-using DataMorph.Engine.IO.JsonLines;
-using DataMorph.Engine.IO.JsonObject;
-using DataMorph.Engine.Models;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.App.Views;
+using Refedle.Engine.IO;
+using Refedle.Engine.IO.DrillDown;
+using Refedle.Engine.IO.JsonLines;
+using Refedle.Engine.IO.JsonObject;
+using Refedle.Engine.Models;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using Key = Terminal.Gui.Input.Key;
 
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Manages the active content view inside a Terminal.Gui <see cref="Window"/>.
@@ -239,7 +239,7 @@ internal sealed class ViewManager : IDisposable
                 rawSource,
                 schema,
                 _state.ActionStack,
-                filterSpecs => new DataMorph.Engine.IO.Csv.FilterRowIndexer(
+                filterSpecs => new Refedle.Engine.IO.Csv.FilterRowIndexer(
                     indexer,
                     schema.Columns.Count,
                     filterSpecs
@@ -374,7 +374,7 @@ internal sealed class ViewManager : IDisposable
                 source,
                 schema,
                 _state.ActionStack,
-                filterSpecs => new DataMorph.Engine.IO.JsonLines.FilterRowIndexer(
+                filterSpecs => new Refedle.Engine.IO.JsonLines.FilterRowIndexer(
                     indexer,
                     indexer.FilePath,
                     [.. schema.Columns.Select(c => Encoding.UTF8.GetBytes(c.Name))],

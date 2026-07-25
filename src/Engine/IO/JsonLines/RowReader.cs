@@ -1,6 +1,6 @@
 using System.Buffers;
 
-namespace DataMorph.Engine.IO.JsonLines;
+namespace Refedle.Engine.IO.JsonLines;
 
 /// <summary>
 /// Reads JSON line bytes from a file using indexed byte offsets.

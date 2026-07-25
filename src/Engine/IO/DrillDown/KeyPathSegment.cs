@@ -1,4 +1,4 @@
-namespace DataMorph.Engine.IO.DrillDown;
+namespace Refedle.Engine.IO.DrillDown;
 
 /// <summary>
 /// One tagged segment of a DrillDown KeyPath: an object property name or an array-element index.

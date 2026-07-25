@@ -35,7 +35,7 @@ existing data source and the `TableView`.
 **`src/Engine/LazyTransformer.cs`**
 
 ```
-namespace DataMorph.Engine;
+namespace Refedle.Engine;
 
 internal sealed class LazyTransformer : ITableSource
 {
@@ -155,7 +155,7 @@ public IReadOnlyList<MorphAction> ActionStack { get; set; } = [];
 
 ## Testing
 
-New file: `tests/DataMorph.Tests/Engine/LazyTransformerTests.cs`
+New file: `tests/Refedle.Tests/Engine/LazyTransformerTests.cs`
 
 ### Schema transformation
 - Rename: output schema reflects new name; `SourceIndex` of the column is preserved.

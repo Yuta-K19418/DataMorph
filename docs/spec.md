@@ -1,8 +1,8 @@
-# spec.md - DataMorph Project Specification (C#/.NET 10 Edition)
+# spec.md - Refedle Project Specification (C#/.NET 10 Edition)
 
 ## 1. Project Vision
-**"High-Performance Data Morphing for Everyone."**
-DataMorph is a TUI-driven data transformation tool built with .NET 10. It empowers developers to explore, clean, and automate processing for massive **JSON Arrays** and **CSV** files without the steep learning curve of low-level languages, while maintaining native-level performance.
+**"High-Performance Data Transformation for Everyone."**
+Refedle is a TUI-driven data transformation tool built with .NET 10. It empowers developers to explore, clean, and automate processing for massive **JSON Arrays** and **CSV** files without the steep learning curve of low-level languages, while maintaining native-level performance.
 
 ## 2. Core Values
 - **Maintainable Performance**: Leveraging .NET 10 Native AOT for lightning-fast startup and memory efficiency without sacrificing code readability.

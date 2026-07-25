@@ -1,10 +1,10 @@
-using DataMorph.App.Views.Dialogs;
-using DataMorph.Engine.Models.Actions;
-using DataMorph.Engine.Types;
+using Refedle.App.Views.Dialogs;
+using Refedle.Engine.Models.Actions;
+using Refedle.Engine.Types;
 using Terminal.Gui.App;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Handles column morphing actions for a table view.

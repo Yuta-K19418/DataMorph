@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using DataMorph.Engine.Types;
+using Refedle.Engine.Types;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views.Dialogs;
+namespace Refedle.App.Views.Dialogs;
 
 /// <summary>
 /// Modal dialog for casting a column to a different data type.

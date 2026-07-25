@@ -1,9 +1,9 @@
-using DataMorph.App.Views.JsonRangeTreeNodes;
-using DataMorph.App.Views.JsonTreeNodes;
-using DataMorph.Engine.IO;
+using Refedle.App.Views.JsonRangeTreeNodes;
+using Refedle.App.Views.JsonTreeNodes;
+using Refedle.Engine.IO;
 using Terminal.Gui.Views;
 
-namespace DataMorph.App.Views;
+namespace Refedle.App.Views;
 
 /// <summary>
 /// Abstract base for range-based tree views (<see cref="JsonArrayTreeView"/>, <see cref="JsonLinesTreeView"/>).

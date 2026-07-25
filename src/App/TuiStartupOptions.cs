@@ -1,4 +1,4 @@
-namespace DataMorph.App;
+namespace Refedle.App;
 
 /// <summary>
 /// Holds optional startup arguments for TUI mode.

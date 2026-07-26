@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - rid: win-x64
+            runner: windows-latest
+            binary: refedle.exe
+            archive-ext: zip
+          - rid: osx-x64
+            runner: macos-13
+            binary: refedle
+            archive-ext: tar.gz
+          - rid: osx-arm64
+            runner: macos-latest
+            binary: refedle
+            archive-ext: tar.gz
+          - rid: linux-x64
+            runner: ubuntu-latest
+            binary: refedle
+            archive-ext: tar.gz
+          - rid: linux-arm64
+            runner: ubuntu-24.04-arm
+            binary: refedle
+            archive-ext: tar.gz
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish with Native AOT
+        run: dotnet publish src/App/Refedle.App.csproj --configuration Release -r ${{ matrix.rid }}
+
+      - name: Stage release contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          publish_dir="src/App/bin/Release/net10.0/${{ matrix.rid }}/publish"
+          stage_dir="stage/refedle-${{ github.ref_name }}-${{ matrix.rid }}"
+          mkdir -p "$stage_dir"
+          cp "$publish_dir/${{ matrix.binary }}" "$stage_dir/"
+          cp LICENSE "$stage_dir/"
+          cp THIRD-PARTY-NOTICES.txt "$stage_dir/"
+
+      - name: Archive (zip)
+        if: matrix.archive-ext == 'zip'
+        shell: bash
+        run: |
+          cd stage
+          7z a "refedle-${{ github.ref_name }}-${{ matrix.rid }}.zip" "refedle-${{ github.ref_name }}-${{ matrix.rid }}"
+
+      - name: Archive (tar.gz)
+        if: matrix.archive-ext == 'tar.gz'
+        shell: bash
+        run: |
+          cd stage
+          chmod +x "refedle-${{ github.ref_name }}-${{ matrix.rid }}/${{ matrix.binary }}"
+          tar -czf "refedle-${{ github.ref_name }}-${{ matrix.rid }}.tar.gz" "refedle-${{ github.ref_name }}-${{ matrix.rid }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: refedle-${{ matrix.rid }}
+          path: stage/refedle-${{ github.ref_name }}-${{ matrix.rid }}.${{ matrix.archive-ext }}
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true

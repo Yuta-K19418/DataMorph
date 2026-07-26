@@ -6,41 +6,246 @@ Refedle is a TUI-driven data transformation tool for CSV and JSON files, built w
 
 | Format | TUI (Tree) | TUI (Table) | CLI batch (`--cli`) |
 |---|---|---|---|
-| CSV | — | ✅ | ✅ |
+| CSV (`.csv`) | — | ✅ | ✅ |
 | JSON Lines (`.jsonl`) | ✅ | ✅ | ✅ |
-| JSON Array | ✅ | not yet implemented | ❌ |
-| JSON Object | ✅ (top-level only) | — | ❌ |
+| JSON Array (`.json`) | ✅ | via drill-down only | planned |
+| JSON Object (`.json`) | ✅ | via drill-down only | planned |
 
-CLI batch mode currently accepts `.csv` and `.jsonl` only — standard `.json` (array/object) input is explicitly rejected (`NotSupportedException`). CSV ↔ JSON Lines conversion is supported in batch mode.
+Any file extension other than those listed above results in a `NotSupportedException`.
+
+**CSV (`.csv`)** — TUI Table view. No Tree view, since CSV rows have no nested structure to drill into.
+
+**JSON Lines (`.jsonl`)** — TUI Tree and Table view (toggle with `t`), plus full-file aggregation drill-down (see [TUI Usage](#tui-usage)).
+
+**JSON Array (`.json`)** — TUI Tree view, with Table view available only via full-file aggregation drill-down (see [TUI Usage](#tui-usage)). Not yet supported in CLI batch mode.
+
+**JSON Object (`.json`)** — TUI Tree view, with Table view available only via single-node drill-down (see [TUI Usage](#tui-usage)). Not yet supported in CLI batch mode.
 
 ## TUI Usage
 
 ```bash
-dotnet run --project src/App -- --file <path> [--recipe <path.yaml>]
+dotnet run --project src/App -- [--file <path>] [--recipe <path.yaml>]
 ```
 
-Key bindings (`src/App/AppKeyHandler.cs`):
+Key bindings:
 
 | Key | Action |
 |---|---|
 | `o` | Open file |
 | `s` | Save recipe |
 | `t` | Toggle Tree/Table view (JSON Lines only) |
-| `x` | Column/row action menu |
+| `x` | Action menu (Column/Row Actions, Drill-down) |
 | `c` | Clear action stack |
 | `Backspace` | Back from drill-down |
 | `?` | Help |
 | `q` | Quit (confirms if there are unsaved actions) |
 
-Column actions available from the action menu: Rename, Delete, Cast, Filter, Fill, Format Timestamp. Two drill-down modes exist: a single-node drill-down for JSON Object arrays, and a full-file aggregation drill-down for JSON Lines/Array.
+### Column/Row Actions
+
+Available from the action menu (`x`):
+
+| View | Column/Row Actions |
+|---|---|
+| CSV (Table) | ✅ |
+| JSON Lines (Table) | ✅ |
+| Table from drill-down (any format) | planned |
+
+**Rename** — renames a column.
+
+Before:
+
+| nm | age |
+|---|---|
+| Alice | 30 |
+
+After (renamed `nm` to `name`):
+
+| name | age |
+|---|---|
+| Alice | 30 |
+
+**Delete** — removes a column from the dataset.
+
+Before:
+
+| name | age |
+|---|---|
+| Alice | 30 |
+
+After (deleted `age`):
+
+| name |
+|---|
+| Alice |
+
+**Cast** — converts a column's values to a different type (text, whole number, floating point, etc.).
+
+Before:
+
+| age |
+|---|
+| "30" |
+
+After (cast `age` from text to whole number):
+
+| age |
+|---|
+| 30 |
+
+**Filter** — keeps only the rows where a column matches a condition (equals, not-equals, greater/less than, etc.). Multiple filters combine with AND.
+
+Before:
+
+| age |
+|---|
+| 30 |
+| 20 |
+
+After (filtered `age > 25`):
+
+| age |
+|---|
+| 30 |
+
+**Fill** — overwrites every value in a column with a fixed value; useful for anonymization, masking, or bulk initialization.
+
+Before:
+
+| email |
+|---|
+| alice@example.com |
+| bob@example.com |
+| carol@example.com |
+
+After (filled with `"REDACTED"`):
+
+| email |
+|---|
+| REDACTED |
+| REDACTED |
+| REDACTED |
+
+**Format Timestamp** — reformats a Timestamp column's string values into a different date/time format.
+
+Before:
+
+| created_at |
+|---|
+| 2024-01-15T09:30:00Z |
+| 2024-03-02T14:05:00Z |
+| 2024-06-21T08:45:00Z |
+
+After (formatted as `yyyy-MM-dd`):
+
+| created_at |
+|---|
+| 2024-01-15 |
+| 2024-03-02 |
+| 2024-06-21 |
+
+### Drill-down
+
+Also available from the action menu (`x`), when the current view is in Tree mode. Two modes exist:
+
+| View | Drill-down type |
+|---|---|
+| JSON Lines (Tree) | Full-aggregation |
+| JSON Array (Tree) | Full-aggregation |
+| JSON Object (Tree) | Single-node |
+
+**Single-node drill-down** — turns the selected node itself into a table (JSON Object only — there's a single record to explore).
+
+Example — a JSON Object file:
+
+```json
+{
+  "user": "alice",
+  "orders": [
+    { "id": 1, "item": "Book", "price": 12.5 },
+    { "id": 2, "item": "Pen", "price": 1.2 }
+  ]
+}
+```
+
+Path: `orders`
+
+Drilling down produces:
+
+| id | item | price |
+|---|---|---|
+| 1 | Book | 12.5 |
+| 2 | Pen | 1.2 |
+
+**Full-file aggregation drill-down** — scans the entire file and aggregates the selected path across every record into a table (JSON Lines/Array).
+
+Example — a JSON Lines file (one record per line):
+
+```json
+{"user": "alice", "cart": {"orders": [{"id": 1, "item": "Book"}]}}
+{"user": "bob", "cart": {"orders": [{"id": 2, "item": "Pen"}, {"id": 3, "item": "Mug"}]}}
+```
+
+Path: `cart > orders`
+
+Drilling down scans every line and aggregates all matching arrays into one table:
+
+| id | item |
+|---|---|
+| 1 | Book |
+| 2 | Pen |
+| 3 | Mug |
+
+### Recipes
+
+Pressing `s` saves the current action stack as a `.yaml` recipe, named after the source file.
+
+Example — `people.csv`:
+
+| nm | age | email |
+|---|---|---|
+| Alice | 30 | alice@example.com |
+| Bob | 20 | bob@example.com |
+
+After renaming `nm` → `name`, filling `email` with `"REDACTED"`, and filtering `age > 25`:
+
+| name | age | email |
+|---|---|---|
+| Alice | 30 | REDACTED |
+
+Pressing `s` at this point produces `people.yaml`:
+
+```yaml
+name: "people"
+lastModified: "2026-07-26T12:34:56.0000000+00:00"
+actions:
+  - type: rename
+    oldName: "nm"
+    newName: "name"
+  - type: fill
+    columnName: "email"
+    value: "REDACTED"
+  - type: filter
+    columnName: "age"
+    operator: GreaterThan
+    value: "25"
+```
+
+Recipes can then be replayed against other files via [CLI Batch Usage](#cli-batch-usage), without opening the UI.
 
 ## CLI Batch Usage
 
+| Input \ Output | CSV | JSON Lines | JSON Array | JSON Object |
+|---|---|---|---|---|
+| CSV | ✅ | ✅ | planned | planned |
+| JSON Lines | in development | in development | planned | planned |
+| JSON Array | planned | planned | planned | planned |
+| JSON Object | planned | planned | planned | planned |
+
 ```bash
-dotnet run --project src/App -- --cli --input <in.csv|in.jsonl> --recipe <recipe.yaml> --output <out.csv|out.jsonl>
+dotnet run --project src/App -- --cli --input <input> --recipe <recipe.yaml> --output <output>
 ```
 
-Recipes are saved from the TUI as `.yaml` and applied here without opening the UI. Format dispatch (reader → transform → writer) is resolved at compile time via a source generator (`src/Generators/FormatDispatcherGenerator.cs`), not reflection.
+Format dispatch (reader → transform → writer) is resolved at compile time via a source generator (`src/Generators/FormatDispatcherGenerator.cs`), not reflection.
 
 ## Project Structure
 

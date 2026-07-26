@@ -2,6 +2,33 @@
 
 Refedle is a TUI-driven data transformation tool for CSV and JSON files, built with .NET 10 and Terminal.Gui v2. It lets you explore a file interactively, apply column-level transformations, and replay them as a recipe against large files from the command line.
 
+## Download
+
+Prebuilt binaries (no .NET SDK required) are published on the [Releases page](https://github.com/Yuta-K19418/DataMorph/releases) for:
+
+| OS | Architecture |
+|---|---|
+| Windows | x64 |
+| macOS | Apple Silicon (arm64) |
+| macOS | Intel (x64) |
+| Linux | x64 |
+| Linux | arm64 |
+
+Download the archive matching your platform, extract it, and run the `refedle` (or `refedle.exe` on Windows) binary directly:
+
+```bash
+./refedle [--file <path>] [--recipe <path.yaml>]
+```
+
+The binaries are unsigned, so the OS may block them on first launch:
+
+- **macOS**: Gatekeeper quarantines downloaded files. Run `xattr -d com.apple.quarantine refedle` before launching, or allow it via System Settings → Privacy & Security.
+- **Windows**: SmartScreen may warn about an unrecognized app. Click "More info" → "Run anyway".
+
+In the examples below, `dotnet run --project src/App --` can be replaced with `./refedle` (or `refedle.exe` on Windows) when using a downloaded binary instead of building from source.
+
+To build and run from source instead, see [TUI Usage](#tui-usage) below.
+
 ## Supported Formats
 
 | Format | TUI (Tree) | TUI (Table) | CLI batch (`--cli`) |

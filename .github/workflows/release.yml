@@ -18,10 +18,6 @@ jobs:
             runner: windows-latest
             binary: refedle.exe
             archive-ext: zip
-          - rid: osx-x64
-            runner: macos-13
-            binary: refedle
-            archive-ext: tar.gz
           - rid: osx-arm64
             runner: macos-latest
             binary: refedle

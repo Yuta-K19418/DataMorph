@@ -10,9 +10,10 @@ Prebuilt binaries (no .NET SDK required) are published on the [Releases page](ht
 |---|---|
 | Windows | x64 |
 | macOS | Apple Silicon (arm64) |
-| macOS | Intel (x64) |
 | Linux | x64 |
 | Linux | arm64 |
+
+Intel Macs are not covered by a prebuilt binary (Apple discontinued Intel support as of macOS 26 Tahoe, and GitHub Actions retired its `osx-x64` runner). Build from source instead with `dotnet publish src/App/Refedle.App.csproj -r osx-x64 -c Release`.
 
 Download the archive matching your platform, extract it, and run the `refedle` (or `refedle.exe` on Windows) binary directly:
 

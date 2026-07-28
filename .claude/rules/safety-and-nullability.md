@@ -10,6 +10,12 @@ paths:
 - Do NOT use the `unsafe` keyword
 - Use safe low-level alternatives like `Span<T>`, `ReadOnlySpan<T>`, and `ref struct`
 
+## Recursion
+- Prefer iteration over recursion by default
+- Recursion is allowed only when the recursion depth is provably bounded and shallow (e.g., a fixed, small number of levels known at compile time) — not when depth depends on external input
+- ❌ Do NOT use recursion to traverse structures whose depth is determined by untrusted or unbounded input — a `StackOverflowException` cannot be caught and crashes the process
+- When traversal depth is unbounded, convert it to an iterative equivalent (e.g., a loop for linear cases, or an explicit stack for tree/graph-like traversals) instead
+
 ## Null-Forgiving Operator (`!`) in Production Code
 - **STRICTLY FORBIDDEN**
 - Never use `!` to silence nullable warnings

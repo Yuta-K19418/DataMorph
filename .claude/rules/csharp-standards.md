@@ -50,6 +50,10 @@ paths:
 - Use `ref` **only** as a performance optimization: when a large value-type (`struct`) would otherwise be copied repeatedly on every call, passing it by `ref` avoids that overhead
 - Do NOT use `ref` to return computed values or to simulate multiple return values — use tuples or result types instead
 
+### Collection Output Parameters
+- Do NOT create a collection (`List<T>`, `Dictionary<TKey, TValue>`, etc.) in the caller and pass it into a method solely to have that method populate it as a side effect, when the method could just create and return the collection itself
+- Exception: when a method is called repeatedly and its role is to accumulate into one shared collection across those calls (e.g., appending rows for every line scanned in a file), passing the shared collection as a parameter is allowed — recreating and merging a new collection on every call would add unnecessary allocations
+
 ## Structure & Complexity (STRICT)
 
 ### Class Size

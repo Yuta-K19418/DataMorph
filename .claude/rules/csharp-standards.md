@@ -50,6 +50,10 @@ paths:
 - Use `ref` **only** as a performance optimization: when a large value-type (`struct`) would otherwise be copied repeatedly on every call, passing it by `ref` avoids that overhead
 - Do NOT use `ref` to return computed values or to simulate multiple return values — use tuples or result types instead
 
+### Collection Output Parameters
+- Do NOT create a collection (`List<T>`, `Dictionary<TKey, TValue>`, etc.) in the caller and pass it into a method solely to have that method populate it as a side effect, when the method could just create and return the collection itself
+- Exception: when a method is called repeatedly and its role is to accumulate into one shared collection across those calls (e.g., appending rows for every line scanned in a file), passing the shared collection as a parameter is allowed — recreating and merging a new collection on every call would add unnecessary allocations
+
 ## Structure & Complexity (STRICT)
 
 ### Class Size
@@ -61,9 +65,17 @@ paths:
 - Do NOT use `else` clauses
 - Use **Guard Clauses** (early return) or `continue` to keep the logic flat
 
+### Loop Termination
+- If a `while` loop's termination condition can be expressed in the loop's own condition clause, do so — do NOT write it as an `if (condition) { break; }` in the body instead
+- If it cannot be cleanly expressed there (e.g., the condition depends on work that must happen inside the body first), an `if (condition) { break; }` is acceptable
+
 ### Max Nesting
 - Limit indentation to a maximum of **2 levels**
 - If logic requires deeper nesting, refactor by extracting methods
+
+### Variable Declaration
+- Do NOT declare a variable without an initializer (e.g., `int count;`)
+- Always assign a value at the point of declaration, even if the real value is computed later (e.g., inside a `try` block) — keeping declaration and meaning together avoids forcing the reader to scan forward to find the first assignment
 
 ## Zero Warnings Policy
 - The project must compile with **zero warnings**
@@ -84,6 +96,12 @@ paths:
 - Follow standard .NET Naming Guidelines
 - **Consistency with existing code**: if existing types follow a naming convention (e.g., a specific suffix or prefix), new types must follow the same pattern — flag any new class, interface, or member whose name breaks the established convention in its namespace or layer
 - **ValueTuple element names**: use **camelCase** (e.g., `(string key, string value)`, `(int count, bool found)`). Tuple elements are destructured into local variables, so camelCase aligns with the local variable naming convention
+
+## ValueTuple
+- `ValueTuple` (`(...)`) is for returning multiple values from a method, or as a local variable for intermediate processing within a method
+- Do NOT define `ValueTuple` as a class/struct **field or property type**, including inside collections (e.g., `IReadOnlyList<(int Id, string Name)>`, `Dictionary<string, (bool, int)>`) — an unnamed tuple shape is not self-documenting once it becomes state that other members or callers rely on
+- When a tuple-shaped value needs to be held as a field or property, define a `record`, `record struct`, `class`, or `struct` instead
+  - Example: instead of `(int Min, int Max) Range => (...)`, define `public readonly record struct Range(int Min, int Max);` and expose `public Range Range { get; }`
 
 ## Project and Directory Placement
 - Every class must reside in the project that matches its abstraction layer (`Engine` for core logic, `App` for TUI/presentation, `Tests` for test code)

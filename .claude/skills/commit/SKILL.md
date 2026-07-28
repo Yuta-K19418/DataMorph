@@ -60,5 +60,5 @@ Run:
 `git commit -m "<generated_message>"`
 
 ## Reference
--   [.claude/rules/language-and-git.md](../../rules/language-and-git.md)
+-   [.claude/rules/documentation-style-and-git.md](../../rules/documentation-style-and-git.md)
 -   [.claude/rules/commands.md](../../rules/commands.md)

@@ -65,6 +65,10 @@ paths:
 - Do NOT use `else` clauses
 - Use **Guard Clauses** (early return) or `continue` to keep the logic flat
 
+### Loop Termination
+- If a `while` loop's termination condition can be expressed in the loop's own condition clause, do so — do NOT write it as an `if (condition) { break; }` in the body instead
+- If it cannot be cleanly expressed there (e.g., the condition depends on work that must happen inside the body first), an `if (condition) { break; }` is acceptable
+
 ### Max Nesting
 - Limit indentation to a maximum of **2 levels**
 - If logic requires deeper nesting, refactor by extracting methods

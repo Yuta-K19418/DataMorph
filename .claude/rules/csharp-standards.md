@@ -65,6 +65,10 @@ paths:
 - Limit indentation to a maximum of **2 levels**
 - If logic requires deeper nesting, refactor by extracting methods
 
+### Variable Declaration
+- Do NOT declare a variable without an initializer (e.g., `int count;`)
+- Always assign a value at the point of declaration, even if the real value is computed later (e.g., inside a `try` block) — keeping declaration and meaning together avoids forcing the reader to scan forward to find the first assignment
+
 ## Zero Warnings Policy
 - The project must compile with **zero warnings**
 - `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` and `<AnalysisLevel>latest-all</AnalysisLevel>` must be enabled in `.csproj`

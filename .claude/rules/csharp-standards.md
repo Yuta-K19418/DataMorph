@@ -85,6 +85,12 @@ paths:
 - **Consistency with existing code**: if existing types follow a naming convention (e.g., a specific suffix or prefix), new types must follow the same pattern — flag any new class, interface, or member whose name breaks the established convention in its namespace or layer
 - **ValueTuple element names**: use **camelCase** (e.g., `(string key, string value)`, `(int count, bool found)`). Tuple elements are destructured into local variables, so camelCase aligns with the local variable naming convention
 
+## ValueTuple
+- `ValueTuple` (`(...)`) is for returning multiple values from a method, or as a local variable for intermediate processing within a method
+- Do NOT define `ValueTuple` as a class/struct **field or property type**, including inside collections (e.g., `IReadOnlyList<(int Id, string Name)>`, `Dictionary<string, (bool, int)>`) — an unnamed tuple shape is not self-documenting once it becomes state that other members or callers rely on
+- When a tuple-shaped value needs to be held as a field or property, define a `record`, `record struct`, `class`, or `struct` instead
+  - Example: instead of `(int Min, int Max) Range => (...)`, define `public readonly record struct Range(int Min, int Max);` and expose `public Range Range { get; }`
+
 ## Project and Directory Placement
 - Every class must reside in the project that matches its abstraction layer (`Engine` for core logic, `App` for TUI/presentation, `Tests` for test code)
 - Even within the correct project, verify the directory is appropriate for the abstraction or domain the class belongs to — a misplaced file is a discoverability and maintainability problem

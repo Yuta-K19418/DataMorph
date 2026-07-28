@@ -43,7 +43,7 @@ Read all of these files before reviewing:
 - `.claude/rules/safety-and-nullability.md`
 - `.claude/rules/testing.md`
 - `.claude/rules/performance-and-aot.md`
-- `.claude/rules/language-and-git.md`
+- `.claude/rules/documentation-style-and-git.md`
 
 These are the source of truth. Apply them as written.
 

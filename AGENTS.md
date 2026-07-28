@@ -13,7 +13,7 @@ Always consult the following files before generating code or providing reviews. 
 
 ### Process & Guidelines
 - [[.claude/rules/testing.md]] - Testing strategies and requirements.
-- [[.claude/rules/language-and-git.md]] - Language usage and Git commit conventions.
+- [[.claude/rules/documentation-style-and-git.md]] - Documentation/comment style, language usage, and Git commit conventions.
 - [[docs/development_guidelines.md]] - General development workflow, architectural overview, and Git commit message conventions.
 
 ### Tooling

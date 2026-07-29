@@ -339,3 +339,85 @@ dotnet_diagnostic.CA1849.severity = none
 # Test code runs on the test context and doesn't need ConfigureAwait.
 # xUnit tests should not use ConfigureAwait(false) (xUnit1030).
 dotnet_diagnostic.CA2007.severity = none
+
+# SonarAnalyzer.CSharp: S3776/S1541 (Cognitive/Cyclomatic Complexity) pre-existing violations,
+# grandfathered per-file pending a follow-up refactor task.
+[src/Engine/Filtering/FilterEvaluator.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/ColumnTypeResolver.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/ActionApplier.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/Csv/DataRowReader.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/Recipes/RecipeYamlParser.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/JsonObject/TopLevelScanner.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/DrillDown/KeyPathTraverser.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/JsonArray/RowIndexer.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/JsonArray/ElementReader.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/JsonLines/TypeInferrer.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/JsonLines/SchemaScanner.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/Engine/IO/JsonLines/RowReader.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/Cli/ArgumentParser.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/AppKeyHandler.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/Views/VimKeyTranslator.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/FileDialogHandler.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/ViewManager.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/Views/MorphTableView.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/Views/MorphTreeView.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none
+
+[src/App/Views/LazyTransformer.cs]
+dotnet_diagnostic.S3776.severity = none
+dotnet_diagnostic.S1541.severity = none

@@ -120,50 +120,11 @@ public sealed class RowIndexer : RowIndexerBase
                     state
                 );
 
-                var rootArrayComplete = false;
+                var scanResult = ScanBufferForElements(ref reader, bufferOriginFileOffset, currentElementStart, elementCount);
+                currentElementStart = scanResult.currentElementStart;
+                elementCount = scanResult.elementCount;
 
-                while (reader.Read())
-                {
-                    if (reader.CurrentDepth == 0 && reader.TokenType == JsonTokenType.EndArray)
-                    {
-                        rootArrayComplete = true;
-                        break;
-                    }
-
-                    if (reader.CurrentDepth != 1)
-                    {
-                        continue;
-                    }
-
-                    // Depth-1 tokens — element boundary detection
-                    if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
-                    {
-                        // Guard against overwriting an already-set start position.
-                        // In valid JSON this condition is always true, but the check
-                        // prevents silent data corruption if this invariant is ever violated.
-                        if (currentElementStart < 0)
-                        {
-                            currentElementStart =
-                                bufferOriginFileOffset + reader.TokenStartIndex;
-                        }
-
-                        continue;
-                    }
-
-                    if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
-                    {
-                        RecordElement(currentElementStart, elementCount);
-                        elementCount++;
-                        currentElementStart = -1L;
-                        continue;
-                    }
-
-                    // Primitive token at depth 1 — self-contained element
-                    RecordElement(bufferOriginFileOffset + reader.TokenStartIndex, elementCount);
-                    elementCount++;
-                }
-
-                if (rootArrayComplete)
+                if (scanResult.rootArrayComplete)
                 {
                     break;
                 }
@@ -186,6 +147,57 @@ public sealed class RowIndexer : RowIndexerBase
             ArrayPool<byte>.Shared.Return(buffer);
             OnBuildIndexCompleted();
         }
+    }
+
+    // Scans depth-1 tokens in the current buffer for element boundaries, recording each
+    // completed element. currentElementStart/elementCount are threaded through by value since
+    // an element may span a buffer boundary (state carries over to the next buffer's scan).
+    private (bool rootArrayComplete, long currentElementStart, long elementCount) ScanBufferForElements(
+        ref Utf8JsonReader reader,
+        long bufferOriginFileOffset,
+        long currentElementStart,
+        long elementCount)
+    {
+        while (reader.Read())
+        {
+            if (reader.CurrentDepth == 0 && reader.TokenType == JsonTokenType.EndArray)
+            {
+                return (true, currentElementStart, elementCount);
+            }
+
+            if (reader.CurrentDepth != 1)
+            {
+                continue;
+            }
+
+            // Depth-1 tokens — element boundary detection
+            if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+            {
+                // Guard against overwriting an already-set start position.
+                // In valid JSON this condition is always true, but the check
+                // prevents silent data corruption if this invariant is ever violated.
+                if (currentElementStart < 0)
+                {
+                    currentElementStart = bufferOriginFileOffset + reader.TokenStartIndex;
+                }
+
+                continue;
+            }
+
+            if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+            {
+                RecordElement(currentElementStart, elementCount);
+                elementCount++;
+                currentElementStart = -1L;
+                continue;
+            }
+
+            // Primitive token at depth 1 — self-contained element
+            RecordElement(bufferOriginFileOffset + reader.TokenStartIndex, elementCount);
+            elementCount++;
+        }
+
+        return (false, currentElementStart, elementCount);
     }
 
     private void RecordElement(long elementStart, long elementCount)

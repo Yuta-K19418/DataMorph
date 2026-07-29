@@ -164,62 +164,72 @@ internal sealed class AppKeyHandler : IDisposable
         return false;
     }
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     internal bool HandleActionMenu()
     {
         var currentView = _viewManager.GetCurrentView();
 
         if (currentView is MorphTableView mt)
         {
-            if (mt.Table is null || mt.GetRawColumnName is null
-                || mt.OnMorphAction is null || mt.Value is null)
-            {
-                return false;
-            }
-
-            var format = FormatDetector.Detect(_state.CurrentFilePath);
-            if (format.IsFailure)
-            {
-                _app.Invoke(() => _viewManager.ShowError(format.Error));
-                return false;
-            }
-
-            var handler = new ColumnActionHandler(
-                _app, mt.Table, mt.Value.SelectedCell.X,
-                mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
-
-            var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
-            _app.Run(dialog);
-            return true;
+            return HandleActionMenuForTable(mt);
         }
 
         if (currentView is MorphTreeView tv)
         {
-            if (tv.SelectedObject is not ITreeNode selectedNode)
-            {
-                return false;
-            }
-
-            var treeFormat = FormatDetector.Detect(_state.CurrentFilePath);
-            if (treeFormat.IsFailure)
-            {
-                _app.Invoke(() => _viewManager.ShowError(treeFormat.Error));
-                return false;
-            }
-
-            if (treeFormat.Value == DataFormat.JsonObject)
-            {
-                return HandleSingleDrillDown(selectedNode, treeFormat.Value);
-            }
-
-            return HandleFullAggregationDrillDown(selectedNode, treeFormat.Value);
+            return HandleActionMenuForTree(tv);
         }
 
         return false;
+    }
+
+    [SuppressMessage(
+        "Reliability",
+        "CA2000:Dispose objects before losing scope",
+        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
+    )]
+    private bool HandleActionMenuForTable(MorphTableView mt)
+    {
+        if (mt.Table is null || mt.GetRawColumnName is null
+            || mt.OnMorphAction is null || mt.Value is null)
+        {
+            return false;
+        }
+
+        var format = FormatDetector.Detect(_state.CurrentFilePath);
+        if (format.IsFailure)
+        {
+            _app.Invoke(() => _viewManager.ShowError(format.Error));
+            return false;
+        }
+
+        var handler = new ColumnActionHandler(
+            _app, mt.Table, mt.Value.SelectedCell.X,
+            mt.GetRawColumnName, mt.OnMorphAction, format.Value, mt.IsRowIndexComplete);
+
+        var dialog = new ActionMenuDialog(ColumnActionHandler.GetAvailableActions(), handler.ExecuteAction);
+        _app.Run(dialog);
+        return true;
+    }
+
+    private bool HandleActionMenuForTree(MorphTreeView tv)
+    {
+        if (tv.SelectedObject is not ITreeNode selectedNode)
+        {
+            return false;
+        }
+
+        var treeFormat = FormatDetector.Detect(_state.CurrentFilePath);
+        if (treeFormat.IsFailure)
+        {
+            _app.Invoke(() => _viewManager.ShowError(treeFormat.Error));
+            return false;
+        }
+
+        if (treeFormat.Value == DataFormat.JsonObject)
+        {
+            return HandleSingleDrillDown(selectedNode, treeFormat.Value);
+        }
+
+        return HandleFullAggregationDrillDown(selectedNode, treeFormat.Value);
     }
 
     /// <summary>
@@ -348,18 +358,9 @@ internal sealed class AppKeyHandler : IDisposable
             return;
         }
 
-        // Skip global key handling when a text input view is focused
-        var focused = _app.Navigation?.GetFocused() ?? _app.TopRunnableView?.MostFocused;
-        var current = focused;
-        while (current is not null)
+        if (IsTextFieldFocused())
         {
-            var type = current.GetType();
-            if (current is TextField || type.Name == "TextField" || type.FullName == "Terminal.Gui.Views.TextField")
-            {
-                return;
-            }
-
-            current = current.SuperView;
+            return;
         }
 
         // Shortcuts like o, s, q, t, x, Backspace should not have Ctrl or Alt modifiers.
@@ -368,19 +369,40 @@ internal sealed class AppKeyHandler : IDisposable
             return;
         }
 
-        var baseKey = key.KeyCode & ~KeyCode.ShiftMask;
-        key.Handled = baseKey switch
+        key.Handled = DispatchShortcut(key.KeyCode & ~KeyCode.ShiftMask);
+    }
+
+    private bool DispatchShortcut(KeyCode baseKey) => baseKey switch
+    {
+        KeyCode.O => HandleOpen(),
+        KeyCode.S => HandleSave(),
+        KeyCode.Q => HandleQuit(),
+        KeyCode.T => HandleViewToggle(),
+        KeyCode.X => HandleActionMenu(),
+        KeyCode.C => HandleClearActions(),
+        KeyCode.Backspace => HandleDrillDownBack(),
+        (KeyCode)'?' => HandleHelp(),
+        _ => false,
+    };
+
+    // Walks up the SuperView chain since focus may be on a child of the TextField
+    // (e.g. its internal cursor/selection handling), not the TextField itself.
+    private bool IsTextFieldFocused()
+    {
+        var focused = _app.Navigation?.GetFocused() ?? _app.TopRunnableView?.MostFocused;
+        var current = focused;
+        while (current is not null)
         {
-            KeyCode.O => HandleOpen(),
-            KeyCode.S => HandleSave(),
-            KeyCode.Q => HandleQuit(),
-            KeyCode.T => HandleViewToggle(),
-            KeyCode.X => HandleActionMenu(),
-            KeyCode.C => HandleClearActions(),
-            KeyCode.Backspace => HandleDrillDownBack(),
-            (KeyCode)'?' => HandleHelp(),
-            _ => false,
-        };
+            var type = current.GetType();
+            if (current is TextField || type.Name == "TextField" || type.FullName == "Terminal.Gui.Views.TextField")
+            {
+                return true;
+            }
+
+            current = current.SuperView;
+        }
+
+        return false;
     }
 
     public void Dispose()

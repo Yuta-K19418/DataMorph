@@ -40,12 +40,7 @@ public sealed class DataRowReader : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        if (byteOffset < 0)
-        {
-            return [];
-        }
-
-        if (rowsToRead <= 0)
+        if (byteOffset < 0 || rowsToRead <= 0)
         {
             return [];
         }
@@ -59,54 +54,8 @@ public sealed class DataRowReader : IDisposable
             using var streamReader = new StreamReader(_fileStream, Encoding.UTF8, leaveOpen: true);
             using var reader = Sep.New(',').Reader(o => o with { HasHeader = false }).From(streamReader);
 
-            // Skip rows until the actual start row
-            var skipped = 0;
-            while (skipped < rowsToSkip && reader.MoveNext())
-            {
-                skipped++;
-            }
-
-            // Read the requested number of rows
-            var readCount = 0;
-            while (readCount < rowsToRead && reader.MoveNext())
-            {
-                var record = reader.Current;
-
-                // Calculate total buffer size needed
-                var totalLength = 0;
-                for (var i = 0; i < _columnCount; i++)
-                {
-                    if (i < record.ColCount)
-                    {
-                        totalLength += record[i].Span.Length;
-                    }
-                }
-
-                // Allocate single buffer for all columns
-                var buffer = new char[totalLength];
-                var columns = new ReadOnlyMemory<char>[_columnCount];
-                var bufferPos = 0;
-
-                // Copy column data to buffer and create ReadOnlyMemory slices
-                for (var i = 0; i < _columnCount; i++)
-                {
-                    if (i < record.ColCount)
-                    {
-                        var colSpan = record[i].Span;
-                        colSpan.CopyTo(buffer.AsSpan(bufferPos, colSpan.Length));
-                        columns[i] = new ReadOnlyMemory<char>(buffer, bufferPos, colSpan.Length);
-                        bufferPos += colSpan.Length;
-                    }
-                    else
-                    {
-                        // Empty column
-                        columns[i] = ReadOnlyMemory<char>.Empty;
-                    }
-                }
-
-                rows.Add(columns);
-                readCount++;
-            }
+            SkipRows(reader, rowsToSkip);
+            ReadRowsInto(reader, rowsToRead, rows);
         }
         catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
         {
@@ -115,6 +64,60 @@ public sealed class DataRowReader : IDisposable
         }
 
         return rows;
+    }
+
+    private static void SkipRows(SepReader reader, int rowsToSkip)
+    {
+        var skipped = 0;
+        while (skipped < rowsToSkip && reader.MoveNext())
+        {
+            skipped++;
+        }
+    }
+
+    private void ReadRowsInto(SepReader reader, int rowsToRead, List<CsvDataRow> rows)
+    {
+        var readCount = 0;
+        while (readCount < rowsToRead && reader.MoveNext())
+        {
+            var record = reader.Current;
+            rows.Add(ParseRow(record));
+            readCount++;
+        }
+    }
+
+    // Single-pass total length calculation, then a second pass to copy into one shared buffer -
+    // avoids one allocation per column.
+    private ReadOnlyMemory<char>[] ParseRow(in SepReader.Row record)
+    {
+        var totalLength = 0;
+        for (var i = 0; i < _columnCount; i++)
+        {
+            if (i < record.ColCount)
+            {
+                totalLength += record[i].Span.Length;
+            }
+        }
+
+        var buffer = new char[totalLength];
+        var columns = new ReadOnlyMemory<char>[_columnCount];
+        var bufferPos = 0;
+
+        for (var i = 0; i < _columnCount; i++)
+        {
+            if (i >= record.ColCount)
+            {
+                columns[i] = ReadOnlyMemory<char>.Empty;
+                continue;
+            }
+
+            var colSpan = record[i].Span;
+            colSpan.CopyTo(buffer.AsSpan(bufferPos, colSpan.Length));
+            columns[i] = new ReadOnlyMemory<char>(buffer, bufferPos, colSpan.Length);
+            bufferPos += colSpan.Length;
+        }
+
+        return columns;
     }
 
     /// <inheritdoc/>

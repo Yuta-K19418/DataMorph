@@ -163,79 +163,7 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
 
         foreach (var action in actions)
         {
-            if (action is RenameColumnAction rename)
-            {
-                if (!nameToIndex.TryGetValue(rename.OldName, out var renameIdx))
-                {
-                    continue;
-                }
-
-                working[renameIdx] = working[renameIdx] with { Name = rename.NewName };
-                nameToIndex.Remove(rename.OldName);
-                nameToIndex[rename.NewName] = renameIdx;
-                continue;
-            }
-
-            if (action is DeleteColumnAction delete)
-            {
-                nameToIndex.Remove(delete.ColumnName);
-                continue;
-            }
-
-            if (action is CastColumnAction cast)
-            {
-                if (!nameToIndex.TryGetValue(cast.ColumnName, out var castIdx))
-                {
-                    continue;
-                }
-
-                working[castIdx] = working[castIdx] with { Type = cast.TargetType };
-                continue;
-            }
-
-            if (action is FilterAction filter)
-            {
-                // Row-level filter: does not modify column schema.
-                // Resolve column name to source index and record FilterSpec.
-                if (!nameToIndex.TryGetValue(filter.ColumnName, out var filterIdx))
-                {
-                    continue;
-                }
-
-                var col = working[filterIdx];
-                filterSpecs.Add(
-                    new FilterSpec(
-                        SourceColumnIndex: col.SourceIndex,
-                        ColumnType: col.Type,
-                        Operator: filter.Operator,
-                        Value: filter.Value
-                    )
-                );
-                continue;
-            }
-
-            if (action is FillColumnAction fill)
-            {
-                if (!nameToIndex.TryGetValue(fill.ColumnName, out var fillIdx))
-                {
-                    continue;
-                }
-
-                var inferredType = TypeInferrer.InferType(fill.Value.AsSpan());
-                working[fillIdx] = working[fillIdx] with { FillValue = fill.Value, Type = inferredType };
-                continue;
-            }
-
-            if (action is FormatTimestampAction formatTs)
-            {
-                if (!nameToIndex.TryGetValue(formatTs.ColumnName, out var fmtIdx))
-                {
-                    continue;
-                }
-
-                working[fmtIdx] = working[fmtIdx] with { FormatString = formatTs.TargetFormat };
-                continue;
-            }
+            ApplyAction(action, working, nameToIndex, filterSpecs);
         }
 
         // Pre-size to avoid reallocation; collection expressions do not support capacity hints.
@@ -258,58 +186,141 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
         );
     }
 
+    private static void ApplyAction(
+        MorphAction action,
+        List<WorkingColumn> working,
+        Dictionary<string, int> nameToIndex,
+        List<FilterSpec> filterSpecs)
+    {
+        switch (action)
+        {
+            case RenameColumnAction rename:
+                ApplyRename(rename, working, nameToIndex);
+                break;
+            case DeleteColumnAction delete:
+                nameToIndex.Remove(delete.ColumnName);
+                break;
+            case CastColumnAction cast:
+                ApplyCast(cast, working, nameToIndex);
+                break;
+            case FilterAction filter:
+                ApplyFilter(filter, working, nameToIndex, filterSpecs);
+                break;
+            case FillColumnAction fill:
+                ApplyFill(fill, working, nameToIndex);
+                break;
+            case FormatTimestampAction formatTs:
+                ApplyFormatTimestamp(formatTs, working, nameToIndex);
+                break;
+        }
+    }
+
+    private static void ApplyRename(RenameColumnAction rename, List<WorkingColumn> working, Dictionary<string, int> nameToIndex)
+    {
+        if (!nameToIndex.TryGetValue(rename.OldName, out var renameIdx))
+        {
+            return;
+        }
+
+        working[renameIdx] = working[renameIdx] with { Name = rename.NewName };
+        nameToIndex.Remove(rename.OldName);
+        nameToIndex[rename.NewName] = renameIdx;
+    }
+
+    private static void ApplyCast(CastColumnAction cast, List<WorkingColumn> working, Dictionary<string, int> nameToIndex)
+    {
+        if (!nameToIndex.TryGetValue(cast.ColumnName, out var castIdx))
+        {
+            return;
+        }
+
+        working[castIdx] = working[castIdx] with { Type = cast.TargetType };
+    }
+
+    private static void ApplyFilter(
+        FilterAction filter,
+        List<WorkingColumn> working,
+        Dictionary<string, int> nameToIndex,
+        List<FilterSpec> filterSpecs)
+    {
+        // Row-level filter: does not modify column schema.
+        // Resolve column name to source index and record FilterSpec.
+        if (!nameToIndex.TryGetValue(filter.ColumnName, out var filterIdx))
+        {
+            return;
+        }
+
+        var col = working[filterIdx];
+        filterSpecs.Add(
+            new FilterSpec(
+                SourceColumnIndex: col.SourceIndex,
+                ColumnType: col.Type,
+                Operator: filter.Operator,
+                Value: filter.Value
+            )
+        );
+    }
+
+    private static void ApplyFill(FillColumnAction fill, List<WorkingColumn> working, Dictionary<string, int> nameToIndex)
+    {
+        if (!nameToIndex.TryGetValue(fill.ColumnName, out var fillIdx))
+        {
+            return;
+        }
+
+        var inferredType = TypeInferrer.InferType(fill.Value.AsSpan());
+        working[fillIdx] = working[fillIdx] with { FillValue = fill.Value, Type = inferredType };
+    }
+
+    private static void ApplyFormatTimestamp(
+        FormatTimestampAction formatTs,
+        List<WorkingColumn> working,
+        Dictionary<string, int> nameToIndex)
+    {
+        if (!nameToIndex.TryGetValue(formatTs.ColumnName, out var fmtIdx))
+        {
+            return;
+        }
+
+        working[fmtIdx] = working[fmtIdx] with { FormatString = formatTs.TargetFormat };
+    }
+
+    private const string ParseFailureLabel = "<invalid>";
+
     /// <summary>
     /// Formats a raw cell string value according to the target column type.
     /// Returns the raw value for <see cref="ColumnType.Text"/>, <see cref="ColumnType.JsonObject"/>,
     /// and <see cref="ColumnType.JsonArray"/>. Returns <c>"&lt;invalid&gt;"</c> if parsing fails.
     /// </summary>
-    private static string FormatCellValue(string rawValue, ColumnType targetType, string? formatString)
+    private static string FormatCellValue(string rawValue, ColumnType targetType, string? formatString) => targetType switch
     {
-        const string parseFailureLabel = "<invalid>";
-        switch (targetType)
+        ColumnType.WholeNumber => FormatWholeNumber(rawValue),
+        ColumnType.FloatingPoint => FormatFloatingPoint(rawValue),
+        ColumnType.Boolean => FormatBoolean(rawValue),
+        ColumnType.Timestamp => FormatTimestamp(rawValue, formatString),
+        _ => rawValue,
+    };
+
+    private static string FormatWholeNumber(string rawValue) =>
+        long.TryParse(rawValue, out var l) ? l.ToString(CultureInfo.InvariantCulture) : ParseFailureLabel;
+
+    private static string FormatFloatingPoint(string rawValue) =>
+        double.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var d)
+            ? d.ToString(CultureInfo.InvariantCulture)
+            : ParseFailureLabel;
+
+    private static string FormatBoolean(string rawValue) =>
+        bool.TryParse(rawValue, out var b) ? (b ? "true" : "false") : ParseFailureLabel;
+
+    private static string FormatTimestamp(string rawValue, string? formatString)
+    {
+        if (!DateTime.TryParse(rawValue, out var dt))
         {
-            case ColumnType.WholeNumber:
-            {
-                if (!long.TryParse(rawValue, out var l))
-                {
-                    return parseFailureLabel;
-                }
-
-                return l.ToString(CultureInfo.InvariantCulture);
-            }
-            case ColumnType.FloatingPoint:
-            {
-                if (!double.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var d))
-                {
-                    return parseFailureLabel;
-                }
-
-                return d.ToString(CultureInfo.InvariantCulture);
-            }
-            case ColumnType.Boolean:
-            {
-                if (!bool.TryParse(rawValue, out var b))
-                {
-                    return parseFailureLabel;
-                }
-
-                return b ? "true" : "false";
-            }
-            case ColumnType.Timestamp:
-            {
-                if (!DateTime.TryParse(rawValue, out var dt))
-                {
-                    return parseFailureLabel;
-                }
-
-                var format = string.IsNullOrEmpty(formatString) ? "yyyy-MM-dd HH:mm:ss" : formatString;
-                return dt.ToString(format, CultureInfo.InvariantCulture);
-            }
-            default:
-            {
-                return rawValue;
-            }
+            return ParseFailureLabel;
         }
+
+        var format = string.IsNullOrEmpty(formatString) ? "yyyy-MM-dd HH:mm:ss" : formatString;
+        return dt.ToString(format, CultureInfo.InvariantCulture);
     }
 
     /// <summary>

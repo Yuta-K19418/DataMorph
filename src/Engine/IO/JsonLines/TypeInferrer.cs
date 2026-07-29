@@ -29,62 +29,46 @@ public static class TypeInferrer
     /// Used when <paramref name="tokenType"/> is <see cref="JsonTokenType.Number"/> or
     /// <see cref="JsonTokenType.String"/>.
     /// </param>
-    public static ColumnType InferType(JsonTokenType tokenType, ReadOnlySpan<byte> valueSpan)
+    public static ColumnType InferType(JsonTokenType tokenType, ReadOnlySpan<byte> valueSpan) =>
+        tokenType switch
+        {
+            JsonTokenType.Number => InferNumberType(valueSpan),
+            JsonTokenType.String => InferStringType(valueSpan),
+            JsonTokenType.True or JsonTokenType.False => ColumnType.Boolean,
+            JsonTokenType.StartObject => ColumnType.JsonObject,
+            JsonTokenType.StartArray => ColumnType.JsonArray,
+            _ => ColumnType.Text,
+        };
+
+    private static ColumnType InferNumberType(ReadOnlySpan<byte> valueSpan)
     {
-        if (tokenType == JsonTokenType.Number)
+        // Utf8Parser.TryParse operates directly on the UTF-8 byte span,
+        // avoiding string allocation. It is equivalent to what
+        // Utf8JsonReader.TryGetInt64 does internally, but does not require
+        // passing ref Utf8JsonReader and makes the absence of side effects explicit.
+        // bytesConsumed == valueSpan.Length guards against partial matches
+        // (e.g. "123abc"), which cannot occur for valid JSON tokens but is
+        // included for correctness.
+        if (
+            Utf8Parser.TryParse(valueSpan, out long _, out var bytesConsumed)
+            && bytesConsumed == valueSpan.Length
+        )
         {
-            // Utf8Parser.TryParse operates directly on the UTF-8 byte span,
-            // avoiding string allocation. It is equivalent to what
-            // Utf8JsonReader.TryGetInt64 does internally, but does not require
-            // passing ref Utf8JsonReader and makes the absence of side effects explicit.
-            // bytesConsumed == valueSpan.Length guards against partial matches
-            // (e.g. "123abc"), which cannot occur for valid JSON tokens but is
-            // included for correctness.
-            if (
-                Utf8Parser.TryParse(valueSpan, out long _, out var bytesConsumed)
-                && bytesConsumed == valueSpan.Length
-            )
-            {
-                return ColumnType.WholeNumber;
-            }
-
-            // Decimal point present (invariant: '.' only) → FloatingPoint.
-            // Numbers without '.' that overflow int64 (e.g. big integers) → Text.
-            if (valueSpan.Contains((byte)'.'))
-            {
-                return ColumnType.FloatingPoint;
-            }
-
-            return ColumnType.Text;
+            return ColumnType.WholeNumber;
         }
 
-        if (tokenType == JsonTokenType.String)
+        // Decimal point present (invariant: '.' only) → FloatingPoint.
+        // Numbers without '.' that overflow int64 (e.g. big integers) → Text.
+        if (valueSpan.Contains((byte)'.'))
         {
-            if (TryParseTimestamp(valueSpan, out _))
-            {
-                return ColumnType.Timestamp;
-            }
-
-            return ColumnType.Text;
-        }
-
-        if (tokenType == JsonTokenType.True || tokenType == JsonTokenType.False)
-        {
-            return ColumnType.Boolean;
-        }
-
-        if (tokenType == JsonTokenType.StartObject)
-        {
-            return ColumnType.JsonObject;
-        }
-
-        if (tokenType == JsonTokenType.StartArray)
-        {
-            return ColumnType.JsonArray;
+            return ColumnType.FloatingPoint;
         }
 
         return ColumnType.Text;
     }
+
+    private static ColumnType InferStringType(ReadOnlySpan<byte> valueSpan) =>
+        TryParseTimestamp(valueSpan, out _) ? ColumnType.Timestamp : ColumnType.Text;
 
     /// <summary>
     /// Returns true if the token type is <see cref="JsonTokenType.Null"/>.

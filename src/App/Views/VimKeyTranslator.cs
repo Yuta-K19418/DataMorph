@@ -87,7 +87,11 @@ internal sealed class VimKeyTranslator
             return VimAction.None;
         }
 
-        return keyCode switch
+        return TranslateBasicKey(keyCode);
+    }
+
+    private static VimAction TranslateBasicKey(KeyCode keyCode) =>
+        keyCode switch
         {
             KeyCode.H => VimAction.MoveLeft,
             KeyCode.J => VimAction.MoveDown,
@@ -97,5 +101,4 @@ internal sealed class VimKeyTranslator
             KeyCode.U => VimAction.PageUp,
             _ => VimAction.None,
         };
-    }
 }

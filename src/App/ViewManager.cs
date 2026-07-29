@@ -85,54 +85,70 @@ internal sealed class ViewManager : IDisposable
 
         if (!string.IsNullOrWhiteSpace(_state.CurrentFilePath))
         {
-            var format = FormatDetector.Detect(_state.CurrentFilePath);
-            if (format.IsSuccess
-                && format.Value is DataFormat.JsonLines or DataFormat.JsonArray
-                && _state.CurrentMode != ViewMode.FocusedTable)
-            {
-                hints.Add("t:Tree/Table");
-            }
-
-            var currentView = GetCurrentView();
-            if ((currentView is MorphTableView && _state.CurrentMode != ViewMode.FocusedTable)
-                || currentView is MorphTreeView)
-            {
-                hints.Add("x:Menu");
-            }
-
-            if (_state.ActionStack.Count > 0)
-            {
-                hints.Add("c:Clear");
-            }
-
-            if (_state.CurrentMode == ViewMode.FocusedTable)
-            {
-                hints.Add("bs:Back");
-            }
+            AddContextualHints(hints);
         }
 
         hints.Add("?:Help");
 
+        PopulateShortcuts(statusBar, hints);
+        AddItemCountLabel(statusBar);
+    }
+
+    private void AddContextualHints(List<string> hints)
+    {
+        var format = FormatDetector.Detect(_state.CurrentFilePath);
+        if (format.IsSuccess
+            && format.Value is DataFormat.JsonLines or DataFormat.JsonArray
+            && _state.CurrentMode != ViewMode.FocusedTable)
+        {
+            hints.Add("t:Tree/Table");
+        }
+
+        var currentView = GetCurrentView();
+        if ((currentView is MorphTableView && _state.CurrentMode != ViewMode.FocusedTable)
+            || currentView is MorphTreeView)
+        {
+            hints.Add("x:Menu");
+        }
+
+        if (_state.ActionStack.Count > 0)
+        {
+            hints.Add("c:Clear");
+        }
+
+        if (_state.CurrentMode == ViewMode.FocusedTable)
+        {
+            hints.Add("bs:Back");
+        }
+    }
+
+    private static void PopulateShortcuts(StatusBar statusBar, List<string> hints)
+    {
         // Populate shortcuts with Key.Empty to suppress key indicator
         var shortcuts = hints.Select(hint => new Shortcut { Key = Key.Empty, HelpText = hint }).ToList();
         foreach (var shortcut in shortcuts)
         {
             statusBar.Add(shortcut);
         }
+    }
 
-        if (_state.RowIndexer is { IsIndexingCompleted: true })
+    private void AddItemCountLabel(StatusBar statusBar)
+    {
+        if (_state.RowIndexer is not { IsIndexingCompleted: true })
         {
-            _itemCountLabel = new Label
-            {
-                Text = $"{_state.RowIndexer.TotalRows} items",
-                // AnchorEnd places the right edge at the container boundary; subtract 1 to keep a margin
-                X = Pos.AnchorEnd() - 1,
-                // Place on the same row as the StatusBar (bottom line of the container)
-                Y = Pos.AnchorEnd(1),
-                SchemeName = statusBar.SchemeName,
-            };
-            _container.Add(_itemCountLabel);
+            return;
         }
+
+        _itemCountLabel = new Label
+        {
+            Text = $"{_state.RowIndexer.TotalRows} items",
+            // AnchorEnd places the right edge at the container boundary; subtract 1 to keep a margin
+            X = Pos.AnchorEnd() - 1,
+            // Place on the same row as the StatusBar (bottom line of the container)
+            Y = Pos.AnchorEnd(1),
+            SchemeName = statusBar.SchemeName,
+        };
+        _container.Add(_itemCountLabel);
     }
 
     /// <summary>

@@ -67,32 +67,7 @@ internal sealed class FileDialogHandler(
         // No IRowIndexer is needed — keys are not rows.
         if (format == DataFormat.JsonObject)
         {
-            _stopIndexing();
-            _state.RowIndexer = null;
-            _state.Schema = null;
-            _state.OnSchemaRefined = null;
-
-            var ct = _state.Cts.Token;
-            try
-            {
-                var entries = await Task.Run(
-                    () => Engine.IO.JsonObject.TopLevelScanner.Scan(path, ct), ct);
-                _app.Invoke(() =>
-                {
-                    _state.CurrentMode = ViewMode.JsonObjectTree;
-                    _state.JsonObjectEntries = entries;
-                    _viewManager.SwitchToJsonObjectTree(entries);
-                });
-            }
-            catch (OperationCanceledException) { /* file reloaded before scan completed */ }
-#pragma warning disable CA1031 // UI top-level handler
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                _app.Invoke(() =>
-                    _viewManager.ShowError($"Error loading JSON Object: {ex.Message}"));
-            }
-
+            await LoadJsonObjectAsync(path);
             return;
         }
 
@@ -102,118 +77,159 @@ internal sealed class FileDialogHandler(
         // SwitchToView(format)
         if (format == DataFormat.Csv)
         {
-            var schemaScanner = new IncrementalSchemaScanner(path);
-            try
-            {
-                var schema = await schemaScanner.InitialScanAsync();
-                _app.Invoke(() =>
-                {
-                    if (schema.Columns.Count == 0)
-                    {
-                        _viewManager.ShowError("File contains no data");
-                        return;
-                    }
-
-                    _state.Schema = schema;
-                    _state.RowIndexer = indexer;
-                    _state.CurrentMode = ViewMode.CsvTable;
-
-                    _viewManager.SwitchToCsvTable(indexer, schema);
-
-                    _ = schemaScanner
-                        .StartBackgroundScanAsync(schema, _state.Cts.Token)
-                        .ContinueWith(
-                            t =>
-                            {
-                                if (!t.IsCompletedSuccessfully)
-                                {
-                                    return;
-                                }
-
-                                _app.Invoke(() =>
-                                {
-                                    _state.Schema = t.Result;
-                                    _state.OnSchemaRefined?.Invoke(t.Result);
-                                });
-                            },
-                            TaskScheduler.Default
-                        );
-
-                    _onIndexerStart(indexer);
-                });
-                return;
-            }
-#pragma warning disable CA1031 // UI top-level handler
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                _app.Invoke(() => _viewManager.ShowError($"Error scanning CSV: {ex.Message}"));
-                return;
-            }
+            await LoadCsvAsync(path, indexer);
+            return;
         }
 
         if (format == DataFormat.JsonLines)
         {
-            try
-            {
-                _state.RowIndexer = indexer;
-                _state.Schema = null;
-                _state.OnSchemaRefined = null;
-
-                var tcs = new TaskCompletionSource(
-                    TaskCreationOptions.RunContinuationsAsynchronously);
-                indexer.FirstCheckpointReached += () => tcs.TrySetResult();
-
-                _onIndexerStart(indexer);
-                await tcs.Task;
-
-                _app.Invoke(() =>
-                {
-                    _state.CurrentMode = ViewMode.JsonLinesTree;
-                    _viewManager.SwitchToJsonLinesTree(indexer);
-                });
-                return;
-            }
-#pragma warning disable CA1031 // UI top-level handler
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Lines: {ex.Message}"));
-                return;
-            }
+            await LoadJsonLinesAsync(indexer);
+            return;
         }
 
         if (format == DataFormat.JsonArray)
         {
-            try
-            {
-                _state.RowIndexer = indexer;
-                _state.Schema = null;
-                _state.OnSchemaRefined = null;
-
-                var tcs = new TaskCompletionSource(
-                    TaskCreationOptions.RunContinuationsAsynchronously);
-                indexer.FirstCheckpointReached += () => tcs.TrySetResult();
-
-                _onIndexerStart(indexer);
-                await tcs.Task;
-
-                _app.Invoke(() =>
-                {
-                    _state.CurrentMode = ViewMode.JsonArrayTree;
-                    _viewManager.SwitchToJsonArrayTree(indexer);
-                });
-                return;
-            }
-#pragma warning disable CA1031 // UI top-level handler
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Array: {ex.Message}"));
-                return;
-            }
+            await LoadJsonArrayAsync(indexer);
+            return;
         }
 
         _onIndexerStart(indexer);
+    }
+
+    private async Task LoadJsonObjectAsync(string path)
+    {
+        _stopIndexing();
+        _state.RowIndexer = null;
+        _state.Schema = null;
+        _state.OnSchemaRefined = null;
+
+        var ct = _state.Cts.Token;
+        try
+        {
+            var entries = await Task.Run(
+                () => Engine.IO.JsonObject.TopLevelScanner.Scan(path, ct), ct);
+            _app.Invoke(() =>
+            {
+                _state.CurrentMode = ViewMode.JsonObjectTree;
+                _state.JsonObjectEntries = entries;
+                _viewManager.SwitchToJsonObjectTree(entries);
+            });
+        }
+        catch (OperationCanceledException) { /* file reloaded before scan completed */ }
+#pragma warning disable CA1031 // UI top-level handler
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            _app.Invoke(() =>
+                _viewManager.ShowError($"Error loading JSON Object: {ex.Message}"));
+        }
+    }
+
+    private async Task LoadCsvAsync(string path, IRowIndexer indexer)
+    {
+        var schemaScanner = new IncrementalSchemaScanner(path);
+        try
+        {
+            var schema = await schemaScanner.InitialScanAsync();
+            _app.Invoke(() =>
+            {
+                if (schema.Columns.Count == 0)
+                {
+                    _viewManager.ShowError("File contains no data");
+                    return;
+                }
+
+                _state.Schema = schema;
+                _state.RowIndexer = indexer;
+                _state.CurrentMode = ViewMode.CsvTable;
+
+                _viewManager.SwitchToCsvTable(indexer, schema);
+
+                _ = schemaScanner
+                    .StartBackgroundScanAsync(schema, _state.Cts.Token)
+                    .ContinueWith(
+                        t =>
+                        {
+                            if (!t.IsCompletedSuccessfully)
+                            {
+                                return;
+                            }
+
+                            _app.Invoke(() =>
+                            {
+                                _state.Schema = t.Result;
+                                _state.OnSchemaRefined?.Invoke(t.Result);
+                            });
+                        },
+                        TaskScheduler.Default
+                    );
+
+                _onIndexerStart(indexer);
+            });
+        }
+#pragma warning disable CA1031 // UI top-level handler
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            _app.Invoke(() => _viewManager.ShowError($"Error scanning CSV: {ex.Message}"));
+        }
+    }
+
+    private async Task LoadJsonLinesAsync(IRowIndexer indexer)
+    {
+        try
+        {
+            _state.RowIndexer = indexer;
+            _state.Schema = null;
+            _state.OnSchemaRefined = null;
+
+            var tcs = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            indexer.FirstCheckpointReached += () => tcs.TrySetResult();
+
+            _onIndexerStart(indexer);
+            await tcs.Task;
+
+            _app.Invoke(() =>
+            {
+                _state.CurrentMode = ViewMode.JsonLinesTree;
+                _viewManager.SwitchToJsonLinesTree(indexer);
+            });
+        }
+#pragma warning disable CA1031 // UI top-level handler
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Lines: {ex.Message}"));
+        }
+    }
+
+    private async Task LoadJsonArrayAsync(IRowIndexer indexer)
+    {
+        try
+        {
+            _state.RowIndexer = indexer;
+            _state.Schema = null;
+            _state.OnSchemaRefined = null;
+
+            var tcs = new TaskCompletionSource(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            indexer.FirstCheckpointReached += () => tcs.TrySetResult();
+
+            _onIndexerStart(indexer);
+            await tcs.Task;
+
+            _app.Invoke(() =>
+            {
+                _state.CurrentMode = ViewMode.JsonArrayTree;
+                _viewManager.SwitchToJsonArrayTree(indexer);
+            });
+        }
+#pragma warning disable CA1031 // UI top-level handler
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Array: {ex.Message}"));
+        }
     }
 }

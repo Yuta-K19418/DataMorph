@@ -45,98 +45,147 @@ public static class ActionApplier
         List<FilterSpec> filterSpecs = [];
         Dictionary<int, CellTransformSpec> transformsByWorkingIndex = [];
 
-        // Process actions in order
         foreach (var action in actions)
         {
-            if (action is RenameColumnAction rename)
+            var result = ApplyAction(action, workingColumns, nameToWorkingIndex, filterSpecs, transformsByWorkingIndex);
+            if (result.IsFailure)
             {
-                if (!nameToWorkingIndex.TryGetValue(rename.OldName, out var idx))
-                {
-                    continue;
-                }
-
-                var (name, type, columnIndex, _) = workingColumns[idx];
-                workingColumns[idx] = (name, type, columnIndex, rename.NewName);
-                nameToWorkingIndex.Remove(rename.OldName);
-                nameToWorkingIndex[rename.NewName] = idx;
-                continue;
+                return Results.Failure<BatchOutputSchema>(result.Error);
             }
-
-            if (action is DeleteColumnAction delete)
-            {
-                if (!nameToWorkingIndex.TryGetValue(delete.ColumnName, out _))
-                {
-                    continue;
-                }
-
-                nameToWorkingIndex.Remove(delete.ColumnName);
-                continue;
-            }
-
-            if (action is CastColumnAction cast)
-            {
-                if (!nameToWorkingIndex.TryGetValue(cast.ColumnName, out var idx))
-                {
-                    continue;
-                }
-
-                var (name, _, columnIndex, outputName) = workingColumns[idx];
-                workingColumns[idx] = (name, cast.TargetType, columnIndex, outputName);
-                continue;
-            }
-
-            if (action is FilterAction filter)
-            {
-                if (!nameToWorkingIndex.TryGetValue(filter.ColumnName, out var idx))
-                {
-                    continue;
-                }
-
-                var (_, type, columnIndex, _) = workingColumns[idx];
-                filterSpecs.Add(
-                    new FilterSpec(
-                        SourceColumnIndex: columnIndex,
-                        ColumnType: type,
-                        Operator: filter.Operator,
-                        Value: filter.Value
-                    )
-                );
-                continue;
-            }
-
-            if (action is FillColumnAction fill)
-            {
-                if (!nameToWorkingIndex.TryGetValue(fill.ColumnName, out var idx))
-                {
-                    continue;
-                }
-
-                transformsByWorkingIndex[idx] = new FillSpec(fill.Value);
-                continue;
-            }
-
-            if (action is FormatTimestampAction formatTimestamp)
-            {
-                if (!nameToWorkingIndex.TryGetValue(formatTimestamp.ColumnName, out var idx))
-                {
-                    continue;
-                }
-
-                var (_, type, _, _) = workingColumns[idx];
-                if (type != ColumnType.Timestamp)
-                {
-                    return Results.Failure<BatchOutputSchema>(
-                        $"FormatTimestampAction requires column '{formatTimestamp.ColumnName}' to be of type Timestamp, but it is {type}.");
-                }
-
-                transformsByWorkingIndex[idx] = new TimestampFormatSpec(formatTimestamp.TargetFormat);
-                continue;
-            }
-
-            throw new UnreachableException($"Unhandled action type: {action.GetType().Name}");
         }
 
-        // Build remaining columns in order (filter out deleted columns)
+        var outputColumns = BuildOutputColumns(workingColumns, nameToWorkingIndex, transformsByWorkingIndex);
+        return Results.Success(new BatchOutputSchema(outputColumns, filterSpecs));
+    }
+
+    private static Result ApplyAction(
+        MorphAction action,
+        List<(string Name, ColumnType Type, int ColumnIndex, string OutputName)> workingColumns,
+        Dictionary<string, int> nameToWorkingIndex,
+        List<FilterSpec> filterSpecs,
+        Dictionary<int, CellTransformSpec> transformsByWorkingIndex
+    ) =>
+        action switch
+        {
+            RenameColumnAction rename => ApplyRename(rename, workingColumns, nameToWorkingIndex),
+            DeleteColumnAction delete => ApplyDelete(delete, nameToWorkingIndex),
+            CastColumnAction cast => ApplyCast(cast, workingColumns, nameToWorkingIndex),
+            FilterAction filter => ApplyFilter(filter, workingColumns, nameToWorkingIndex, filterSpecs),
+            FillColumnAction fill => ApplyFill(fill, nameToWorkingIndex, transformsByWorkingIndex),
+            FormatTimestampAction formatTimestamp
+                => ApplyFormatTimestamp(formatTimestamp, workingColumns, nameToWorkingIndex, transformsByWorkingIndex),
+            _ => throw new UnreachableException($"Unhandled action type: {action.GetType().Name}"),
+        };
+
+    private static Result ApplyRename(
+        RenameColumnAction rename,
+        List<(string Name, ColumnType Type, int ColumnIndex, string OutputName)> workingColumns,
+        Dictionary<string, int> nameToWorkingIndex
+    )
+    {
+        if (!nameToWorkingIndex.TryGetValue(rename.OldName, out var idx))
+        {
+            return Results.Success();
+        }
+
+        var (name, type, columnIndex, _) = workingColumns[idx];
+        workingColumns[idx] = (name, type, columnIndex, rename.NewName);
+        nameToWorkingIndex.Remove(rename.OldName);
+        nameToWorkingIndex[rename.NewName] = idx;
+        return Results.Success();
+    }
+
+    private static Result ApplyDelete(DeleteColumnAction delete, Dictionary<string, int> nameToWorkingIndex)
+    {
+        nameToWorkingIndex.Remove(delete.ColumnName);
+        return Results.Success();
+    }
+
+    private static Result ApplyCast(
+        CastColumnAction cast,
+        List<(string Name, ColumnType Type, int ColumnIndex, string OutputName)> workingColumns,
+        Dictionary<string, int> nameToWorkingIndex
+    )
+    {
+        if (!nameToWorkingIndex.TryGetValue(cast.ColumnName, out var idx))
+        {
+            return Results.Success();
+        }
+
+        var (name, _, columnIndex, outputName) = workingColumns[idx];
+        workingColumns[idx] = (name, cast.TargetType, columnIndex, outputName);
+        return Results.Success();
+    }
+
+    private static Result ApplyFilter(
+        FilterAction filter,
+        List<(string Name, ColumnType Type, int ColumnIndex, string OutputName)> workingColumns,
+        Dictionary<string, int> nameToWorkingIndex,
+        List<FilterSpec> filterSpecs
+    )
+    {
+        if (!nameToWorkingIndex.TryGetValue(filter.ColumnName, out var idx))
+        {
+            return Results.Success();
+        }
+
+        var (_, type, columnIndex, _) = workingColumns[idx];
+        filterSpecs.Add(
+            new FilterSpec(
+                SourceColumnIndex: columnIndex,
+                ColumnType: type,
+                Operator: filter.Operator,
+                Value: filter.Value
+            )
+        );
+        return Results.Success();
+    }
+
+    private static Result ApplyFill(
+        FillColumnAction fill,
+        Dictionary<string, int> nameToWorkingIndex,
+        Dictionary<int, CellTransformSpec> transformsByWorkingIndex
+    )
+    {
+        if (!nameToWorkingIndex.TryGetValue(fill.ColumnName, out var idx))
+        {
+            return Results.Success();
+        }
+
+        transformsByWorkingIndex[idx] = new FillSpec(fill.Value);
+        return Results.Success();
+    }
+
+    private static Result ApplyFormatTimestamp(
+        FormatTimestampAction formatTimestamp,
+        List<(string Name, ColumnType Type, int ColumnIndex, string OutputName)> workingColumns,
+        Dictionary<string, int> nameToWorkingIndex,
+        Dictionary<int, CellTransformSpec> transformsByWorkingIndex
+    )
+    {
+        if (!nameToWorkingIndex.TryGetValue(formatTimestamp.ColumnName, out var idx))
+        {
+            return Results.Success();
+        }
+
+        var (_, type, _, _) = workingColumns[idx];
+        if (type != ColumnType.Timestamp)
+        {
+            return Results.Failure(
+                $"FormatTimestampAction requires column '{formatTimestamp.ColumnName}' to be of type Timestamp, but it is {type}.");
+        }
+
+        transformsByWorkingIndex[idx] = new TimestampFormatSpec(formatTimestamp.TargetFormat);
+        return Results.Success();
+    }
+
+    // Filters out deleted columns and preserves working-column order.
+    private static List<BatchOutputColumn> BuildOutputColumns(
+        List<(string Name, ColumnType Type, int ColumnIndex, string OutputName)> workingColumns,
+        Dictionary<string, int> nameToWorkingIndex,
+        Dictionary<int, CellTransformSpec> transformsByWorkingIndex
+    )
+    {
         List<BatchOutputColumn> outputColumns = [];
         foreach (var kvp in nameToWorkingIndex.OrderBy(kvp => kvp.Value))
         {
@@ -145,6 +194,6 @@ public static class ActionApplier
             outputColumns.Add(new BatchOutputColumn(SourceName: name, OutputName: outputName, Transform: transform));
         }
 
-        return Results.Success(new BatchOutputSchema(outputColumns, filterSpecs));
+        return outputColumns;
     }
 }

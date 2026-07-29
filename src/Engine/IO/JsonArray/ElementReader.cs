@@ -99,34 +99,9 @@ public sealed class ElementReader : IDisposable
                 throw new NotSupportedException("JSON element exceeds maximum supported size.");
             }
 
-            int dataEnd;
-
-            if (firstFill)
-            {
-                firstFill = false;
-                buffer[0] = (byte)'[';
-                var available = _mmap.Length - fileReadOffset;
-                var toRead = (int)Math.Min(BufferSize - 1, Math.Max(0L, available));
-                if (toRead > 0)
-                {
-                    _mmap.Read(fileReadOffset, buffer.AsSpan(1, toRead));
-                }
-
-                fileReadOffset += toRead;
-                dataEnd = 1 + toRead;
-            }
-            else
-            {
-                var available = _mmap.Length - fileReadOffset;
-                var toRead = (int)Math.Min(BufferSize - remainingLen, Math.Max(0L, available));
-                if (toRead > 0)
-                {
-                    _mmap.Read(fileReadOffset, buffer.AsSpan(remainingLen, toRead));
-                }
-
-                fileReadOffset += toRead;
-                dataEnd = remainingLen + toRead;
-            }
+            var (dataEnd, newFileReadOffset) = FillBuffer(buffer, fileReadOffset, remainingLen, firstFill);
+            fileReadOffset = newFileReadOffset;
+            firstFill = false;
 
             var isFinalBlock = fileReadOffset >= _mmap.Length;
 
@@ -136,52 +111,13 @@ public sealed class ElementReader : IDisposable
             }
 
             var reader = new Utf8JsonReader(buffer.AsSpan(0, dataEnd), isFinalBlock, state);
-            var rootDone = false;
+            var scanResult = ScanBufferForElements(
+                ref reader, bufferOriginFileOffset, currentElementStartFile, elementsEncountered,
+                elementsToSkip, elementsToFetch, result);
+            currentElementStartFile = scanResult.currentElementStartFile;
+            elementsEncountered = scanResult.elementsEncountered;
 
-            while (reader.Read())
-            {
-                if (reader.CurrentDepth == 0 && reader.TokenType == JsonTokenType.EndArray)
-                {
-                    rootDone = true;
-                    break;
-                }
-
-                if (reader.CurrentDepth != 1)
-                {
-                    continue;
-                }
-
-                if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
-                {
-                    currentElementStartFile = bufferOriginFileOffset + reader.TokenStartIndex;
-                    continue;
-                }
-
-                if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
-                {
-                    var endFile = bufferOriginFileOffset + reader.BytesConsumed;
-                    elementsEncountered = AppendElement(currentElementStartFile, endFile, elementsEncountered, elementsToSkip, result);
-                    currentElementStartFile = -1L;
-                    if (result.Count >= elementsToFetch)
-                    {
-                        break;
-                    }
-
-                    continue;
-                }
-
-                // Primitive element at depth 1 (number, string, bool, null).
-                elementsEncountered = AppendElement(
-                    bufferOriginFileOffset + reader.TokenStartIndex,
-                    bufferOriginFileOffset + reader.BytesConsumed,
-                    elementsEncountered, elementsToSkip, result);
-                if (result.Count >= elementsToFetch)
-                {
-                    break;
-                }
-            }
-
-            if (rootDone || result.Count >= elementsToFetch || isFinalBlock)
+            if (scanResult.rootDone || result.Count >= elementsToFetch || isFinalBlock)
             {
                 break;
             }
@@ -196,6 +132,94 @@ public sealed class ElementReader : IDisposable
                 buffer.AsSpan(consumed, remainingLen).CopyTo(buffer);
             }
         }
+    }
+
+    // buffer[0] holds a synthetic '[' on the first fill only, matching bufferOriginFileOffset's
+    // -1 adjustment so token offsets resolve correctly relative to the real file.
+    private (int dataEnd, long fileReadOffset) FillBuffer(byte[] buffer, long fileReadOffset, int remainingLen, bool firstFill)
+    {
+        if (firstFill)
+        {
+            buffer[0] = (byte)'[';
+            var available = _mmap.Length - fileReadOffset;
+            var toRead = (int)Math.Min(BufferSize - 1, Math.Max(0L, available));
+            if (toRead > 0)
+            {
+                _mmap.Read(fileReadOffset, buffer.AsSpan(1, toRead));
+            }
+
+            return (1 + toRead, fileReadOffset + toRead);
+        }
+
+        var availableRest = _mmap.Length - fileReadOffset;
+        var toReadRest = (int)Math.Min(BufferSize - remainingLen, Math.Max(0L, availableRest));
+        if (toReadRest > 0)
+        {
+            _mmap.Read(fileReadOffset, buffer.AsSpan(remainingLen, toReadRest));
+        }
+
+        return (remainingLen + toReadRest, fileReadOffset + toReadRest);
+    }
+
+    private (bool rootDone, long currentElementStartFile, int elementsEncountered) ScanBufferForElements(
+        ref Utf8JsonReader reader,
+        long bufferOriginFileOffset,
+        long currentElementStartFile,
+        int elementsEncountered,
+        int elementsToSkip,
+        int elementsToFetch,
+        List<JsonRawBytes> result)
+    {
+        while (reader.Read())
+        {
+            if (reader.CurrentDepth == 0 && reader.TokenType == JsonTokenType.EndArray)
+            {
+                return (true, currentElementStartFile, elementsEncountered);
+            }
+
+            if (reader.CurrentDepth != 1)
+            {
+                continue;
+            }
+
+            (currentElementStartFile, elementsEncountered) = ProcessDepth1Token(
+                ref reader, bufferOriginFileOffset, currentElementStartFile, elementsEncountered, elementsToSkip, result);
+
+            if (result.Count >= elementsToFetch)
+            {
+                break;
+            }
+        }
+
+        return (false, currentElementStartFile, elementsEncountered);
+    }
+
+    private (long currentElementStartFile, int elementsEncountered) ProcessDepth1Token(
+        ref Utf8JsonReader reader,
+        long bufferOriginFileOffset,
+        long currentElementStartFile,
+        int elementsEncountered,
+        int elementsToSkip,
+        List<JsonRawBytes> result)
+    {
+        if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+        {
+            return (bufferOriginFileOffset + reader.TokenStartIndex, elementsEncountered);
+        }
+
+        if (reader.TokenType is JsonTokenType.EndObject or JsonTokenType.EndArray)
+        {
+            var endFile = bufferOriginFileOffset + reader.BytesConsumed;
+            var updatedEncountered = AppendElement(currentElementStartFile, endFile, elementsEncountered, elementsToSkip, result);
+            return (-1L, updatedEncountered);
+        }
+
+        // Primitive element at depth 1 (number, string, bool, null).
+        var encounteredAfterPrimitive = AppendElement(
+            bufferOriginFileOffset + reader.TokenStartIndex,
+            bufferOriginFileOffset + reader.BytesConsumed,
+            elementsEncountered, elementsToSkip, result);
+        return (currentElementStartFile, encounteredAfterPrimitive);
     }
 
     private int AppendElement(

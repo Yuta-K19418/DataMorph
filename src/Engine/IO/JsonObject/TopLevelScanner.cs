@@ -125,6 +125,17 @@ public sealed class TopLevelScanner
             return false;
         }
 
+        return ProcessDepthOneToken(ref reader, ref state, buffer, result, keyIndex);
+    }
+
+    private static bool ProcessDepthOneToken(
+        ref Utf8JsonReader reader,
+        ref JsonScanState state,
+        byte[] buffer,
+        List<JsonObjectEntry> result,
+        Dictionary<string, int> keyIndex
+    )
+    {
         if (reader.TokenType == JsonTokenType.PropertyName)
         {
             var key =

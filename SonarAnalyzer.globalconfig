@@ -1,0 +1,8 @@
+is_global = true
+
+# Only complexity rules are active; every other SonarAnalyzer.CSharp rule stays
+# at its default (which is "disabled" for most, "silent" bulk-override for the rest).
+dotnet_analyzer_diagnostic.severity = silent
+
+dotnet_diagnostic.S3776.severity = warning # Cognitive Complexity of methods should not be too high
+dotnet_diagnostic.S1541.severity = warning # Methods and properties should not be too complex (Cyclomatic Complexity)

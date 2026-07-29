@@ -6,8 +6,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.30.0.144632">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Terminal.Gui" Version="2.4.17" />
     <PackageReference Include="Sep" Version="0.15.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)..\..\SonarAnalyzer.globalconfig" />
   </ItemGroup>
 
   <ItemGroup>

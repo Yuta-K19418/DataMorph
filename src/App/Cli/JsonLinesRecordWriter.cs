@@ -76,9 +76,9 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
 
         _jsonWriter.WriteEndObject();
 
-#pragma warning disable CA1849 // Flush to IBufferWriter is synchronous and fast
+#pragma warning disable CA1849, S6966 // Flush to IBufferWriter is synchronous and fast
         _jsonWriter.Flush();
-#pragma warning restore CA1849
+#pragma warning restore CA1849, S6966
 
         // Add newline (using \n as standard for JSONL across platforms)
         var span = _bufferWriter.GetSpan(1);

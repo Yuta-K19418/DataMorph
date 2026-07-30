@@ -31,50 +31,13 @@ internal sealed class RecipeYamlParser
                 continue;
             }
 
-            if (rootState.ParseState == ParseState.Root)
+            var lineResult = ProcessLine(line, rootState, currentAction, actions);
+            if (lineResult.IsFailure)
             {
-                var result = ProcessRootLine(line, rootState);
-                if (result.IsFailure)
-                {
-                    return Results.Failure<Recipe>(result.Error);
-                }
-
-                rootState = result.Value;
-                continue;
+                return Results.Failure<Recipe>(lineResult.Error);
             }
 
-            if (line.StartsWith("  - type: ", StringComparison.Ordinal))
-            {
-                var startResult = StartNewAction(line, currentAction);
-                if (startResult.IsFailure)
-                {
-                    return Results.Failure<Recipe>(startResult.Error);
-                }
-
-                var (newCurrentAction, completedAction) = startResult.Value;
-                currentAction = newCurrentAction;
-                rootState = rootState with { ParseState = ParseState.ActionItem };
-                if (completedAction is not null)
-                {
-                    actions.Add(completedAction);
-                }
-
-                continue;
-            }
-
-            if (rootState.ParseState != ParseState.ActionItem || !line.StartsWith("    ", StringComparison.Ordinal))
-            {
-                return Results.Failure<Recipe>($"Unexpected line in actions context: '{line}'");
-            }
-
-            var fieldResult = ParseActionField(line);
-            if (fieldResult.IsFailure)
-            {
-                return Results.Failure<Recipe>(fieldResult.Error);
-            }
-
-            var (fieldKey, fieldValue) = fieldResult.Value;
-            currentAction[fieldKey] = fieldValue;
+            (rootState, currentAction) = lineResult.Value;
         }
 
         if (currentAction.ContainsKey("type"))
@@ -97,6 +60,57 @@ internal sealed class RecipeYamlParser
                 LastModified = rootState.LastModified,
                 Actions = actions.AsReadOnly(),
             });
+    }
+
+    // Dispatches a single YAML line to the handler for the current parse state.
+    // currentAction is returned rather than mutated-in-place because StartNewAction
+    // replaces it wholesale with a fresh dictionary for the next action item.
+    private static Result<(RootParseState rootState, Dictionary<string, string> currentAction)> ProcessLine(
+        string line,
+        RootParseState rootState,
+        Dictionary<string, string> currentAction,
+        List<MorphAction> actions)
+    {
+        if (rootState.ParseState == ParseState.Root)
+        {
+            var result = ProcessRootLine(line, rootState);
+            return result.IsFailure
+                ? Results.Failure<(RootParseState rootState, Dictionary<string, string> currentAction)>(result.Error)
+                : Results.Success((result.Value, currentAction));
+        }
+
+        if (line.StartsWith("  - type: ", StringComparison.Ordinal))
+        {
+            var startResult = StartNewAction(line, currentAction);
+            if (startResult.IsFailure)
+            {
+                return Results.Failure<(RootParseState rootState, Dictionary<string, string> currentAction)>(startResult.Error);
+            }
+
+            var (newCurrentAction, completedAction) = startResult.Value;
+            if (completedAction is not null)
+            {
+                actions.Add(completedAction);
+            }
+
+            return Results.Success((rootState with { ParseState = ParseState.ActionItem }, newCurrentAction));
+        }
+
+        if (rootState.ParseState != ParseState.ActionItem || !line.StartsWith("    ", StringComparison.Ordinal))
+        {
+            return Results.Failure<(RootParseState rootState, Dictionary<string, string> currentAction)>(
+                $"Unexpected line in actions context: '{line}'");
+        }
+
+        var fieldResult = ParseActionField(line);
+        if (fieldResult.IsFailure)
+        {
+            return Results.Failure<(RootParseState rootState, Dictionary<string, string> currentAction)>(fieldResult.Error);
+        }
+
+        var (fieldKey, fieldValue) = fieldResult.Value;
+        currentAction[fieldKey] = fieldValue;
+        return Results.Success((rootState, currentAction));
     }
 
     private static bool IsSkippable(string line)
@@ -125,18 +139,27 @@ internal sealed class RecipeYamlParser
 
         return key switch
         {
-            "name" => !string.IsNullOrEmpty(state.Name)
-                ? Results.Failure<RootParseState>("Duplicate root-level key: 'name'")
-                : Results.Success(state with { Name = UnquoteString(value) }),
-            "description" => state.Description is not null
-                ? Results.Failure<RootParseState>("Duplicate root-level key: 'description'")
-                : Results.Success(state with { Description = UnquoteString(value) }),
-            "lastModified" => state.LastModified is not null
-                ? Results.Failure<RootParseState>("Duplicate root-level key: 'lastModified'")
-                : ParseLastModifiedField(value, state),
+            "name" => SetName(state, value),
+            "description" => SetDescription(state, value),
+            "lastModified" => SetLastModified(state, value),
             _ => Results.Failure<RootParseState>($"Unknown root-level key: '{key}'"),
         };
     }
+
+    private static Result<RootParseState> SetName(RootParseState state, string value) =>
+        !string.IsNullOrEmpty(state.Name)
+            ? Results.Failure<RootParseState>("Duplicate root-level key: 'name'")
+            : Results.Success(state with { Name = UnquoteString(value) });
+
+    private static Result<RootParseState> SetDescription(RootParseState state, string value) =>
+        state.Description is not null
+            ? Results.Failure<RootParseState>("Duplicate root-level key: 'description'")
+            : Results.Success(state with { Description = UnquoteString(value) });
+
+    private static Result<RootParseState> SetLastModified(RootParseState state, string value) =>
+        state.LastModified is not null
+            ? Results.Failure<RootParseState>("Duplicate root-level key: 'lastModified'")
+            : ParseLastModifiedField(value, state);
 
     private static Result<RootParseState> ParseLastModifiedField(string value, RootParseState state)
     {
@@ -193,35 +216,35 @@ internal sealed class RecipeYamlParser
 
     private static string UnquoteString(string value)
     {
-        if (value.Length >= 2 && value[0] == '"' && value[^1] == '"')
+        if (value.Length < 2 || value[0] != '"' || value[^1] != '"')
         {
-            var inner = value.AsSpan(1, value.Length - 2);
-            if (inner.IndexOf('\\') < 0)
-            {
-                return inner.ToString();
-            }
-
-            var sb = new StringBuilder(inner.Length);
-            for (var i = 0; i < inner.Length; i++)
-            {
-                if (inner[i] == '\\' && i + 1 < inner.Length)
-                {
-                    sb.Append(inner[i + 1] switch
-                    {
-                        '"' => '"',
-                        '\\' => '\\',
-                        var c => c,
-                    });
-                    i++;
-                    continue;
-                }
-
-                sb.Append(inner[i]);
-            }
-
-            return sb.ToString();
+            return value;
         }
 
-        return value;
+        var inner = value.AsSpan(1, value.Length - 2);
+        return inner.IndexOf('\\') < 0 ? inner.ToString() : UnescapeString(inner);
+    }
+
+    private static string UnescapeString(ReadOnlySpan<char> inner)
+    {
+        var sb = new StringBuilder(inner.Length);
+        for (var i = 0; i < inner.Length; i++)
+        {
+            if (inner[i] == '\\' && i + 1 < inner.Length)
+            {
+                sb.Append(inner[i + 1] switch
+                {
+                    '"' => '"',
+                    '\\' => '\\',
+                    var c => c,
+                });
+                i++;
+                continue;
+            }
+
+            sb.Append(inner[i]);
+        }
+
+        return sb.ToString();
     }
 }

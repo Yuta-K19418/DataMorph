@@ -23,44 +23,45 @@ public static class FilterEvaluator
     public static bool EvaluateFilter(ReadOnlySpan<char> rawValue, FilterSpec spec)
     {
         var op = spec.Operator;
+        var specValue = spec.Value.AsSpan();
 
-        if (op == FilterOperator.Contains)
+        if (IsStringOperator(op))
         {
-            return rawValue.Contains(spec.Value.AsSpan(), StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (op == FilterOperator.NotContains)
-        {
-            return !rawValue.Contains(spec.Value.AsSpan(), StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (op == FilterOperator.StartsWith)
-        {
-            return rawValue.StartsWith(spec.Value.AsSpan(), StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (op == FilterOperator.EndsWith)
-        {
-            return rawValue.EndsWith(spec.Value.AsSpan(), StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (op == FilterOperator.Equals)
-        {
-            return rawValue.Equals(spec.Value.AsSpan(), StringComparison.OrdinalIgnoreCase);
-        }
-
-        if (op == FilterOperator.NotEquals)
-        {
-            return !rawValue.Equals(spec.Value.AsSpan(), StringComparison.OrdinalIgnoreCase);
+            return EvaluateStringOperator(rawValue, specValue, op);
         }
 
         // Numeric/Timestamp comparison operators
         return spec.ColumnType switch
         {
-            ColumnType.WholeNumber => EvaluateNumericLong(rawValue, spec.Value.AsSpan(), op),
-            ColumnType.FloatingPoint => EvaluateNumericDouble(rawValue, spec.Value.AsSpan(), op),
-            ColumnType.Timestamp => EvaluateTimestamp(rawValue, spec.Value.AsSpan(), op),
+            ColumnType.WholeNumber => EvaluateNumericLong(rawValue, specValue, op),
+            ColumnType.FloatingPoint => EvaluateNumericDouble(rawValue, specValue, op),
+            ColumnType.Timestamp => EvaluateTimestamp(rawValue, specValue, op),
             // Text or other types: numeric/timestamp operators are not supported; exclude the row
+            _ => false,
+        };
+    }
+
+    private static bool IsStringOperator(FilterOperator op) =>
+        op is FilterOperator.Contains or FilterOperator.NotContains
+            or FilterOperator.StartsWith or FilterOperator.EndsWith
+            or FilterOperator.Equals or FilterOperator.NotEquals;
+
+    private static bool EvaluateStringOperator(
+        ReadOnlySpan<char> rawValue,
+        ReadOnlySpan<char> specValue,
+        FilterOperator op
+    )
+    {
+        var ignoreCase = StringComparison.OrdinalIgnoreCase;
+        return op switch
+        {
+            FilterOperator.Contains => rawValue.Contains(specValue, ignoreCase),
+            FilterOperator.NotContains => !rawValue.Contains(specValue, ignoreCase),
+            FilterOperator.StartsWith => rawValue.StartsWith(specValue, ignoreCase),
+            FilterOperator.EndsWith => rawValue.EndsWith(specValue, ignoreCase),
+            FilterOperator.Equals => rawValue.Equals(specValue, ignoreCase),
+            FilterOperator.NotEquals => !rawValue.Equals(specValue, ignoreCase),
+            // Non-string operators are handled by the numeric/timestamp path; defensive fallback.
             _ => false,
         };
     }

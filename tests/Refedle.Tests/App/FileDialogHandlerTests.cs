@@ -16,6 +16,9 @@ public sealed class FileDialogHandlerTests : IDisposable
 {
     private readonly string _jsonLinesFile;
     private readonly string _jsonObjectFile;
+    private readonly string _csvFile;
+    private readonly string _jsonArrayFile;
+    private readonly string _unsupportedFile;
 
     public FileDialogHandlerTests()
     {
@@ -24,6 +27,15 @@ public sealed class FileDialogHandlerTests : IDisposable
 
         _jsonObjectFile = Path.ChangeExtension(Path.GetTempFileName(), ".json");
         File.WriteAllText(_jsonObjectFile, "{\"name\":\"test\",\"count\":42}");
+
+        _csvFile = Path.ChangeExtension(Path.GetTempFileName(), ".csv");
+        File.WriteAllText(_csvFile, "header\ndata");
+
+        _jsonArrayFile = Path.ChangeExtension(Path.GetTempFileName(), ".json");
+        File.WriteAllText(_jsonArrayFile, "[{\"id\":1}]");
+
+        _unsupportedFile = Path.ChangeExtension(Path.GetTempFileName(), ".txt");
+        File.WriteAllText(_unsupportedFile, "not a data file");
     }
 
     public void Dispose()
@@ -36,6 +48,21 @@ public sealed class FileDialogHandlerTests : IDisposable
         if (File.Exists(_jsonObjectFile))
         {
             File.Delete(_jsonObjectFile);
+        }
+
+        if (File.Exists(_csvFile))
+        {
+            File.Delete(_csvFile);
+        }
+
+        if (File.Exists(_jsonArrayFile))
+        {
+            File.Delete(_jsonArrayFile);
+        }
+
+        if (File.Exists(_unsupportedFile))
+        {
+            File.Delete(_unsupportedFile);
         }
     }
 
@@ -272,5 +299,83 @@ public sealed class FileDialogHandlerTests : IDisposable
         // Assert
         state.JsonObjectEntries.Should().BeNull();
         capturedIndexer.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task HandleFileSelectedAsync_CsvFile_SwitchesToCsvTable()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var handler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
+
+        // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_csvFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.CsvTable);
+        viewManager.GetCurrentView().Should().BeOfType<CsvTableView>();
+    }
+
+    [Fact]
+    public async Task HandleFileSelectedAsync_JsonArrayFile_SwitchesToTreeViewAfterFirstCheckpoint()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        IRowIndexer? capturedIndexer = null;
+        var handler = new FileDialogHandler(app, state, viewManager, indexer =>
+        {
+            capturedIndexer = indexer;
+            // Simulate indexing start
+            Task.Run(() => indexer.BuildIndex());
+        }, () => { });
+
+        // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_jsonArrayFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.JsonArrayTree);
+        viewManager.GetCurrentView().Should().BeOfType<JsonArrayTreeView>();
+        Assert.NotNull(capturedIndexer);
+        capturedIndexer.TotalRows.Should().BeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task HandleFileSelectedAsync_UnsupportedExtension_ShowsErrorAndSwitchesToPlaceholderView()
+    {
+        // Arrange
+        using var app = CreateTestApp();
+        using var state = new AppState();
+        using var window = new Window();
+        var modeController = new ModeController(state);
+        using var viewManager = new ViewManager(window, state, modeController, action => action());
+
+        var handler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
+
+        // Act
+        app.Begin(window);
+        await handler.HandleFileSelectedAsync(_unsupportedFile);
+        app.StopAfterFirstIteration = true;
+        app.Run(window);
+
+        // Assert
+        state.CurrentMode.Should().Be(ViewMode.PlaceholderView);
+        viewManager.GetCurrentView().Should().BeOfType<PlaceholderView>()
+            .Which.Text.Should().Contain("Unsupported file format: .txt");
     }
 }

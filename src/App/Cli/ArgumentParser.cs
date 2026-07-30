@@ -35,56 +35,61 @@ internal static partial class ArgumentParser
 
         while (i < args.Count)
         {
-            if (!args[i].StartsWith("--", StringComparison.Ordinal))
+            var stepResult = ParseNextToken(args, i, result);
+            if (stepResult.IsFailure)
             {
-                return Results.Failure<Arguments>($"Invalid flag: '{args[i]}'");
+                return Results.Failure<Arguments>(stepResult.Error);
             }
 
-            if (args[i].Equals(CliFlag, StringComparison.Ordinal))
-            {
-                i += 1;
-                continue;
-            }
-
-            if (args[i].Equals(InputFlag, StringComparison.Ordinal))
-            {
-                if (i + 1 >= args.Count || args[i + 1].StartsWith("--", StringComparison.Ordinal))
-                {
-                    return Results.Failure<Arguments>($"Missing value for {InputFlag}");
-                }
-
-                result.InputFile = args[i + 1];
-                i += 2;
-                continue;
-            }
-
-            if (args[i].Equals(RecipeFlag, StringComparison.Ordinal))
-            {
-                if (i + 1 >= args.Count || args[i + 1].StartsWith("--", StringComparison.Ordinal))
-                {
-                    return Results.Failure<Arguments>($"Missing value for {RecipeFlag}");
-                }
-
-                result.RecipeFile = args[i + 1];
-                i += 2;
-                continue;
-            }
-
-            if (args[i].Equals(OutputFlag, StringComparison.Ordinal))
-            {
-                if (i + 1 >= args.Count || args[i + 1].StartsWith("--", StringComparison.Ordinal))
-                {
-                    return Results.Failure<Arguments>($"Missing value for {OutputFlag}");
-                }
-
-                result.OutputFile = args[i + 1];
-                i += 2;
-                continue;
-            }
-
-            return Results.Failure<Arguments>($"Unknown flag: {args[i]}");
+            i = stepResult.Value;
         }
 
+        return BuildArguments(result);
+    }
+
+    private static Result<int> ParseNextToken(IReadOnlyList<string> args, int i, ArgumentsParseResult result)
+    {
+        if (!args[i].StartsWith("--", StringComparison.Ordinal))
+        {
+            return Results.Failure<int>($"Invalid flag: '{args[i]}'");
+        }
+
+        if (args[i].Equals(CliFlag, StringComparison.Ordinal))
+        {
+            return Results.Success(i + 1);
+        }
+
+        if (args[i].Equals(InputFlag, StringComparison.Ordinal))
+        {
+            return ConsumeValueFlag(args, i, InputFlag, value => result.InputFile = value);
+        }
+
+        if (args[i].Equals(RecipeFlag, StringComparison.Ordinal))
+        {
+            return ConsumeValueFlag(args, i, RecipeFlag, value => result.RecipeFile = value);
+        }
+
+        if (args[i].Equals(OutputFlag, StringComparison.Ordinal))
+        {
+            return ConsumeValueFlag(args, i, OutputFlag, value => result.OutputFile = value);
+        }
+
+        return Results.Failure<int>($"Unknown flag: {args[i]}");
+    }
+
+    private static Result<int> ConsumeValueFlag(IReadOnlyList<string> args, int i, string flag, Action<string> assign)
+    {
+        if (i + 1 >= args.Count || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+        {
+            return Results.Failure<int>($"Missing value for {flag}");
+        }
+
+        assign(args[i + 1]);
+        return Results.Success(i + 2);
+    }
+
+    private static Result<Arguments> BuildArguments(ArgumentsParseResult result)
+    {
         if (string.IsNullOrWhiteSpace(result.InputFile))
         {
             return Results.Failure<Arguments>($"Missing required flag: {InputFlag}");

@@ -63,10 +63,21 @@ public sealed class RowReader : IDisposable
             }
         }
 
-        var skipped = 0;
+        var skipResult = SkipLines(currentOffset, linesToSkip);
+        if (!skipResult.reachedTarget)
+        {
+            // No more data to skip - when trying to skip beyond EOF, there are no lines to read
+            return result;
+        }
 
-        // Skip lines if needed
-        var skipLineStartOffset = currentOffset;
+        ReadRequestedLines(skipResult.offset, linesToRead, result);
+        return result;
+    }
+
+    private (bool reachedTarget, long offset) SkipLines(long startOffset, int linesToSkip)
+    {
+        var skipped = 0;
+        var skipLineStartOffset = startOffset;
         var skipIncompleteBytes = 0L;
 
         while (skipped < linesToSkip)
@@ -75,8 +86,7 @@ public sealed class RowReader : IDisposable
             // bytesConsumed <= 0 indicates EOF or error
             if (bytesConsumed <= 0)
             {
-                // No more data to skip - when trying to skip beyond EOF, there are no lines to read
-                return result;
+                return (false, skipLineStartOffset);
             }
 
             if (!lineCompleted)
@@ -98,9 +108,12 @@ public sealed class RowReader : IDisposable
             skipped++;
         }
 
-        currentOffset = skipLineStartOffset;
+        return (true, skipLineStartOffset);
+    }
 
-        // Read requested lines
+    private void ReadRequestedLines(long startOffset, int linesToRead, List<JsonRawBytes> result)
+    {
+        var currentOffset = startOffset;
         var linesRead = 0;
         var incompleteLineBytes = 0L;
 
@@ -110,7 +123,7 @@ public sealed class RowReader : IDisposable
             if (bytesConsumed <= 0)
             {
                 HandleIncompleteLineAtEof(currentOffset, incompleteLineBytes, result);
-                return result;
+                return;
             }
 
             if (!lineCompleted)
@@ -147,8 +160,6 @@ public sealed class RowReader : IDisposable
             incompleteLineBytes = 0;
             linesRead++;
         }
-
-        return result;
     }
 
     private static bool HasUtf8Bom(ReadOnlySpan<byte> header)

@@ -41,39 +41,52 @@ internal abstract class MorphTableView : TableView
 
         var action = _vimKeys.Translate(key.KeyCode);
 
-        void moveToRow(int row)
+        var command = MapCommand(action);
+        if (command.HasValue)
         {
-            // Cannot use Command.Start/End as they reset the column to 0 or rightmost.
-            // We need to preserve the current column while moving rows.
-            if (Value is null)
-            {
-                return;
-            }
-
-            SetSelection(col: Value.SelectedCell.X, row: row, extendExistingSelection: false);
-            Update();
-            SetNeedsDraw();
-        }
-
-        static bool execute(Action a)
-        {
-            a();
+            InvokeCommand(command.Value);
             return true;
         }
 
         return action switch
         {
-            VimAction.MoveDown => execute(() => InvokeCommand(Command.Down)),
-            VimAction.MoveUp => execute(() => InvokeCommand(Command.Up)),
-            VimAction.MoveLeft => execute(() => InvokeCommand(Command.Left)),
-            VimAction.MoveRight => execute(() => InvokeCommand(Command.Right)),
-            VimAction.PageDown => execute(() => InvokeCommand(Command.PageDown)),
-            VimAction.PageUp => execute(() => InvokeCommand(Command.PageUp)),
-            VimAction.GoToFirst => execute(() => moveToRow(0)),
-            VimAction.GoToEnd => execute(() => moveToRow(Table.Rows - 1)),
+            VimAction.GoToFirst => ConsumeRow(0),
+            VimAction.GoToEnd => ConsumeRow(Table.Rows - 1),
             VimAction.PendingGSequence => true,
             _ => HandleNonVimKey(key),
         };
+    }
+
+    private static Command? MapCommand(VimAction action) =>
+        action switch
+        {
+            VimAction.MoveDown => Command.Down,
+            VimAction.MoveUp => Command.Up,
+            VimAction.MoveLeft => Command.Left,
+            VimAction.MoveRight => Command.Right,
+            VimAction.PageDown => Command.PageDown,
+            VimAction.PageUp => Command.PageUp,
+            _ => null,
+        };
+
+    private bool ConsumeRow(int row)
+    {
+        MoveToRow(row);
+        return true;
+    }
+
+    // Cannot use Command.Start/End as they reset the column to 0 or rightmost.
+    // We need to preserve the current column while moving rows.
+    private void MoveToRow(int row)
+    {
+        if (Value is null)
+        {
+            return;
+        }
+
+        SetSelection(col: Value.SelectedCell.X, row: row, extendExistingSelection: false);
+        Update();
+        SetNeedsDraw();
     }
 
     private bool HandleNonVimKey(Key key)

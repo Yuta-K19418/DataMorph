@@ -76,41 +76,9 @@ internal static class KeyPathTraverser
 
         if (segment.Kind == KeyPathSegmentKind.Index)
         {
-            var reader = new Utf8JsonReader(currentBytes.Span);
-            if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
-            {
-                return; // Wrong type at this path position — skip record silently.
-            }
-
-            if (segmentIndex == keyPath.Count - 1)
-            {
-                // A trailing index segment expands the same array that would be reached by
-                // selecting it directly as the leaf (e.g. "tags" and "tags[0]" must produce
-                // identical output, including the "value" column for primitive elements).
-                CollectArrayLeafRows(currentBytes, posHash, rows, keyOrder, keySet, columnTypes, keyObservedCount);
-                return;
-            }
-
-            var elementIndex = 0;
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.EndArray)
-                {
-                    break;
-                }
-
-                if (reader.CurrentDepth != 1)
-                {
-                    continue;
-                }
-
-                var elementBytes = ExtractElementBytes(ref reader, currentBytes);
-                TraverseKeyPath(
-                    elementBytes, keyPath, segmentIndex + 1, $"{posHash}:{elementIndex}", colName, colNameUtf8,
-                    rows, keyOrder, keySet, columnTypes, keyObservedCount);
-                elementIndex++;
-            }
-
+            TraverseIndexSegment(
+                currentBytes, keyPath, segmentIndex, posHash, colName, colNameUtf8,
+                rows, keyOrder, keySet, columnTypes, keyObservedCount);
             return;
         }
 
@@ -123,6 +91,55 @@ internal static class KeyPathTraverser
         TraverseKeyPath(
             valueBytes.Value, keyPath, segmentIndex + 1, posHash, colName, colNameUtf8,
             rows, keyOrder, keySet, columnTypes, keyObservedCount);
+    }
+
+    private static void TraverseIndexSegment(
+        JsonRawBytes currentBytes,
+        IReadOnlyList<KeyPathSegment> keyPath,
+        int segmentIndex,
+        string posHash,
+        string colName,
+        byte[] colNameUtf8,
+        List<FocusedTableRow> rows,
+        List<string> keyOrder,
+        HashSet<string> keySet,
+        Dictionary<string, ColumnType> columnTypes,
+        Dictionary<string, int> keyObservedCount)
+    {
+        var reader = new Utf8JsonReader(currentBytes.Span);
+        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+        {
+            return; // Wrong type at this path position — skip record silently.
+        }
+
+        if (segmentIndex == keyPath.Count - 1)
+        {
+            // A trailing index segment expands the same array that would be reached by
+            // selecting it directly as the leaf (e.g. "tags" and "tags[0]" must produce
+            // identical output, including the "value" column for primitive elements).
+            CollectArrayLeafRows(currentBytes, posHash, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+            return;
+        }
+
+        var elementIndex = 0;
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+            {
+                break;
+            }
+
+            if (reader.CurrentDepth != 1)
+            {
+                continue;
+            }
+
+            var elementBytes = ExtractElementBytes(ref reader, currentBytes);
+            TraverseKeyPath(
+                elementBytes, keyPath, segmentIndex + 1, $"{posHash}:{elementIndex}", colName, colNameUtf8,
+                rows, keyOrder, keySet, columnTypes, keyObservedCount);
+            elementIndex++;
+        }
     }
 
     private static void CollectLeafRows(

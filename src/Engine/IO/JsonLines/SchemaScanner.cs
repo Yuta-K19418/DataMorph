@@ -110,7 +110,23 @@ public static class SchemaScanner
             return Results.Success(schema);
         }
 
-        // Copy-on-Write: collect only changed/new columns
+        var updatedColumns = ComputeUpdatedColumns(schema, keyOrder, columnMap, observedKeys);
+        if (updatedColumns.Count == 0)
+        {
+            return Results.Success(schema);
+        }
+
+        var newColumns = RebuildColumns(schema, keyOrder, updatedColumns);
+        return Results.Success(schema with { Columns = newColumns });
+    }
+
+    // Copy-on-Write: collects only columns whose type or nullability changed relative to schema.
+    private static Dictionary<string, ColumnSchema> ComputeUpdatedColumns(
+        TableSchema schema,
+        List<string> keyOrder,
+        Dictionary<string, ColumnType> columnMap,
+        HashSet<string> observedKeys)
+    {
         var updatedColumns = new Dictionary<string, ColumnSchema>();
 
         for (var i = 0; i < keyOrder.Count; i++)
@@ -145,12 +161,15 @@ public static class SchemaScanner
             }
         }
 
-        if (updatedColumns.Count == 0)
-        {
-            return Results.Success(schema);
-        }
+        return updatedColumns;
+    }
 
-        // Rebuild full column list with updated entries
+    // Rebuilds the full column list in keyOrder, substituting any updated entries.
+    private static List<ColumnSchema> RebuildColumns(
+        TableSchema schema,
+        List<string> keyOrder,
+        Dictionary<string, ColumnSchema> updatedColumns)
+    {
         var newColumns = new List<ColumnSchema>(keyOrder.Count);
         for (var i = 0; i < keyOrder.Count; i++)
         {
@@ -169,7 +188,7 @@ public static class SchemaScanner
             );
         }
 
-        return Results.Success(schema with { Columns = newColumns });
+        return newColumns;
     }
 
     /// <summary>
@@ -251,49 +270,11 @@ public static class SchemaScanner
                     continue;
                 }
 
-                var propertyName =
-                    reader.GetString()
-                    ?? throw new UnreachableException(
-                        "GetString() returned null on a PropertyName token."
-                    );
-
-                if (!reader.Read())
+                var propertyResult = ScanProperty(ref reader, columnMap, keyOrder, observedKeys);
+                if (propertyResult.IsFailure)
                 {
-                    return Results.Failure("Unexpected end of JSON.");
+                    return propertyResult;
                 }
-
-                if (TypeInferrer.IsNullToken(reader.TokenType))
-                {
-                    // JSON null: do NOT change type, do NOT add to observedKeys
-                    if (!columnMap.ContainsKey(propertyName))
-                    {
-                        columnMap[propertyName] = ColumnType.Text;
-                        keyOrder.Add(propertyName);
-                    }
-
-                    continue;
-                }
-
-                var inferredType = TypeInferrer.InferType(reader.TokenType, reader.ValueSpan);
-
-                if (
-                    reader.TokenType == JsonTokenType.StartObject
-                    || reader.TokenType == JsonTokenType.StartArray
-                )
-                {
-                    reader.Skip();
-                }
-
-                observedKeys.Add(propertyName);
-
-                if (!columnMap.TryGetValue(propertyName, out var existingType))
-                {
-                    columnMap[propertyName] = inferredType;
-                    keyOrder.Add(propertyName);
-                    continue;
-                }
-
-                columnMap[propertyName] = ColumnTypeResolver.Resolve(existingType, inferredType);
             }
 
             return Results.Success();
@@ -302,5 +283,59 @@ public static class SchemaScanner
         {
             return Results.Failure("Malformed JSON line.");
         }
+    }
+
+    // Reads one "key": value pair (reader positioned at PropertyName) and updates the mutable
+    // maps in-place, resolving the column's type against any prior observation of the same key.
+    private static Result ScanProperty(
+        ref Utf8JsonReader reader,
+        Dictionary<string, ColumnType> columnMap,
+        List<string> keyOrder,
+        HashSet<string> observedKeys)
+    {
+        var propertyName =
+            reader.GetString()
+            ?? throw new UnreachableException(
+                "GetString() returned null on a PropertyName token."
+            );
+
+        if (!reader.Read())
+        {
+            return Results.Failure("Unexpected end of JSON.");
+        }
+
+        if (TypeInferrer.IsNullToken(reader.TokenType))
+        {
+            // JSON null: do NOT change type, do NOT add to observedKeys
+            if (!columnMap.ContainsKey(propertyName))
+            {
+                columnMap[propertyName] = ColumnType.Text;
+                keyOrder.Add(propertyName);
+            }
+
+            return Results.Success();
+        }
+
+        var inferredType = TypeInferrer.InferType(reader.TokenType, reader.ValueSpan);
+
+        if (
+            reader.TokenType == JsonTokenType.StartObject
+            || reader.TokenType == JsonTokenType.StartArray
+        )
+        {
+            reader.Skip();
+        }
+
+        observedKeys.Add(propertyName);
+
+        if (!columnMap.TryGetValue(propertyName, out var existingType))
+        {
+            columnMap[propertyName] = inferredType;
+            keyOrder.Add(propertyName);
+            return Results.Success();
+        }
+
+        columnMap[propertyName] = ColumnTypeResolver.Resolve(existingType, inferredType);
+        return Results.Success();
     }
 }

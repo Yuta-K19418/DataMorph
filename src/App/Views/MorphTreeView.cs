@@ -55,27 +55,41 @@ internal abstract class MorphTreeView : TreeView
 
         var action = _vimKeys.Translate(key.KeyCode);
 
+        if (TrySelectionMove(action))
+        {
+            return true;
+        }
+
         return action switch
         {
             VimAction.PendingGSequence => true,
-            VimAction.MoveDown => ConsumeAction(() =>
-                AdjustSelection(offset: 1, expandSelection: false)
-            ),
-            VimAction.MoveUp => ConsumeAction(() =>
-                AdjustSelection(offset: -1, expandSelection: false)
-            ),
-            VimAction.PageDown => ConsumeAction(() =>
-                AdjustSelection(offset: Viewport.Height, expandSelection: false)
-            ),
-            VimAction.PageUp => ConsumeAction(() =>
-                AdjustSelection(offset: -Viewport.Height, expandSelection: false)
-            ),
             VimAction.MoveLeft => base.OnKeyDown(new Key(KeyCode.CursorLeft)),
             VimAction.MoveRight => base.OnKeyDown(new Key(KeyCode.CursorRight)),
             VimAction.GoToFirst => ConsumeAction(GoToFirst),
             VimAction.GoToEnd => ConsumeAction(GoToEnd),
             _ => HandleNonVimKey(key),
         };
+    }
+
+    // Groups the four selection-offset moves so OnKeyDown's dispatch stays under the complexity cap.
+    private bool TrySelectionMove(VimAction action)
+    {
+        var offset = action switch
+        {
+            VimAction.MoveDown => 1,
+            VimAction.MoveUp => -1,
+            VimAction.PageDown => Viewport.Height,
+            VimAction.PageUp => -Viewport.Height,
+            _ => (int?)null,
+        };
+
+        if (offset is null)
+        {
+            return false;
+        }
+
+        AdjustSelection(offset: offset.Value, expandSelection: false);
+        return true;
     }
 
     private bool HandleNonVimKey(Key key)

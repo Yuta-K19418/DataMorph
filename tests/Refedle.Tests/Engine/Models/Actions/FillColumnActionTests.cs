@@ -56,7 +56,7 @@ public sealed class FillColumnActionTests
 
         // Act
         var json = JsonSerializer.Serialize(
-            (MorphAction)action,
+            action,
             JsonContext.Default.MorphAction
         );
 

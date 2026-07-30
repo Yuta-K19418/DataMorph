@@ -340,13 +340,13 @@ public sealed class AppKeyHandlerTests
     public static IEnumerable<object[]> InvalidSingleDrillDownSelections()
     {
         // Guard 1: a primitive value node is not a JsonArrayTreeNode.
-        yield return [(object)new JsonValueTreeNode("not-an-array")];
+        yield return [(new JsonValueTreeNode("not-an-array"))];
 
         // Guard 2: array whose lazy Children parse to zero elements.
-        yield return [(object)new JsonArrayTreeNode("[]"u8.ToArray())];
+        yield return [(new JsonArrayTreeNode("[]"u8.ToArray()))];
 
         // Guard 3: mixed-type children (object + value) fail the "all children must be objects" check.
-        yield return [(object)new JsonArrayTreeNode("[{},1]"u8.ToArray())];
+        yield return [(new JsonArrayTreeNode("[{},1]"u8.ToArray()))];
     }
 
     private static IApplication CreateTestApp()

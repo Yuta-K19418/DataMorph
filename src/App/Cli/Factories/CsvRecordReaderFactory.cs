@@ -3,7 +3,7 @@ using Refedle.Engine;
 using Refedle.Engine.Models;
 using Refedle.Engine.Types;
 
-namespace Refedle.App.Cli;
+namespace Refedle.App.Cli.Factories;
 
 [RecordReader(DataFormat.Csv)]
 internal readonly struct CsvRecordReaderFactory : IRecordReaderFactory<CsvRecordReader>

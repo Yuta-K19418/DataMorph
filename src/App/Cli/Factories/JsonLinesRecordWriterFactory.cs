@@ -1,7 +1,7 @@
 using Refedle.Engine;
 using Refedle.Engine.Types;
 
-namespace Refedle.App.Cli;
+namespace Refedle.App.Cli.Factories;
 
 [RecordWriter(DataFormat.JsonLines)]
 internal readonly struct JsonLinesRecordWriterFactory : IRecordWriterFactory<JsonLinesRecordWriter>

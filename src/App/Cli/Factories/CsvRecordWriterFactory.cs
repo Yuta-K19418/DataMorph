@@ -2,7 +2,7 @@ using System.Text;
 using Refedle.Engine;
 using Refedle.Engine.Types;
 
-namespace Refedle.App.Cli;
+namespace Refedle.App.Cli.Factories;
 
 [RecordWriter(DataFormat.Csv)]
 internal readonly struct CsvRecordWriterFactory : IRecordWriterFactory<CsvRecordWriter>

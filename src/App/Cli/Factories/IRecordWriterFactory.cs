@@ -1,6 +1,6 @@
 using Refedle.Engine;
 
-namespace Refedle.App.Cli;
+namespace Refedle.App.Cli.Factories;
 
 internal interface IRecordWriterFactory<TWriter> where TWriter : struct, IRecordWriter
 {

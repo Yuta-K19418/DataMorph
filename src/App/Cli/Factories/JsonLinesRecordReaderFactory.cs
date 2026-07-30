@@ -2,7 +2,7 @@ using Refedle.Engine;
 using Refedle.Engine.Models;
 using Refedle.Engine.Types;
 
-namespace Refedle.App.Cli;
+namespace Refedle.App.Cli.Factories;
 
 [RecordReader(DataFormat.JsonLines)]
 internal readonly struct JsonLinesRecordReaderFactory : IRecordReaderFactory<JsonLinesRecordReader>

@@ -1,7 +1,7 @@
 using Refedle.Engine;
 using Refedle.Engine.Models;
 
-namespace Refedle.App.Cli;
+namespace Refedle.App.Cli.Factories;
 
 internal interface IRecordReaderFactory<TReader> where TReader : struct, IRecordReader
 {

@@ -16,7 +16,6 @@ internal sealed class MainWindow : Window
     private readonly IApplication _app;
     private readonly AppState _state;
     private readonly IndexTaskManager _indexTaskManager = new();
-    private readonly ModeController _modeController;
     private readonly ViewManager _viewManager;
     private readonly AppKeyHandler _keyHandler;
     private readonly FileDialogHandler _fileDialogHandler;
@@ -51,14 +50,14 @@ internal sealed class MainWindow : Window
     {
         _app = app;
         _state = state;
-        _modeController = new ModeController(state);
+        var modeController = new ModeController(state);
 
         X = 0;
         Y = 0;
         Width = Dim.Fill();
         Height = Dim.Fill();
 
-        _viewManager = new ViewManager(this, state, _modeController, app.Invoke);
+        _viewManager = new ViewManager(this, state, modeController, app.Invoke);
 
         _fileDialogHandler = new FileDialogHandler(app, state, _viewManager, StartIndexing, StopCurrentIndexing);
         _recipeCommandHandler = new RecipeCommandHandler(app, state, _viewManager);

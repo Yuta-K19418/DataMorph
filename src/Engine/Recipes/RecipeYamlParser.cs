@@ -228,7 +228,8 @@ internal sealed class RecipeYamlParser
     private static string UnescapeString(ReadOnlySpan<char> inner)
     {
         var sb = new StringBuilder(inner.Length);
-        for (var i = 0; i < inner.Length; i++)
+        var i = 0;
+        while (i < inner.Length)
         {
             if (inner[i] == '\\' && i + 1 < inner.Length)
             {
@@ -238,11 +239,12 @@ internal sealed class RecipeYamlParser
                     '\\' => '\\',
                     var c => c,
                 });
-                i++;
+                i += 2;
                 continue;
             }
 
             sb.Append(inner[i]);
+            i++;
         }
 
         return sb.ToString();

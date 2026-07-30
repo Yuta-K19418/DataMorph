@@ -51,8 +51,6 @@ internal static class OptionSelectorExtensions
                     selector.FocusedItem--;
                     key.Handled = true;
                 }
-
-                return;
             }
         };
     }

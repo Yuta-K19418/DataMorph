@@ -33,7 +33,7 @@ internal struct CsvRecordReader : IRecordReader
         _disposed = false;
     }
 
-    public ValueTask<bool> MoveNextAsync(CancellationToken ct)
+    public readonly ValueTask<bool> MoveNextAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         if (_reader is null)

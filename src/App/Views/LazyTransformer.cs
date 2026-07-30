@@ -312,8 +312,15 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
             ? d.ToString(CultureInfo.InvariantCulture)
             : ParseFailureLabel;
 
-    private static string FormatBoolean(string rawValue) =>
-        bool.TryParse(rawValue, out var b) ? (b ? "true" : "false") : ParseFailureLabel;
+    private static string FormatBoolean(string rawValue)
+    {
+        if (!bool.TryParse(rawValue, out var b))
+        {
+            return ParseFailureLabel;
+        }
+
+        return b ? "true" : "false";
+    }
 
     private static string FormatTimestamp(string rawValue, string? formatString)
     {

@@ -324,7 +324,7 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
 
     private static string FormatTimestamp(string rawValue, string? formatString)
     {
-        if (!DateTime.TryParse(rawValue, out var dt))
+        if (!DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
         {
             return ParseFailureLabel;
         }

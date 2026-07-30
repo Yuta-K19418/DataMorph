@@ -174,7 +174,7 @@ internal sealed class RecipeYamlParser
 
     private static Result<DateTimeOffset> TryParseLastModified(string value)
     {
-        if (!DateTimeOffset.TryParse(UnquoteString(value), null, DateTimeStyles.RoundtripKind, out var dt))
+        if (!DateTimeOffset.TryParse(UnquoteString(value), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt))
         {
             return Results.Failure<DateTimeOffset>($"Invalid lastModified value: '{value}'");
         }

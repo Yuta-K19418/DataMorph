@@ -33,7 +33,7 @@ internal sealed class HelpDialog : Dialog
             Y = 0,
             Width = Dim.Fill(),
             Height = Dim.Fill() - 1,
-            Text = GetHelpText(),
+            Text = HelpText,
         };
 
         Add(helpText);
@@ -43,39 +43,36 @@ internal sealed class HelpDialog : Dialog
         AddButton(closeButton);
     }
 
-    private static string GetHelpText()
-    {
-        return """
-            Global / File Operations
-            -------------------------
-            o         : Open File
-            s         : Save Recipe
-            q         : Quit
-            t         : Toggle Tree/Table View (JSON Lines)
-            x         : Context-Sensitive Action Menu
-            c         : Clear all actions from the stack
-            ?         : Help (this overlay)
-            BackSpace : Return to originating tree view
-                        (FocusedTable only)
+    private const string HelpText = """
+        Global / File Operations
+        -------------------------
+        o         : Open File
+        s         : Save Recipe
+        q         : Quit
+        t         : Toggle Tree/Table View (JSON Lines)
+        x         : Context-Sensitive Action Menu
+        c         : Clear all actions from the stack
+        ?         : Help (this overlay)
+        BackSpace : Return to originating tree view
+                    (FocusedTable only)
 
-            Navigation
-            ----------
-            h/j/k/l   : Move Left/Down/Up/Right
-            gg        : Jump to first row
-            G         : Jump to last row
-            Enter     : Expand/Collapse (Tree View)
+        Navigation
+        ----------
+        h/j/k/l   : Move Left/Down/Up/Right
+        gg        : Jump to first row
+        G         : Jump to last row
+        Enter     : Expand/Collapse (Tree View)
 
-            Context Actions (via 'x' menu)
-            ------------------------------
-            Rename    : Rename the current column
-            Delete    : Remove the current column
-            Cast      : Change column data type
-            Filter    : Add a filter based on current column
-            Fill      : Fill empty cells in column
-            Format    : Format timestamp columns
-            DrillDown : Drill into the selected node
-            """;
-    }
+        Context Actions (via 'x' menu)
+        ------------------------------
+        Rename    : Rename the current column
+        Delete    : Remove the current column
+        Cast      : Change column data type
+        Filter    : Add a filter based on current column
+        Fill      : Fill empty cells in column
+        Format    : Format timestamp columns
+        DrillDown : Drill into the selected node
+        """;
 
     /// <inheritdoc/>
     protected override bool OnKeyDown(Key key)

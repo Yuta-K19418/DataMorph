@@ -64,7 +64,7 @@ internal sealed class MainWindow : Window
 
         InitializeMenu();
         InitializeStatusBar();
-        _keyHandler = new AppKeyHandler(app, state, _viewManager, _fileDialogHandler, _recipeCommandHandler, _statusBar);
+        _keyHandler = new AppKeyHandler(app, state, _viewManager, _fileDialogHandler, _recipeCommandHandler);
         _viewManager.SwitchToFileSelection();
     }
 

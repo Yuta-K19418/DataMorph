@@ -30,7 +30,7 @@ internal static class OptionSelectorExtensions
             };
         }
 
-        selector.KeyDown += (object? sender, Key key) =>
+        selector.KeyDown += (sender, key) =>
         {
             if (key == Key.J)
             {

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Refedle.Engine.IO.Json;
@@ -114,7 +115,7 @@ public static class JsonByteExtractor
     public static string FormatObjectPreview(ref Utf8JsonReader reader)
     {
         var propertyCount = CountObjectProperties(ref reader);
-        return FormattableString.Invariant($"{{Object: {propertyCount:N0} properties}}");
+        return string.Create(CultureInfo.InvariantCulture, $"{{Object: {propertyCount:N0} properties}}");
     }
 
     /// <summary>
@@ -124,6 +125,6 @@ public static class JsonByteExtractor
     public static string FormatArrayPreview(ref Utf8JsonReader reader)
     {
         var elementCount = CountArrayElements(ref reader);
-        return FormattableString.Invariant($"[Array: {elementCount:N0} items]");
+        return string.Create(CultureInfo.InvariantCulture, $"[Array: {elementCount:N0} items]");
     }
 }

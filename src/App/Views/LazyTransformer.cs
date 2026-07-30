@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Refedle.Engine.Filtering;
 using Refedle.Engine.IO.Csv;
@@ -212,6 +213,8 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
             case FormatTimestampAction formatTs:
                 ApplyFormatTimestamp(formatTs, working, nameToIndex);
                 break;
+            default:
+                throw new UnreachableException($"Unhandled {nameof(MorphAction)} type: {action.GetType()}");
         }
     }
 

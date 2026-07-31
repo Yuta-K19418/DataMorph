@@ -67,7 +67,6 @@ public abstract class RowIndexerBase : IRowIndexer
     /// <inheritdoc />
     public abstract string FilePath { get; }
 
-#pragma warning disable CA1003 // See class <remarks> for rationale
     /// <inheritdoc />
     public event Action? FirstCheckpointReached;
 
@@ -76,7 +75,6 @@ public abstract class RowIndexerBase : IRowIndexer
 
     /// <inheritdoc />
     public event Action? BuildIndexCompleted;
-#pragma warning restore CA1003
 
     /// <inheritdoc />
     public abstract void BuildIndex(CancellationToken ct = default);

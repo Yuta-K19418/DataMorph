@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
@@ -14,11 +13,6 @@ internal sealed class HelpDialog : Dialog
     /// <summary>
     /// Initializes a new instance of the <see cref="HelpDialog"/> class.
     /// </summary>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by Dialog and disposed when Dialog is disposed."
-    )]
     internal HelpDialog()
     {
         Title = "Help - Key Bindings";

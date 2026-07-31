@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Refedle.App.Views;
 using Refedle.Engine.IO;
@@ -26,17 +25,7 @@ internal sealed class ViewManager : IDisposable
     private readonly AppState _state;
     private readonly ModeController _modeController;
     private readonly Action<Action> _uiThreadInvoke;
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "BreadcrumbBar is added to the Window (_container) and is disposed automatically when the Window is disposed."
-    )]
     private readonly BreadcrumbBar _breadcrumbBar;
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "ContentContainer is added to the Window (_container) and is disposed automatically when the Window is disposed."
-    )]
     private readonly View _contentContainer;
     private View? _currentView;
     private Label? _itemCountLabel;
@@ -237,11 +226,6 @@ internal sealed class ViewManager : IDisposable
     /// </summary>
     /// <param name="indexer">The CSV row indexer for the loaded file.</param>
     /// <param name="schema">The detected table schema.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the container and disposed via SwapView."
-    )]
     internal void SwitchToCsvTable(IRowIndexer indexer, TableSchema schema)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -292,11 +276,6 @@ internal sealed class ViewManager : IDisposable
     /// Switches the content area to the JSON Lines hierarchical tree view.
     /// </summary>
     /// <param name="indexer">The JSON Lines row indexer for the loaded file.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the container and disposed via SwapView."
-    )]
     internal void SwitchToJsonLinesTree(IRowIndexer indexer)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -316,11 +295,6 @@ internal sealed class ViewManager : IDisposable
     /// Switches the content area to the JSON Array hierarchical tree view.
     /// </summary>
     /// <param name="indexer">The JSON Array row indexer for the loaded file.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the container and disposed via SwapView."
-    )]
     internal void SwitchToJsonArrayTree(IRowIndexer indexer)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -343,11 +317,6 @@ internal sealed class ViewManager : IDisposable
     /// <param name="entries">
     /// The key-value pairs returned by <see cref="Engine.IO.JsonObject.TopLevelScanner.Scan"/>.
     /// </param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the container and disposed via SwapView."
-    )]
     internal void SwitchToJsonObjectTree(
         IReadOnlyList<JsonObjectEntry> entries)
     {
@@ -369,11 +338,6 @@ internal sealed class ViewManager : IDisposable
     /// </summary>
     /// <param name="indexer">The JSON Lines row indexer for the loaded file.</param>
     /// <param name="schema">The detected table schema.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the container and disposed via SwapView."
-    )]
     internal void SwitchToJsonLinesTableView(IRowIndexer indexer, TableSchema schema)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -429,11 +393,6 @@ internal sealed class ViewManager : IDisposable
     /// Called after a morph action is added to <see cref="AppState.ActionStack"/> so that
     /// <see cref="Views.LazyTransformer"/> is reconstructed with the updated stack.
     /// </summary>
-    [SuppressMessage(
-        "Style",
-        "IDE0010:Populate switch",
-        Justification = "Only CsvTable/JsonLinesTable refresh here; all other modes are a no-op via the default arm."
-    )]
     internal void RefreshCurrentTableView()
     {
         switch (_state.CurrentMode)
@@ -470,11 +429,6 @@ internal sealed class ViewManager : IDisposable
     /// Displays an error message in a placeholder view.
     /// </summary>
     /// <param name="message">The error message to display.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the container and disposed via SwapView."
-    )]
     internal void ShowError(string message)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -620,7 +574,6 @@ internal sealed class ViewManager : IDisposable
     /// <summary>
     /// Creates FocusedTableSource and FocusedTableView, then switches to the FocusedTable view.
     /// </summary>
-    [SuppressMessage("Reliability", "CA2000", Justification = "Owned by container via SwapView.")]
     internal void SwitchToFocusedTable(DrillDownState drillDown)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -643,11 +596,6 @@ internal sealed class ViewManager : IDisposable
     /// entered from, rebuilding that tree from its cached backing data on <see cref="AppState"/>.
     /// A no-op when there is no active DrillDown session.
     /// </summary>
-    [SuppressMessage(
-        "Style",
-        "IDE0010:Populate switch",
-        Justification = "Only tree ViewMode values are valid PreviousMode; the default arm throws for any other member."
-    )]
     internal void ReturnFromDrillDown()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

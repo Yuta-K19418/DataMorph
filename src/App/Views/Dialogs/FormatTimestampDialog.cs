@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -24,11 +23,6 @@ internal sealed class FormatTimestampDialog : Dialog
     /// Initializes a new instance of the <see cref="FormatTimestampDialog"/> class.
     /// </summary>
     /// <param name="columnName">The name of column to format.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by Dialog and disposed when Dialog is disposed."
-    )]
     internal FormatTimestampDialog(string columnName)
     {
         Title = "Format Timestamp";

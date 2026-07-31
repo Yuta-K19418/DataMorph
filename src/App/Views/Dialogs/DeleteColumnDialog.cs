@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.Views;
 
 namespace Refedle.App.Views.Dialogs;
@@ -17,11 +16,6 @@ internal sealed class DeleteColumnDialog : Dialog
     /// Initializes a new instance of the <see cref="DeleteColumnDialog"/> class.
     /// </summary>
     /// <param name="columnName">The name of the column to be deleted, shown in the prompt.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the Dialog and disposed when the Dialog is disposed."
-    )]
     internal DeleteColumnDialog(string columnName)
     {
         Title = "Delete Column";

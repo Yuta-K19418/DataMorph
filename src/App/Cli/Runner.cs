@@ -67,9 +67,7 @@ internal static class Runner
             await logger.WriteErrorAsync(ex.Message);
             return ExitCode.Failure;
         }
-#pragma warning disable CA1031 // Do not catch general exception types
         catch (Exception ex)
-#pragma warning restore CA1031 // Do not catch general exception types
         {
             await logger.WriteErrorAsync($"Error: {ex.Message}");
             return ExitCode.Failure;

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Refedle.Engine.IO;
 using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
@@ -25,26 +24,9 @@ internal sealed class MainWindow : Window
     private Action<long, long>? _onProgressChanged;
     private Action? _onBuildIndexCompleted;
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
     private ProgressBar? _progressBar;
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
     private Label? _progressLabel;
-
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
-    private StatusBar? _statusBar;
 
     public MainWindow(IApplication app, AppState state)
     {
@@ -77,11 +59,6 @@ internal sealed class MainWindow : Window
         _keyHandler.Subscribe();
     }
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
     private void InitializeMenu()
     {
         var openMenuItem = new MenuItem("_Open", "", async () => await _fileDialogHandler.ShowAsync());
@@ -94,14 +71,9 @@ internal sealed class MainWindow : Window
         Add(menuBar);
     }
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
     private void InitializeStatusBar()
     {
-        _statusBar = new StatusBar
+        var statusBar = new StatusBar
         {
             X = 0,
             // Place at the very last line of the window
@@ -111,7 +83,7 @@ internal sealed class MainWindow : Window
         };
 
         _viewManager.RefreshStatusBarHints();
-        Add(_statusBar);
+        Add(statusBar);
     }
 
     protected override void Dispose(bool disposing)
@@ -202,11 +174,6 @@ internal sealed class MainWindow : Window
         DismissIndexingProgress();
     }
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
     private void ShowIndexingProgress()
     {
         DismissIndexingProgress();

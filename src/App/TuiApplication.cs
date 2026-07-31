@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.App;
 
 namespace Refedle.App;
@@ -18,11 +17,6 @@ internal static class TuiApplication
     /// returned by this method. Child views added to the MainWindow will be disposed automatically
     /// when the MainWindow is disposed.
     /// </remarks>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The created IApplication and MainWindow are returned to the caller, which is responsible for disposal."
-    )]
     public static (IApplication app, MainWindow mainWindow) Create()
     {
         var app = Application.Create();

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Refedle.Engine.Types;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -29,11 +28,6 @@ internal sealed class CastColumnDialog : Dialog
     /// <param name="columnName">The name of the column to cast.</param>
     /// <param name="currentType">The current column type, pre-selected in the option list.</param>
     /// <param name="format">The data format of the current file.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the Dialog and disposed when the Dialog is disposed."
-    )]
     internal CastColumnDialog(string columnName, ColumnType currentType, DataFormat format)
     {
         Title = "Cast Column Type";

@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Refedle.App.Views.JsonTreeNodes;
 using Refedle.Engine.IO.DrillDown;
 using Terminal.Gui.Views;
@@ -20,12 +19,6 @@ internal static class KeyPathBuilder
     /// </summary>
     /// <param name="node">The selected tree node to build the KeyPath from.</param>
     /// <returns>An ordered list of path segments from root to <paramref name="node"/>.</returns>
-    [SuppressMessage(
-        "Performance",
-        "CA1859:Use concrete types when possible for improved performance",
-        Justification = "IReadOnlyList<KeyPathSegment> is the KeyPath contract shared with FullAggregationDrillDownRequest; " +
-            "the concrete List<KeyPathSegment> used to build it is an implementation detail that should not leak out."
-    )]
     internal static IReadOnlyList<KeyPathSegment> Build(ITreeNode node)
     {
         List<KeyPathSegment> segments = [];

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Refedle.App.Schema.Csv;
 using Refedle.Engine.IO;
 using Refedle.Engine.Types;
@@ -23,11 +22,6 @@ internal sealed class FileDialogHandler(
     private readonly Action<IRowIndexer> _onIndexerStart = onIndexerStart;
     private readonly Action _stopIndexing = stopIndexing;
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The OpenDialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     internal async Task ShowAsync()
     {
         var dialog = new OpenDialog { Title = "Open File" };
@@ -116,9 +110,7 @@ internal sealed class FileDialogHandler(
             });
         }
         catch (OperationCanceledException) { /* file reloaded before scan completed */ }
-#pragma warning disable CA1031 // UI top-level handler
         catch (Exception ex)
-#pragma warning restore CA1031
         {
             _app.Invoke(() =>
                 _viewManager.ShowError($"Error loading JSON Object: {ex.Message}"));
@@ -167,9 +159,7 @@ internal sealed class FileDialogHandler(
                 _onIndexerStart(indexer);
             });
         }
-#pragma warning disable CA1031 // UI top-level handler
         catch (Exception ex)
-#pragma warning restore CA1031
         {
             _app.Invoke(() => _viewManager.ShowError($"Error scanning CSV: {ex.Message}"));
         }
@@ -196,9 +186,7 @@ internal sealed class FileDialogHandler(
                 _viewManager.SwitchToJsonLinesTree(indexer);
             });
         }
-#pragma warning disable CA1031 // UI top-level handler
         catch (Exception ex)
-#pragma warning restore CA1031
         {
             _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Lines: {ex.Message}"));
         }
@@ -225,9 +213,7 @@ internal sealed class FileDialogHandler(
                 _viewManager.SwitchToJsonArrayTree(indexer);
             });
         }
-#pragma warning disable CA1031 // UI top-level handler
         catch (Exception ex)
-#pragma warning restore CA1031
         {
             _app.Invoke(() => _viewManager.ShowError($"Error loading JSON Array: {ex.Message}"));
         }

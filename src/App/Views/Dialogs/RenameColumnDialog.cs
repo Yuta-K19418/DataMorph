@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -26,11 +25,6 @@ internal sealed class RenameColumnDialog : Dialog
     /// Initializes a new instance of the <see cref="RenameColumnDialog"/> class.
     /// </summary>
     /// <param name="currentName">The current column name shown as the pre-filled value.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the Dialog and disposed when the Dialog is disposed."
-    )]
     internal RenameColumnDialog(string currentName)
     {
         Title = "Rename Column";

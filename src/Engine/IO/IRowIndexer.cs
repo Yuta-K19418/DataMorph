@@ -10,7 +10,6 @@ public interface IRowIndexer
     /// </summary>
     void BuildIndex(CancellationToken ct = default);
 
-#pragma warning disable CA1003
     /// <summary>
     /// Raised once when the first checkpoint has been indexed.
     /// </summary>
@@ -25,7 +24,6 @@ public interface IRowIndexer
     /// Raised once when BuildIndex returns.
     /// </summary>
     event Action? BuildIndexCompleted;
-#pragma warning restore CA1003
 
     /// <summary>
     /// Gets the bytes read so far.

@@ -85,10 +85,7 @@ public sealed class IndexTaskManagerTests : IDisposable
     public void Dispose_WithoutPriorStart_DoesNotThrow()
     {
         // Arrange
-        // CA2000: manager is disposed via act() below; suppress false positive.
-#pragma warning disable CA2000
         var manager = new IndexTaskManager();
-#pragma warning restore CA2000
 
         // Act
         var act = () => manager.Dispose();
@@ -188,10 +185,7 @@ public sealed class IndexTaskManagerTests : IDisposable
     public void CancelCurrent_AfterDisposal_ThrowsObjectDisposedException()
     {
         // Arrange
-        // CA2000: manager is disposed via manager.Dispose() below; suppress false positive.
-#pragma warning disable CA2000
         var manager = new IndexTaskManager();
-#pragma warning restore CA2000
         manager.Dispose();
 
         // Act
@@ -237,13 +231,11 @@ public sealed class IndexTaskManagerTests : IDisposable
     {
         public bool WasCancelled { get; private set; }
 
-#pragma warning disable CA1003
         public event Action? FirstCheckpointReached;
 #pragma warning disable CS0067
         public event Action<long, long>? ProgressChanged;
 #pragma warning restore CS0067
         public event Action? BuildIndexCompleted;
-#pragma warning restore CA1003
 
         public long BytesRead => 0;
         public long FileSize => 0;

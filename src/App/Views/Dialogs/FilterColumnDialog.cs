@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Refedle.Engine.Models.Actions;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
@@ -33,11 +32,6 @@ internal sealed class FilterColumnDialog : Dialog
     /// Initializes a new instance of the <see cref="FilterColumnDialog"/> class.
     /// </summary>
     /// <param name="columnName">The name of the column to filter on.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by the Dialog and disposed when the Dialog is disposed."
-    )]
     internal FilterColumnDialog(string columnName)
     {
         Title = "Filter Column";

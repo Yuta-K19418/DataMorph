@@ -7,7 +7,6 @@ namespace Refedle.App.Cli.Factories;
 [RecordReader(DataFormat.JsonLines)]
 internal readonly struct JsonLinesRecordReaderFactory : IRecordReaderFactory<JsonLinesRecordReader>
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Ownership is transferred to the caller.")]
     public ValueTask<JsonLinesRecordReader> CreateAsync(Arguments args, TableSchema inputSchema, BatchOutputSchema outputSchema, IAppLogger logger, CancellationToken ct)
     {
         Engine.IO.JsonLines.RowIndexer rowIndexer = new(args.InputFile);

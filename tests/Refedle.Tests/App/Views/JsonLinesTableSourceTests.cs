@@ -304,9 +304,7 @@ public sealed class JsonLinesTableSourceTests : IDisposable
     public void Dispose_DisposesRowByteCache()
     {
         // Arrange
-#pragma warning disable CA2000 // Ownership transferred to source
         var cache = new RowByteCache(_indexer);
-#pragma warning restore CA2000
         var schema = new TableSchema
         {
             Columns = [new ColumnSchema { Name = "id", Type = ColumnType.WholeNumber, ColumnIndex = 0 }],

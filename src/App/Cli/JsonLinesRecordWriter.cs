@@ -5,7 +5,6 @@ using Refedle.Engine;
 
 namespace Refedle.App.Cli;
 
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1001:Types that own disposable fields should be disposable", Justification = "JsonLinesRecordWriter is a struct designed for monomorphization as per ADR. It implements IRecordWriter which inherits from IDisposable and IAsyncDisposable, but CA1001 analyzer may be confused by structs or specific field types.")]
 internal partial struct JsonLinesRecordWriter : IRecordWriter
 {
     private const int InitialBufferSize = 1024 * 64; // 64 KB
@@ -76,9 +75,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
 
         _jsonWriter.WriteEndObject();
 
-#pragma warning disable CA1849, S6966 // Flush to IBufferWriter is synchronous and fast
         _jsonWriter.Flush();
-#pragma warning restore CA1849, S6966
 
         // Add newline (using \n as standard for JSONL across platforms)
         var span = _bufferWriter.GetSpan(1);

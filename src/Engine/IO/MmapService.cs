@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.MemoryMappedFiles;
 
 namespace Refedle.Engine.IO;
@@ -48,7 +47,6 @@ public sealed class MmapService : IDisposable
     /// A Result containing the MmapService on success, or an error message on failure.
     /// </returns>
     /// <exception cref="ArgumentException">Thrown when filePath is null, empty, or whitespace.</exception>
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "MmapService ownership is transferred to the caller via Result<T>")]
     public static Result<MmapService> Open(string filePath, FileAccess access = FileAccess.Read)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Refedle.Engine.Models;
 using Refedle.Engine.Recipes;
 using Terminal.Gui.App;
@@ -19,11 +18,6 @@ internal sealed class RecipeCommandHandler(
     private readonly ViewManager _viewManager = viewManager;
     private readonly RecipeManager _recipeManager = new();
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The OpenDialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     internal async Task SaveAsync()
     {
         if (_state.CurrentMode is not (ViewMode.CsvTable or ViewMode.JsonLinesTable or ViewMode.JsonLinesTree))
@@ -67,11 +61,6 @@ internal sealed class RecipeCommandHandler(
         });
     }
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The OpenDialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     internal async Task LoadAsync()
     {
         if (string.IsNullOrWhiteSpace(_state.CurrentFilePath))

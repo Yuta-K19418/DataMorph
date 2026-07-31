@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.Drivers;
 using Terminal.Gui.Input;
 using Terminal.Gui.ViewBase;
@@ -14,11 +13,6 @@ namespace Refedle.App.Views.Dialogs;
 /// </summary>
 internal sealed class ActionMenuDialog : Dialog
 {
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "Child views added to Dialog will be disposed automatically when the Dialog is disposed."
-    )]
     private readonly ListView _listView;
     private readonly Action<string> _onConfirmed;
 
@@ -37,11 +31,6 @@ internal sealed class ActionMenuDialog : Dialog
     /// </summary>
     /// <param name="availableActions">List of actions available for the current context.</param>
     /// <param name="onConfirmed">Callback invoked when the user confirms an action selection.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by Dialog and disposed when Dialog is disposed."
-    )]
     internal ActionMenuDialog(string[] availableActions, Action<string> onConfirmed)
     {
         ArgumentNullException.ThrowIfNull(availableActions);

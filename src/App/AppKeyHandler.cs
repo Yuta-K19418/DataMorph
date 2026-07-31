@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Refedle.App.Views;
 using Refedle.App.Views.Dialogs;
 using Refedle.App.Views.JsonTreeNodes;
@@ -87,11 +86,6 @@ internal sealed class AppKeyHandler : IDisposable
     /// Handles help overlay shortcut (?).
     /// </summary>
     /// <returns><c>true</c> if the key was handled; <c>false</c> otherwise.</returns>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     private bool HandleHelp()
     {
         var dialog = new HelpDialog();
@@ -172,11 +166,6 @@ internal sealed class AppKeyHandler : IDisposable
         return false;
     }
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     private bool HandleActionMenuForTable(MorphTableView mt)
     {
         if (mt.Table is null || mt.GetRawColumnName is null
@@ -227,11 +216,6 @@ internal sealed class AppKeyHandler : IDisposable
     /// Single-node DrillDown: JSON Object format only. Requires the selected node to be a
     /// <see cref="JsonArrayTreeNode"/> whose direct children are all <see cref="JsonObjectTreeNode"/>.
     /// </summary>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     private bool HandleSingleDrillDown(ITreeNode selectedNode, DataFormat format)
     {
         if (selectedNode is not JsonArrayTreeNode arrayNode)
@@ -265,11 +249,6 @@ internal sealed class AppKeyHandler : IDisposable
     /// <summary>
     /// Full Aggregation DrillDown: JSON Lines / JSON Array format, any node type, always a full file scan.
     /// </summary>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "The dialog is managed by Terminal.Gui's IApplication.Run() and will be disposed automatically."
-    )]
     private bool HandleFullAggregationDrillDown(ITreeNode selectedNode, DataFormat format)
     {
         var keyPath = KeyPathBuilder.Build(selectedNode);

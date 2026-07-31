@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 
@@ -24,11 +23,6 @@ internal sealed class FillColumnDialog : Dialog
     /// Initializes a new instance of the <see cref="FillColumnDialog"/> class.
     /// </summary>
     /// <param name="columnName">The name of the column to fill.</param>
-    [SuppressMessage(
-        "Reliability",
-        "CA2000:Dispose objects before losing scope",
-        Justification = "Child views are owned by Dialog and disposed when Dialog is disposed."
-    )]
     internal FillColumnDialog(string columnName)
     {
         Title = "Fill Column";

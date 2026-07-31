@@ -29,7 +29,7 @@ public sealed partial class RecordProcessorTests
             _recordsProcessed = 0;
         }
 
-        public void Dispose() { }
+        public readonly void Dispose() { }
 
         public ValueTask<bool> MoveNextAsync(CancellationToken ct)
         {
@@ -47,7 +47,7 @@ public sealed partial class RecordProcessorTests
             return ValueTask.FromResult(hasNext);
         }
 
-        public bool EvaluateFilters()
+        public readonly bool EvaluateFilters()
         {
             if (Filters.Count == 0)
             {
@@ -74,7 +74,7 @@ public sealed partial class RecordProcessorTests
             return true;
         }
 
-        public ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
+        public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
         {
             if (_currentIndex < 0 || _currentIndex >= Records.Length)
             {

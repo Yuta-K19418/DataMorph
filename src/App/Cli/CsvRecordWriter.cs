@@ -18,7 +18,7 @@ internal struct CsvRecordWriter : IRecordWriter
         _disposed = false;
     }
 
-    public async ValueTask WriteHeaderAsync(CancellationToken ct)
+    public async readonly ValueTask WriteHeaderAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         if (_writer is null)
@@ -41,14 +41,14 @@ internal struct CsvRecordWriter : IRecordWriter
         await _writer.WriteLineAsync(string.Empty.AsMemory(), ct).ConfigureAwait(false);
     }
 
-    public ValueTask WriteStartRecordAsync(CancellationToken ct)
+    public readonly ValueTask WriteStartRecordAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         _sb.Clear();
         return default;
     }
 
-    public void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
+    public readonly void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
     {
         ThrowIfDisposed();
         if (outputColumnIndex > 0)
@@ -66,7 +66,7 @@ internal struct CsvRecordWriter : IRecordWriter
         }
     }
 
-    public async ValueTask WriteEndRecordAsync(CancellationToken ct)
+    public async readonly ValueTask WriteEndRecordAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         if (_writer is null)
@@ -77,7 +77,7 @@ internal struct CsvRecordWriter : IRecordWriter
         await _writer.WriteLineAsync(_sb.ToString().AsMemory(), ct).ConfigureAwait(false);
     }
 
-    public async ValueTask FlushAsync(CancellationToken ct)
+    public async readonly ValueTask FlushAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         if (_writer is null)

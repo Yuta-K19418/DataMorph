@@ -42,6 +42,21 @@ dotnet_diagnostic.CA1303.severity = none
 # IDE0005: Using directive is unnecessary.
 dotnet_diagnostic.IDE0005.severity = warning
 
+# Promoted from silent to warning.
+dotnet_diagnostic.IDE0251.severity = warning
+dotnet_diagnostic.IDE0130.severity = warning
+dotnet_diagnostic.IDE0004.severity = warning
+dotnet_diagnostic.IDE0350.severity = warning
+dotnet_diagnostic.IDE0330.severity = warning
+dotnet_diagnostic.IDE0052.severity = warning
+dotnet_diagnostic.IDE0010.severity = warning
+
+# IDE0072: Populate switch (switch expressions). Left at its default (silent) — every
+# switch expression over an enum already requires a discard arm to satisfy the compiler's
+# own exhaustiveness check (CS8509/CS8524) regardless of this rule, and IDE0072 does not
+# accept a discard as sufficient, so enabling it would require suppressing it at every
+# such site with no corresponding safety benefit.
+
 # IDE2000: Disallow multiple blank lines.
 dotnet_diagnostic.IDE2000.severity = warning
 

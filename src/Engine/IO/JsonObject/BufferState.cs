@@ -7,10 +7,10 @@ internal ref struct BufferState(long fileSize)
     private long _readHead;
     private int _remainingLen;
 
-    public int RemainingLen => _remainingLen;
-    public long ReadHead => _readHead;
-    public long BufferOffset => _readHead - _remainingLen;
-    public bool IsFinalBlock => _readHead >= _fileSize;
+    public readonly int RemainingLen => _remainingLen;
+    public readonly long ReadHead => _readHead;
+    public readonly long BufferOffset => _readHead - _remainingLen;
+    public readonly bool IsFinalBlock => _readHead >= _fileSize;
 
     public void RecordBytesRead(int bytesRead)
     {

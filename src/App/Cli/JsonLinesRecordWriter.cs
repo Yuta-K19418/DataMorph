@@ -33,13 +33,13 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         _disposed = false;
     }
 
-    public ValueTask WriteHeaderAsync(CancellationToken ct)
+    public readonly ValueTask WriteHeaderAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         return default;
     }
 
-    public ValueTask WriteStartRecordAsync(CancellationToken ct)
+    public readonly ValueTask WriteStartRecordAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         if (_jsonWriter is null || _bufferWriter is null)
@@ -53,7 +53,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         return default;
     }
 
-    public void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
+    public readonly void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
     {
         ThrowIfDisposed();
         if (_jsonWriter is null)
@@ -66,7 +66,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         WriteJsonValue(_jsonWriter, value);
     }
 
-    public async ValueTask WriteEndRecordAsync(CancellationToken ct)
+    public async readonly ValueTask WriteEndRecordAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         if (_jsonWriter is null || _stream is null || _bufferWriter is null)
@@ -76,9 +76,9 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
 
         _jsonWriter.WriteEndObject();
 
-#pragma warning disable CA1849 // Flush to IBufferWriter is synchronous and fast
+#pragma warning disable CA1849, S6966 // Flush to IBufferWriter is synchronous and fast
         _jsonWriter.Flush();
-#pragma warning restore CA1849
+#pragma warning restore CA1849, S6966
 
         // Add newline (using \n as standard for JSONL across platforms)
         var span = _bufferWriter.GetSpan(1);
@@ -93,7 +93,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         }
     }
 
-    public async ValueTask FlushAsync(CancellationToken ct)
+    public async readonly ValueTask FlushAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
         if (_stream is null)

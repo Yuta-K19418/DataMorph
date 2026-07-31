@@ -19,33 +19,33 @@ public sealed partial class RecordProcessorTests
             _cells = [];
         }
 
-        public void Dispose() { }
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public readonly void Dispose() { }
+        public readonly ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-        public ValueTask WriteHeaderAsync(CancellationToken ct)
+        public readonly ValueTask WriteHeaderAsync(CancellationToken ct)
         {
             WriteHeaderCallback?.Invoke();
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask WriteStartRecordAsync(CancellationToken ct)
+        public readonly ValueTask WriteStartRecordAsync(CancellationToken ct)
         {
             _cells.Clear();
             return ValueTask.CompletedTask;
         }
 
-        public void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
+        public readonly void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
         {
             _cells.Add(value.ToString());
         }
 
-        public ValueTask WriteEndRecordAsync(CancellationToken ct)
+        public readonly ValueTask WriteEndRecordAsync(CancellationToken ct)
         {
             WriteCellCallback?.Invoke([.. _cells]);
             return ValueTask.CompletedTask;
         }
 
-        public ValueTask FlushAsync(CancellationToken ct)
+        public readonly ValueTask FlushAsync(CancellationToken ct)
         {
             return ValueTask.CompletedTask;
         }

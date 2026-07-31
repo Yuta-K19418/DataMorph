@@ -2,7 +2,7 @@ using AwesomeAssertions;
 using Refedle.App.Schema.Csv;
 using Refedle.Engine.Types;
 
-namespace Refedle.Tests.App.Schema;
+namespace Refedle.Tests.App.Schema.Csv;
 
 public sealed class IncrementalSchemaScannerTests : IDisposable
 {

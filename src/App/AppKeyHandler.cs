@@ -21,13 +21,6 @@ internal sealed class AppKeyHandler : IDisposable
     private readonly FileDialogHandler _fileDialogHandler;
     private readonly RecipeCommandHandler _recipeCommandHandler;
 
-    [SuppressMessage(
-        "Reliability",
-        "CA2213:Disposable fields should be disposed",
-        Justification = "Child views added to the Window will be disposed automatically when the Window is disposed."
-    )]
-    private readonly StatusBar? _statusBar;
-
     private bool _disposed;
 
     /// <summary>
@@ -46,8 +39,7 @@ internal sealed class AppKeyHandler : IDisposable
         AppState state,
         ViewManager viewManager,
         FileDialogHandler fileDialogHandler,
-        RecipeCommandHandler recipeCommandHandler,
-        StatusBar? statusBar
+        RecipeCommandHandler recipeCommandHandler
     )
     {
         _app = app;
@@ -55,7 +47,6 @@ internal sealed class AppKeyHandler : IDisposable
         _viewManager = viewManager;
         _fileDialogHandler = fileDialogHandler;
         _recipeCommandHandler = recipeCommandHandler;
-        _statusBar = statusBar;
     }
 
     internal void Subscribe()

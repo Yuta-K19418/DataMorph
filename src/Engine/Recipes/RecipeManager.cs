@@ -23,10 +23,6 @@ public sealed class RecipeManager : IRecipeManager
             var yaml = await File.ReadAllTextAsync(filePath, Encoding.UTF8, ct).ConfigureAwait(false);
             return RecipeYamlParser.Parse(yaml);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
         catch (IOException ex)
         {
             return Results.Failure<Recipe>(ex.Message);
@@ -50,10 +46,6 @@ public sealed class RecipeManager : IRecipeManager
                 ct
             ).ConfigureAwait(false);
             return Results.Success();
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
         }
         catch (IOException ex)
         {

@@ -1,6 +1,5 @@
 using System.Text;
 using Refedle.Engine;
-using Refedle.Engine.Filtering;
 using Refedle.Engine.IO.Json;
 using Refedle.Engine.IO.JsonLines;
 using Refedle.Engine.Models;
@@ -86,7 +85,7 @@ internal struct JsonLinesRecordReader : IRecordReader
     public readonly bool EvaluateFilters()
     {
         ThrowIfDisposed();
-        return FilterEvaluator.EvaluateJsonFilters(_currentLineBytes, (IReadOnlyList<FilterSpec>)_filters, _filterIndexToNameBytes);
+        return FilterEvaluator.EvaluateJsonFilters(_currentLineBytes, _filters, _filterIndexToNameBytes);
     }
 
     public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)

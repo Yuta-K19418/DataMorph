@@ -156,7 +156,7 @@ public sealed class TopLevelScanner
         if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
         {
             state.Entry.RecordValueStart(
-                newValueStart: state.Buffer.BufferOffset + (long)reader.TokenStartIndex
+                newValueStart: state.Buffer.BufferOffset + reader.TokenStartIndex
             );
             state.RollbackCheckpoint = state.PrevCheckpoint;
             return false;
@@ -181,7 +181,7 @@ public sealed class TopLevelScanner
             key: state.Entry.CurrentKey,
             buffer: buffer,
             bufferOffset: (int)reader.TokenStartIndex,
-            length: (int)(reader.BytesConsumed - (long)reader.TokenStartIndex),
+            length: (int)(reader.BytesConsumed - reader.TokenStartIndex),
             result: result,
             keyIndex: keyIndex
         );

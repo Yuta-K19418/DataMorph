@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Refedle.App.Views.JsonTreeNodes;
 using Refedle.Engine.IO;
@@ -25,8 +26,8 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
         _indexer = indexer;
         _reader = reader;
         Text = count == 0
-            ? FormattableString.Invariant($"Lines {startIndex + 1:N0} (empty)")
-            : FormattableString.Invariant($"Lines {startIndex + 1:N0} - {startIndex + count:N0}");
+            ? string.Create(CultureInfo.InvariantCulture, $"Lines {startIndex + 1:N0} (empty)")
+            : string.Create(CultureInfo.InvariantCulture, $"Lines {startIndex + 1:N0} - {startIndex + count:N0}");
     }
 
     /// <summary>
@@ -35,7 +36,7 @@ internal sealed class JsonLinesRangeTreeNode : RangeTreeNodeBase
     /// </summary>
     internal static ITreeNode CreateLineNode(JsonRawBytes lineBytes, long lineIndex)
     {
-        var prefix = FormattableString.Invariant($"Line {lineIndex + 1:N0}: ");
+        var prefix = string.Create(CultureInfo.InvariantCulture, $"Line {lineIndex + 1:N0}: ");
         ITreeNode invalidNode() =>
             new JsonValueTreeNode($"{prefix}[Invalid JSON]") { ValueKind = JsonValueKind.Undefined };
 

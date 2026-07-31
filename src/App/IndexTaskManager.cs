@@ -8,7 +8,7 @@ namespace Refedle.App;
 /// </summary>
 internal sealed class IndexTaskManager : IDisposable
 {
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private CancellationTokenSource? _cts;
     private bool _disposed;
 

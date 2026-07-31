@@ -101,7 +101,7 @@ public sealed class RecipeManagerTests : IDisposable
 
         // Assert
         // UTF-8 BOM starts with 0xEF 0xBB 0xBF; absence of 0xEF confirms no BOM is written
-        bytes[0].Should().NotBe((byte)0xEF);
+        bytes[0].Should().NotBe(0xEF);
     }
 
     [Fact]

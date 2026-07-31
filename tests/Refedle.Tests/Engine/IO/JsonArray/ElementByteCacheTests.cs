@@ -84,7 +84,7 @@ public sealed class ElementByteCacheTests : IDisposable
     {
         // Arrange
         using var cache = new ElementByteCache(_indexer);
-        var lastIndex = (int)cache.TotalRows - 1;
+        var lastIndex = cache.TotalRows - 1;
 
         // Act
         var result = cache.GetRow(lastIndex);

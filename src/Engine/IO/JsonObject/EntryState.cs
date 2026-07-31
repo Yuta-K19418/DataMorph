@@ -5,9 +5,9 @@ internal ref struct EntryState()
     private string _currentKey = string.Empty;
     private long _valueStart = -1L;
 
-    public string CurrentKey => _currentKey;
-    public long ValueStart => _valueStart;
-    public bool IsNested => _valueStart >= 0;
+    public readonly string CurrentKey => _currentKey;
+    public readonly long ValueStart => _valueStart;
+    public readonly bool IsNested => _valueStart >= 0;
 
     public void StartEntry(string key)
     {

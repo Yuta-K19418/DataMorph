@@ -28,7 +28,7 @@ public sealed class FormatTimestampActionTests
 
         // Act
         var json = JsonSerializer.Serialize(
-            (MorphAction)action,
+            action,
             JsonContext.Default.MorphAction
         );
         var deserialized = JsonSerializer.Deserialize(json, JsonContext.Default.MorphAction);

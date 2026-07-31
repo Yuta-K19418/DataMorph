@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Refedle.Engine.Filtering;
 using Refedle.Engine.IO.Csv;
@@ -212,6 +213,8 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
             case FormatTimestampAction formatTs:
                 ApplyFormatTimestamp(formatTs, working, nameToIndex);
                 break;
+            default:
+                throw new UnreachableException($"Unhandled {nameof(MorphAction)} type: {action.GetType()}");
         }
     }
 
@@ -309,12 +312,19 @@ internal sealed class LazyTransformer : ITableSource, IDisposable
             ? d.ToString(CultureInfo.InvariantCulture)
             : ParseFailureLabel;
 
-    private static string FormatBoolean(string rawValue) =>
-        bool.TryParse(rawValue, out var b) ? (b ? "true" : "false") : ParseFailureLabel;
+    private static string FormatBoolean(string rawValue)
+    {
+        if (!bool.TryParse(rawValue, out var b))
+        {
+            return ParseFailureLabel;
+        }
+
+        return b ? "true" : "false";
+    }
 
     private static string FormatTimestamp(string rawValue, string? formatString)
     {
-        if (!DateTime.TryParse(rawValue, out var dt))
+        if (!DateTime.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
         {
             return ParseFailureLabel;
         }

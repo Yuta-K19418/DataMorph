@@ -170,6 +170,7 @@ public class FormatDispatcherGenerator : IIncrementalGenerator
         sb.AppendLine("using Refedle.Engine.Models;");
         sb.AppendLine("using Refedle.Engine.Types;");
         sb.AppendLine("using Refedle.App.Cli;");
+        sb.AppendLine("using Refedle.App.Cli.Factories;");
         sb.AppendLine();
         sb.AppendLine("namespace Refedle.App.Cli.Generated;");
         sb.AppendLine();

@@ -251,7 +251,7 @@ internal sealed class ViewManager : IDisposable
 
         ITableSource rawSource = new Views.VirtualTableSource(indexer, schema);
         var source = _state.ActionStack.Count > 0
-            ? (ITableSource)new Views.LazyTransformer(
+            ? new Views.LazyTransformer(
                 rawSource,
                 schema,
                 _state.ActionStack,
@@ -429,6 +429,11 @@ internal sealed class ViewManager : IDisposable
     /// Called after a morph action is added to <see cref="AppState.ActionStack"/> so that
     /// <see cref="Views.LazyTransformer"/> is reconstructed with the updated stack.
     /// </summary>
+    [SuppressMessage(
+        "Style",
+        "IDE0010:Populate switch",
+        Justification = "Only CsvTable/JsonLinesTable refresh here; all other modes are a no-op via the default arm."
+    )]
     internal void RefreshCurrentTableView()
     {
         switch (_state.CurrentMode)
@@ -440,6 +445,12 @@ internal sealed class ViewManager : IDisposable
             case ViewMode.JsonLinesTable
                 when _state.RowIndexer is not null && _state.Schema is not null:
                 SwitchToJsonLinesTableView(_state.RowIndexer, _state.Schema);
+                break;
+
+            default:
+                // Reached from mode-independent callers (e.g. global "clear actions" shortcut,
+                // recipe load) when the current view isn't a table (tree view, file selection, etc.);
+                // no-op preserves the existing view instead of crashing.
                 break;
         }
     }
@@ -632,6 +643,11 @@ internal sealed class ViewManager : IDisposable
     /// entered from, rebuilding that tree from its cached backing data on <see cref="AppState"/>.
     /// A no-op when there is no active DrillDown session.
     /// </summary>
+    [SuppressMessage(
+        "Style",
+        "IDE0010:Populate switch",
+        Justification = "Only tree ViewMode values are valid PreviousMode; the default arm throws for any other member."
+    )]
     internal void ReturnFromDrillDown()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

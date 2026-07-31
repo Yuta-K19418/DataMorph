@@ -80,7 +80,7 @@ public sealed class AppKeyHandlerTests
         using var viewManager = new ViewManager(window, state, modeController, action => action());
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -102,7 +102,7 @@ public sealed class AppKeyHandlerTests
         window.Add(view);
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -124,7 +124,7 @@ public sealed class AppKeyHandlerTests
         window.Add(view);
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -150,7 +150,7 @@ public sealed class AppKeyHandlerTests
         window.Add(view);
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -178,7 +178,7 @@ public sealed class AppKeyHandlerTests
         window.Add(view);
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
 
         // Act
         var result = handler.HandleActionMenu();
@@ -198,7 +198,7 @@ public sealed class AppKeyHandlerTests
         using var viewManager = new ViewManager(window, state, modeController, action => action());
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
 
         // Act
         var result = handler.HandleClearActions();
@@ -230,7 +230,7 @@ public sealed class AppKeyHandlerTests
         using var viewManager = new ViewManager(window, state, modeController, action => action());
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
         handler.Subscribe();
 
         // Act
@@ -253,7 +253,7 @@ public sealed class AppKeyHandlerTests
         using var viewManager = new ViewManager(window, state, modeController, action => action());
         var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
         var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+        using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
         handler.Subscribe();
 
         // Act
@@ -281,7 +281,7 @@ public sealed class AppKeyHandlerTests
             treeView.SelectedObject = JsonObjectTreeView.CreateKeyNode("orders", "[{\"id\":1},{\"id\":2}]"u8.ToArray());
             var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
             var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-            using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+            using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
             app.Iteration += (_, _) => app.Keyboard.RaiseKeyDownEvent(Key.Enter);
 
             // Act — HandleActionMenu detects JsonObject format and dispatches to HandleSingleDrillDown,
@@ -320,7 +320,7 @@ public sealed class AppKeyHandlerTests
             treeView.SelectedObject = selectedNode;
             var fileDialogHandler = new FileDialogHandler(app, state, viewManager, _ => { }, () => { });
             var recipeCommandHandler = new RecipeCommandHandler(app, state, viewManager);
-            using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler, null);
+            using var handler = new AppKeyHandler(app, state, viewManager, fileDialogHandler, recipeCommandHandler);
 
             // Act
             var result = handler.HandleActionMenu();
@@ -340,13 +340,13 @@ public sealed class AppKeyHandlerTests
     public static IEnumerable<object[]> InvalidSingleDrillDownSelections()
     {
         // Guard 1: a primitive value node is not a JsonArrayTreeNode.
-        yield return [(object)new JsonValueTreeNode("not-an-array")];
+        yield return [(new JsonValueTreeNode("not-an-array"))];
 
         // Guard 2: array whose lazy Children parse to zero elements.
-        yield return [(object)new JsonArrayTreeNode("[]"u8.ToArray())];
+        yield return [(new JsonArrayTreeNode("[]"u8.ToArray()))];
 
         // Guard 3: mixed-type children (object + value) fail the "all children must be objects" check.
-        yield return [(object)new JsonArrayTreeNode("[{},1]"u8.ToArray())];
+        yield return [(new JsonArrayTreeNode("[{},1]"u8.ToArray()))];
     }
 
     private static IApplication CreateTestApp()

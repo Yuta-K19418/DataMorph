@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Text.Json;
 using Refedle.Engine.IO.Json;
 using Refedle.Engine.Types;
@@ -6,10 +5,11 @@ using Refedle.Engine.Types;
 namespace Refedle.Engine.IO.DrillDown;
 
 /// <summary>
-/// Stateless helpers that traverse a KeyPath through a single record's bytes and collect the
-/// leaf row(s) reached, accumulating schema information along the way. Shared implementation
-/// detail of <see cref="FullAggregationScanner"/>, split out to keep both classes under the
-/// project's per-class line limit.
+/// Traverses a KeyPath through a single record's bytes with an explicit-stack DFS, collecting leaf
+/// rows via <see cref="KeyPathLeafCollector"/>. Descent depth is bounded by the heap, not the call
+/// stack, so a keyPath whose length is driven by untrusted input cannot overflow the stack. Leaf
+/// collection and value lookup live in <see cref="KeyPathLeafCollector"/> to keep both classes under
+/// the per-class line limit and the dependency one-way (this class calls the collector, never back).
 /// </summary>
 internal static class KeyPathTraverser
 {
@@ -30,9 +30,23 @@ internal static class KeyPathTraverser
         Dictionary<string, ColumnType> columnTypes,
         Dictionary<string, int> keyObservedCount)
     {
-        TraverseKeyPath(
-            recordBytes, keyPath, 0, posHash, colName, colNameUtf8,
-            rows, keyOrder, keySet, columnTypes, keyObservedCount);
+        Stack<TraversalFrame> stack = [];
+        stack.Push(TraversalFrame.Descend(recordBytes, 0, posHash));
+        while (stack.TryPop(out var frame))
+        {
+            var (next, deferred) = ProcessFrame(
+                frame, keyPath, colName, colNameUtf8,
+                rows, keyOrder, keySet, columnTypes, keyObservedCount);
+            if (deferred is { } d)
+            {
+                stack.Push(d);
+            }
+
+            if (next is { } n)
+            {
+                stack.Push(n);
+            }
+        }
     }
 
     /// <summary>
@@ -53,11 +67,32 @@ internal static class KeyPathTraverser
         return "value";
     }
 
-    private static void TraverseKeyPath(
-        JsonRawBytes currentBytes,
+    private enum FrameKind { Descend, ContinueArray }
+
+    /// <summary>
+    /// Pending descent work. <see cref="FrameKind.Descend"/> applies the segment at
+    /// <see cref="SegmentIndex"/> to <see cref="Bytes"/>. <see cref="FrameKind.ContinueArray"/>
+    /// resumes an index segment's array scan from <see cref="ReaderState"/>; it is returned as the
+    /// deferred frame after each element so only O(depth) frames stay live, never one per sibling.
+    /// </summary>
+    private readonly record struct TraversalFrame(
+        FrameKind Kind,
+        JsonRawBytes Bytes,
+        int SegmentIndex,
+        int ElementIndex,
+        string PosHash,
+        JsonReaderState ReaderState)
+    {
+        public static TraversalFrame Descend(JsonRawBytes bytes, int segmentIndex, string posHash) =>
+            new(FrameKind.Descend, bytes, segmentIndex, 0, posHash, default);
+    }
+
+    // Returns the frame to descend next (its subtree processed first) and the frame to resume
+    // afterward (an array scan continuation). The caller pushes deferred, then next, so the LIFO
+    // stack finishes next's subtree before resuming deferred — preserving forward DFS order.
+    private static (TraversalFrame? next, TraversalFrame? deferred) ProcessFrame(
+        TraversalFrame frame,
         IReadOnlyList<KeyPathSegment> keyPath,
-        int segmentIndex,
-        string posHash,
         string colName,
         byte[] colNameUtf8,
         List<FocusedTableRow> rows,
@@ -66,67 +101,74 @@ internal static class KeyPathTraverser
         Dictionary<string, ColumnType> columnTypes,
         Dictionary<string, int> keyObservedCount)
     {
-        if (segmentIndex == keyPath.Count)
+        if (frame.Kind == FrameKind.ContinueArray)
         {
-            CollectLeafRows(currentBytes, posHash, colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
-            return;
+            var reader = new Utf8JsonReader(frame.Bytes.Span, isFinalBlock: true, frame.ReaderState);
+            return ScanOneArrayElement(ref reader, frame.Bytes, frame.SegmentIndex, frame.ElementIndex, frame.PosHash);
         }
 
-        var segment = keyPath[segmentIndex];
+        if (frame.SegmentIndex == keyPath.Count)
+        {
+            KeyPathLeafCollector.CollectLeafRows(
+                frame.Bytes, frame.PosHash, colName, colNameUtf8, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+            return (null, null);
+        }
 
+        var segment = keyPath[frame.SegmentIndex];
         if (segment.Kind == KeyPathSegmentKind.Index)
         {
-            TraverseIndexSegment(
-                currentBytes, keyPath, segmentIndex, posHash, colName, colNameUtf8,
-                rows, keyOrder, keySet, columnTypes, keyObservedCount);
-            return;
+            return ExpandIndexSegment(frame, keyPath, rows, keyOrder, keySet, columnTypes, keyObservedCount);
         }
 
-        var valueBytes = FindValueByKey(currentBytes, segment.Value);
+        var valueBytes = KeyPathLeafCollector.FindValueByKey(frame.Bytes, segment.Value);
         if (valueBytes is null)
         {
-            return; // Key absent, or current value is not an object — skip record silently.
+            return (null, null); // Key absent, or current value is not an object — skip record silently.
         }
 
-        TraverseKeyPath(
-            valueBytes.Value, keyPath, segmentIndex + 1, posHash, colName, colNameUtf8,
-            rows, keyOrder, keySet, columnTypes, keyObservedCount);
+        return (TraversalFrame.Descend(valueBytes.Value, frame.SegmentIndex + 1, frame.PosHash), null);
     }
 
-    private static void TraverseIndexSegment(
-        JsonRawBytes currentBytes,
+    private static (TraversalFrame? next, TraversalFrame? deferred) ExpandIndexSegment(
+        TraversalFrame frame,
         IReadOnlyList<KeyPathSegment> keyPath,
+        List<FocusedTableRow> rows,
+        List<string> keyOrder,
+        HashSet<string> keySet,
+        Dictionary<string, ColumnType> columnTypes,
+        Dictionary<string, int> keyObservedCount)
+    {
+        var reader = new Utf8JsonReader(frame.Bytes.Span);
+        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+        {
+            return (null, null); // Wrong type at this path position — skip record silently.
+        }
+
+        if (frame.SegmentIndex == keyPath.Count - 1)
+        {
+            // A trailing index segment expands the same array that would be reached by selecting
+            // it directly as the leaf (e.g. "tags" and "tags[0]" must produce identical output).
+            KeyPathLeafCollector.CollectArrayLeafRows(frame.Bytes, frame.PosHash, rows, keyOrder, keySet, columnTypes, keyObservedCount);
+            return (null, null);
+        }
+
+        return ScanOneArrayElement(ref reader, frame.Bytes, frame.SegmentIndex, 0, frame.PosHash);
+    }
+
+    // Reads the next depth-1 element and returns it as the next frame to descend, plus the
+    // ContinueArray continuation for the remaining siblings as the deferred frame.
+    private static (TraversalFrame? next, TraversalFrame? deferred) ScanOneArrayElement(
+        ref Utf8JsonReader reader,
+        JsonRawBytes arrayBytes,
         int segmentIndex,
-        string posHash,
-        string colName,
-        byte[] colNameUtf8,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount)
+        int elementIndex,
+        string posHash)
     {
-        var reader = new Utf8JsonReader(currentBytes.Span);
-        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
-        {
-            return; // Wrong type at this path position — skip record silently.
-        }
-
-        if (segmentIndex == keyPath.Count - 1)
-        {
-            // A trailing index segment expands the same array that would be reached by
-            // selecting it directly as the leaf (e.g. "tags" and "tags[0]" must produce
-            // identical output, including the "value" column for primitive elements).
-            CollectArrayLeafRows(currentBytes, posHash, rows, keyOrder, keySet, columnTypes, keyObservedCount);
-            return;
-        }
-
-        var elementIndex = 0;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndArray)
             {
-                break;
+                return (null, null);
             }
 
             if (reader.CurrentDepth != 1)
@@ -134,165 +176,14 @@ internal static class KeyPathTraverser
                 continue;
             }
 
-            var elementBytes = ExtractElementBytes(ref reader, currentBytes);
-            TraverseKeyPath(
-                elementBytes, keyPath, segmentIndex + 1, $"{posHash}:{elementIndex}", colName, colNameUtf8,
-                rows, keyOrder, keySet, columnTypes, keyObservedCount);
-            elementIndex++;
-        }
-    }
-
-    private static void CollectLeafRows(
-        JsonRawBytes leafBytes,
-        string posHash,
-        string colName,
-        byte[] colNameUtf8,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount)
-    {
-        var reader = new Utf8JsonReader(leafBytes.Span);
-        if (!reader.Read())
-        {
-            return;
+            var elementBytes = JsonByteExtractor.ExtractValueBytes(ref reader, arrayBytes);
+            var remainder = arrayBytes.Slice((int)reader.BytesConsumed);
+            var next = TraversalFrame.Descend(elementBytes, segmentIndex + 1, $"{posHash}:{elementIndex}");
+            var deferred = new TraversalFrame(
+                FrameKind.ContinueArray, remainder, segmentIndex, elementIndex + 1, posHash, reader.CurrentState);
+            return (next, deferred);
         }
 
-        if (reader.TokenType == JsonTokenType.StartObject)
-        {
-            rows.Add(new FocusedTableRow(leafBytes, posHash));
-            var observedKeys = new HashSet<string>(StringComparer.Ordinal);
-            SchemaScanner.ScanObject(leafBytes.Span, keyOrder, keySet, columnTypes, observedKeys);
-            SchemaScanner.IncrementObservationCounts(observedKeys, keyObservedCount);
-            return;
-        }
-
-        if (reader.TokenType == JsonTokenType.StartArray)
-        {
-            CollectArrayLeafRows(leafBytes, posHash, rows, keyOrder, keySet, columnTypes, keyObservedCount);
-            return;
-        }
-
-        // Primitive leaf (including null) — synthesize a single-key object so
-        // JsonObjectCellExtractor can extract it without modification.
-        // Note: ScanObject is NOT called here, so no type inference is performed;
-        // the synthesized column always receives ColumnType.Text (Phase 2 limitation).
-        var synthBytes = SynthesizeObject(colNameUtf8, leafBytes.Span);
-        rows.Add(new FocusedTableRow(synthBytes, posHash));
-        SchemaScanner.RegisterKeyIfNew(colName, keyOrder, keySet);
-        SchemaScanner.IncrementObservationCounts([colName], keyObservedCount);
-    }
-
-    private static void CollectArrayLeafRows(
-        JsonRawBytes leafBytes,
-        string posHash,
-        List<FocusedTableRow> rows,
-        List<string> keyOrder,
-        HashSet<string> keySet,
-        Dictionary<string, ColumnType> columnTypes,
-        Dictionary<string, int> keyObservedCount)
-    {
-        var reader = new Utf8JsonReader(leafBytes.Span);
-        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
-        {
-            return;
-        }
-
-        var elementIndex = 0;
-        while (reader.Read())
-        {
-            if (reader.TokenType == JsonTokenType.EndArray)
-            {
-                break;
-            }
-
-            if (reader.CurrentDepth != 1)
-            {
-                continue;
-            }
-
-            var isObjectElement = reader.TokenType == JsonTokenType.StartObject;
-            var elementBytes = ExtractElementBytes(ref reader, leafBytes);
-            var elementHash = $"{posHash}:{elementIndex}";
-
-            if (isObjectElement)
-            {
-                rows.Add(new FocusedTableRow(elementBytes, elementHash));
-                var observedKeys = new HashSet<string>(StringComparer.Ordinal);
-                SchemaScanner.ScanObject(elementBytes.Span, keyOrder, keySet, columnTypes, observedKeys);
-                SchemaScanner.IncrementObservationCounts(observedKeys, keyObservedCount);
-                elementIndex++;
-                continue;
-            }
-
-            // Primitive element (including null) — synthesize {"value": element}.
-            var synthBytes = SynthesizeObject("value"u8, elementBytes.Span);
-            rows.Add(new FocusedTableRow(synthBytes, elementHash));
-            SchemaScanner.RegisterKeyIfNew("value", keyOrder, keySet);
-            SchemaScanner.IncrementObservationCounts(["value"], keyObservedCount);
-            elementIndex++;
-        }
-    }
-
-    private static JsonRawBytes ExtractElementBytes(ref Utf8JsonReader reader, JsonRawBytes containingBytes)
-    {
-        if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
-        {
-            return JsonByteExtractor.ExtractNestedBytes(ref reader, containingBytes);
-        }
-
-        var start = (int)reader.TokenStartIndex;
-        var end = (int)reader.BytesConsumed;
-        return containingBytes.Slice(start, end - start);
-    }
-
-    private static JsonRawBytes? FindValueByKey(JsonRawBytes objectBytes, string key)
-    {
-        var reader = new Utf8JsonReader(objectBytes.Span);
-        if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
-        {
-            return null;
-        }
-
-        while (reader.Read())
-        {
-            if (reader.TokenType == JsonTokenType.EndObject)
-            {
-                return null;
-            }
-
-            if (reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
-
-            if (!reader.ValueTextEquals(key))
-            {
-                reader.Skip();
-                continue;
-            }
-
-            if (!reader.Read())
-            {
-                return null;
-            }
-
-            return ExtractElementBytes(ref reader, objectBytes);
-        }
-
-        return null;
-    }
-
-    private static JsonRawBytes SynthesizeObject(ReadOnlySpan<byte> keyUtf8, ReadOnlySpan<byte> valueBytes)
-    {
-        var buffer = new ArrayBufferWriter<byte>();
-        using var writer = new Utf8JsonWriter(buffer);
-        writer.WriteStartObject();
-        writer.WritePropertyName(keyUtf8);
-        writer.WriteRawValue(valueBytes, skipInputValidation: true);
-        writer.WriteEndObject();
-        writer.Flush();
-        return buffer.WrittenMemory;
+        return (null, null);
     }
 }

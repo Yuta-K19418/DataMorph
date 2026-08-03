@@ -61,6 +61,11 @@ paths:
 - When a class is **approaching 200–300 lines**, proactively check whether multiple responsibilities have accumulated — it is easier to split early than after the class grows further
 - If multiple responsibilities are detected, refactor by splitting the class
 
+### Dependency Direction
+- When a change introduces a new class (whether split out of an existing class or added from scratch), check whether it forms a **bidirectional dependency** with another class — i.e., the two classes call each other's members (methods, properties, etc.)
+- Access modifiers (`public`, `internal`, etc.) are irrelevant to this check
+- If both A→B and B→A hold, this is a bidirectional dependency and is **forbidden**
+
 ### No `else` Clause
 - Do NOT use `else` clauses
 - Use **Guard Clauses** (early return) or `continue` to keep the logic flat

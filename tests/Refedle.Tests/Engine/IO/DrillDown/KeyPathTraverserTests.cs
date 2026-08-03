@@ -20,6 +20,61 @@ public sealed class KeyPathTraverserTests
         return doc.RootElement.GetProperty(propertyName).Clone();
     }
 
+    // Builds {"k0":{"k1":...{"k{depth-1}":"leafValue"}...}} — `depth` single-key objects,
+    // exercising key-segment descent to a primitive leaf.
+    private static string BuildNestedObjects(int depth, string leafValue)
+    {
+        var sb = new StringBuilder();
+        for (var i = 0; i < depth; i++)
+        {
+            sb.Append("{\"k").Append(i).Append("\":");
+        }
+
+        sb.Append('"').Append(leafValue).Append('"');
+        sb.Append(new string('}', depth));
+        return sb.ToString();
+    }
+
+    // Builds [[["leafValue"]]] — `depth` single-element arrays; each "[0]" descends one level.
+    private static string BuildNestedArrays(int depth, string leafValue)
+    {
+        var sb = new StringBuilder();
+        for (var i = 0; i < depth; i++)
+        {
+            sb.Append('[');
+        }
+
+        sb.Append('"').Append(leafValue).Append('"');
+        for (var i = 0; i < depth; i++)
+        {
+            sb.Append(']');
+        }
+
+        return sb.ToString();
+    }
+
+    private static List<KeyPathSegment> BuildKeySegments(int depth)
+    {
+        List<KeyPathSegment> segments = [];
+        for (var i = 0; i < depth; i++)
+        {
+            segments.Add(Key($"k{i}"));
+        }
+
+        return segments;
+    }
+
+    private static List<KeyPathSegment> BuildIndexSegments(int depth)
+    {
+        List<KeyPathSegment> segments = [];
+        for (var i = 0; i < depth; i++)
+        {
+            segments.Add(Index("[0]"));
+        }
+
+        return segments;
+    }
+
     private static TraverseResult Traverse(
         JsonRawBytes recordBytes, IReadOnlyList<KeyPathSegment> keyPath, string posHash = "1")
     {
@@ -271,6 +326,65 @@ public sealed class KeyPathTraverserTests
         resultWithoutIndex.Rows.Select(r => GetProperty(r.Bytes, "value").GetString())
             .Should().Equal(resultWithIndex.Rows.Select(r => GetProperty(r.Bytes, "value").GetString()));
         resultWithoutIndex.KeyOrder.Should().Equal(resultWithIndex.KeyOrder);
+    }
+
+    [Fact]
+    public void ExtractRows_DeeplyNestedKeySegments_ReachesLeafWithExpectedAggregate()
+    {
+        // Arrange — depth 25 stays under Utf8JsonReader's default MaxDepth (64); the recursive
+        // implementation must reach the leaf. Pins behavior the iterative rewrite must preserve.
+        const int depth = 25;
+        var bytes = Bytes(BuildNestedObjects(depth, "leafKey"));
+        var keyPath = BuildKeySegments(depth);
+
+        // Act
+        var result = Traverse(bytes, keyPath);
+
+        // Assert
+        result.Rows.Should().HaveCount(1);
+        result.Rows[0].HashValue.Should().Be("1");
+        GetProperty(result.Rows[0].Bytes, $"k{depth - 1}").GetString().Should().Be("leafKey");
+        result.KeyOrder.Should().Equal($"k{depth - 1}");
+        result.KeyObservedCount[$"k{depth - 1}"].Should().Be(1);
+    }
+
+    [Fact]
+    public void ExtractRows_DeeplyNestedIndexSegments_ReachesLeafWithExpectedAggregate()
+    {
+        // Arrange — each "[0]" descends one array level; the leaf hash accumulates ":0" per
+        // segment. The iterative rewrite must reproduce this hash and aggregation exactly.
+        const int depth = 25;
+        var expectedLeafHash = "1" + string.Concat(Enumerable.Repeat(":0", depth));
+        var bytes = Bytes(BuildNestedArrays(depth, "leafIndex"));
+        var keyPath = BuildIndexSegments(depth);
+
+        // Act
+        var result = Traverse(bytes, keyPath);
+
+        // Assert
+        result.Rows.Should().HaveCount(1);
+        result.Rows[0].HashValue.Should().Be(expectedLeafHash);
+        GetProperty(result.Rows[0].Bytes, "value").GetString().Should().Be("leafIndex");
+        result.KeyOrder.Should().Equal("value");
+        result.KeyObservedCount["value"].Should().Be(1);
+    }
+
+    [Fact]
+    public void ExtractRows_BranchingIndexSegments_VisitsLeavesInForwardDfsOrder()
+    {
+        // Arrange — orders[*].items[*].id: two index levels, each with more than one sibling,
+        // pins the iterative DFS to fully visit element 0's subtree before element 1's.
+        var bytes = Bytes("""{"orders":[{"items":[{"id":"a1"},{"id":"a2"}]},{"items":[{"id":"b1"}]}]}""");
+        IReadOnlyList<KeyPathSegment> keyPath = [Key("orders"), Index("[0]"), Key("items"), Index("[0]"), Key("id")];
+
+        // Act
+        var result = Traverse(bytes, keyPath);
+
+        // Assert
+        result.Rows.Should().HaveCount(3);
+        result.Rows.Select(r => r.HashValue).Should().Equal("1:0:0", "1:0:1", "1:1:0");
+        result.Rows.Select(r => GetProperty(r.Bytes, "id").GetString()).Should().Equal("a1", "a2", "b1");
+        result.KeyOrder.Should().Equal("id");
     }
 
     [Fact]

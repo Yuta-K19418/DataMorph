@@ -45,6 +45,23 @@ public static class JsonByteExtractor
     }
 
     /// <summary>
+    /// Returns the raw bytes of the value at the reader's current token. Nested structures
+    /// (Object/Array) are read through <see cref="ExtractNestedBytes"/>; primitives are sliced
+    /// directly from <paramref name="containingBytes"/> between the token start and consumed offset.
+    /// </summary>
+    public static JsonRawBytes ExtractValueBytes(ref Utf8JsonReader reader, JsonRawBytes containingBytes)
+    {
+        if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+        {
+            return ExtractNestedBytes(ref reader, containingBytes);
+        }
+
+        var start = (int)reader.TokenStartIndex;
+        var end = (int)reader.BytesConsumed;
+        return containingBytes.Slice(start, end - start);
+    }
+
+    /// <summary>
     /// Counts the top-level properties of a JSON object by tracking brace/bracket depth.
     /// The reader must be positioned at a <see cref="JsonTokenType.StartObject"/> token; on return
     /// the reader has consumed the entire object, ending at its matching EndObject token.

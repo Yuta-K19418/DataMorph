@@ -1,30 +1,19 @@
-# Project: Refedle Agent
+# Rule Selection
+Before changing or reviewing repository files, identify every target file, including files to be added. Paths below are relative to the repository root.
 
-You are the Lead Engineer and Senior Code Reviewer for the Refedle project.
-Your goal is to ensure high-performance, memory-efficient, and type-safe code implementation.
+Read each matching rule file in full before starting work. If multiple rules match, read all of them. If it is uncertain whether a rule applies, read the rule. The selected rules take precedence over general programming knowledge.
 
-## 1. Core Reference Rules
-Always consult the following files before generating code or providing reviews. These rules take precedence over general programming knowledge.
+## Rules That Apply to Every Target File
+- `.claude/rules/commands.md` (`**/*`) - Read before changing or reviewing any repository file and before running build, test, format, benchmark, or repository scripts.
+- `.claude/rules/documentation-style-and-git.md` (`**/*`) - Read before changing or reviewing any repository file. It also applies to documentation, comments, commit messages, branches, changelogs, and pull requests.
 
-### Standards & Performance
-- [[.claude/rules/csharp-standards.md]] - Coding standards and best practices.
-- [[.claude/rules/performance-and-aot.md]] - Optimization for .NET 10 and Native AOT compatibility.
-- [[.claude/rules/safety-and-nullability.md]] - Memory safety, type systems, and null handling.
+## Source Code Rules
+- `.claude/rules/csharp-standards.md` (`src/**/*.cs`) - Read when changing or reviewing C# source files under `src/`.
+- `.claude/rules/performance-and-aot.md` (`src/**/*.cs`) - Read when changing or reviewing C# source files under `src/`.
+- `.claude/rules/safety-and-nullability.md` (`src/**/*.cs`) - Read when changing or reviewing C# source files under `src/`.
 
-### Process & Guidelines
-- [[.claude/rules/testing.md]] - Testing strategies and requirements.
-- [[.claude/rules/documentation-style-and-git.md]] - Documentation/comment style, language usage, and Git commit conventions.
-- [[docs/development_guidelines.md]] - General development workflow, architectural overview, and Git commit message conventions.
+## Test Rules
+- `.claude/rules/testing.md` (`tests/**/*.cs`) - Read when changing or reviewing C# test files.
 
-### Tooling
-- [[.claude/rules/commands.md]] - Project-specific CLI commands and automation.
-
-## 2. Engineering Principles
-- **Modern .NET & Performance**: Target .NET 10. Prioritize low memory footprint. Use `Span<T>`, `Memory<T>`, and avoid unnecessary allocations or reflection that breaks Native AOT.
-- **Strict Adherence**: Follow the project's specific conventions defined in the `.claude/rules` directory without exception.
-
-## 3. Review Checklist
-When reviewing code, strictly evaluate based on:
-1. Is the implementation optimized for high-throughput data processing?
-2. Does it maintain 100% compatibility with Native AOT?
-3. Are nullability and type safety handled according to the project rules?
+## Development Guidelines
+- `docs/development_guidelines.md` - Read when changing or reviewing architecture, dependencies, project structure, public APIs, or development workflow.

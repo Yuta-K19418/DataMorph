@@ -51,6 +51,11 @@ dotnet_diagnostic.IDE0330.severity = warning
 dotnet_diagnostic.IDE0052.severity = warning
 dotnet_diagnostic.IDE0010.severity = warning
 
+# Detect unused code and unnecessary nullable suppression.
+dotnet_diagnostic.IDE0051.severity = warning
+dotnet_diagnostic.IDE0060.severity = warning
+dotnet_diagnostic.IDE0370.severity = warning
+
 # IDE0072: Populate switch (switch expressions). Left at its default (silent) — every
 # switch expression over an enum already requires a discard arm to satisfy the compiler's
 # own exhaustiveness check (CS8509/CS8524) regardless of this rule, and IDE0072 does not

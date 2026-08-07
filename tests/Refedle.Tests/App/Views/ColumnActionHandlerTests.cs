@@ -94,10 +94,10 @@ public sealed class ColumnActionHandlerTests
             set { }
         }
 
-        public static void AddColumn(string name) { }
+        public static void AddColumn(string _) { }
         public static void AddRow() { }
-        public static void RemoveColumn(int index) { }
-        public static void RemoveRow(int index) { }
+        public static void RemoveColumn(int _) { }
+        public static void RemoveRow(int _) { }
         public static void Clear() { }
     }
 }

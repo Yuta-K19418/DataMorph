@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Refedle.Engine;
@@ -8,7 +7,9 @@ namespace Refedle.App.Cli;
 internal partial struct JsonLinesRecordWriter : IRecordWriter
 {
     private const int InitialBufferSize = 1024 * 64; // 64 KB
+#pragma warning disable IDE0052, S1450 // Read in Step 2 (WriteCellData property-name lookup); restored then.
     private readonly BatchOutputSchema _outputSchema;
+#pragma warning restore IDE0052, S1450
     private Stream? _stream;
     private PooledBufferWriter? _bufferWriter;
     private Utf8JsonWriter? _jsonWriter;
@@ -52,17 +53,12 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         return default;
     }
 
-    public readonly void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
+    public readonly void WriteCellData(int outputColumnIndex, CellData cell)
     {
         ThrowIfDisposed();
-        if (_jsonWriter is null)
-        {
-            return;
-        }
-
-        var colName = _outputSchema.Columns[outputColumnIndex].OutputName;
-        _jsonWriter.WritePropertyName(colName);
-        WriteJsonValue(_jsonWriter, value);
+        // Step 2: omit the property name for Presence.Missing and dispatch the value on
+        // cell.Presence/cell.Encoding (replacing the removed WriteJsonValue heuristic).
+        throw new NotImplementedException();
     }
 
     public async readonly ValueTask WriteEndRecordAsync(CancellationToken ct)
@@ -99,47 +95,6 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         }
 
         await _stream.FlushAsync(ct).ConfigureAwait(false);
-    }
-
-    private static void WriteJsonValue(Utf8JsonWriter writer, ReadOnlySpan<char> value)
-    {
-        if (value.IsEmpty)
-        {
-            writer.WriteStringValue(string.Empty);
-            return;
-        }
-
-        if (value.SequenceEqual("<null>"))
-        {
-            writer.WriteNullValue();
-            return;
-        }
-
-        if (value.SequenceEqual("<error>"))
-        {
-            writer.WriteStringValue(string.Empty);
-            return;
-        }
-
-        if (bool.TryParse(value, out var boolValue))
-        {
-            writer.WriteBooleanValue(boolValue);
-            return;
-        }
-
-        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-        {
-            writer.WriteNumberValue(longValue);
-            return;
-        }
-
-        if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var doubleValue))
-        {
-            writer.WriteNumberValue(doubleValue);
-            return;
-        }
-
-        writer.WriteStringValue(value);
     }
 
     public readonly void ThrowIfDisposed()

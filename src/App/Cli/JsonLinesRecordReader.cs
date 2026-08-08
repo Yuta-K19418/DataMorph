@@ -1,6 +1,5 @@
 using System.Text;
 using Refedle.Engine;
-using Refedle.Engine.IO.Json;
 using Refedle.Engine.IO.JsonLines;
 using Refedle.Engine.Models;
 
@@ -9,7 +8,9 @@ namespace Refedle.App.Cli;
 internal struct JsonLinesRecordReader : IRecordReader
 {
     private readonly RowIndexer _rowIndexer;
+#pragma warning disable IDE0052, S1450 // Read in Step 2 (GetCellData property-name lookup); restored then.
     private readonly Memory<byte>[] _columnNameUtf8Bytes;
+#pragma warning restore IDE0052, S1450
     private readonly Dictionary<int, ReadOnlyMemory<byte>> _filterIndexToNameBytes;
     private readonly IReadOnlyList<Engine.Filtering.FilterSpec> _filters;
     private RowReader? _rowReader;
@@ -88,12 +89,12 @@ internal struct JsonLinesRecordReader : IRecordReader
         return FilterEvaluator.EvaluateJsonFilters(_currentLineBytes, _filters, _filterIndexToNameBytes);
     }
 
-    public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
+    public readonly CellData GetCellData(int outputColumnIndex)
     {
         ThrowIfDisposed();
-        var columnNameSpan = _columnNameUtf8Bytes[outputColumnIndex].Span;
-        var value = JsonObjectCellExtractor.ExtractCell(_currentLineBytes.Span, columnNameSpan);
-        return value.AsSpan();
+        // Step 2: scan _currentLineBytes with a local Utf8JsonReader for the property named
+        // _columnNameUtf8Bytes[outputColumnIndex]; derive Presence/Encoding/Value from JsonTokenType.
+        throw new NotImplementedException();
     }
 
     public void Dispose()

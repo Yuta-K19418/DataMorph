@@ -6,7 +6,9 @@ namespace Refedle.App.Cli;
 
 internal struct CsvRecordReader : IRecordReader
 {
+#pragma warning disable IDE0052, S1450 // Read in Step 2 (GetCellData source-index lookup); restored then.
     private readonly int[] _outputToSourceIndexMap;
+#pragma warning restore IDE0052, S1450
     private readonly IReadOnlyList<FilterSpec> _filters;
     private SepReader? _reader;
     private bool _disposed;
@@ -60,21 +62,12 @@ internal struct CsvRecordReader : IRecordReader
         return FilterEvaluator.EvaluateCsvFilters(_reader.Current, _filters);
     }
 
-    public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
+    public readonly CellData GetCellData(int outputColumnIndex)
     {
         ThrowIfDisposed();
-        if (_reader is null)
-        {
-            return [];
-        }
-
-        var sourceIndex = _outputToSourceIndexMap[outputColumnIndex];
-        if (sourceIndex >= 0 && sourceIndex < _reader.Current.ColCount)
-        {
-            return _reader.Current[sourceIndex].Span;
-        }
-
-        return [];
+        // Step 2: read the CSV cell via _outputToSourceIndexMap and build a CellData
+        // (Presence is always Value; encoding via CellEncodingClassifier).
+        throw new NotImplementedException();
     }
 
     public void Dispose()

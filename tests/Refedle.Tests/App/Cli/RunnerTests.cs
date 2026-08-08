@@ -4,7 +4,7 @@ using Refedle.App.Cli;
 
 namespace Refedle.Tests.App.Cli;
 
-public sealed class RunnerTests : IDisposable
+public sealed partial class RunnerTests : IDisposable
 {
     private const string TestCsvContent = """
         name,age

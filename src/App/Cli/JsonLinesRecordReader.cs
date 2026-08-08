@@ -138,6 +138,9 @@ internal struct JsonLinesRecordReader : IRecordReader
         }
     }
 
+    // Split out to stay under the Sonar cyclomatic-complexity limit (S1541). Passed by value,
+    // not by ref, so it owns a copy isolated from the caller's state (ref also fails to
+    // compile: CS8168/CS8347); the resulting small, stack-only copy per call is an accepted cost.
     private static CellData ReadPropertyValue(Utf8JsonReader reader, JsonRawBytes containingBytes)
     {
         return reader.TokenType switch

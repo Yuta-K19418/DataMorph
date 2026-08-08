@@ -34,9 +34,9 @@ public sealed partial class RecordProcessorTests
             return ValueTask.CompletedTask;
         }
 
-        public readonly void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
+        public readonly void WriteCellData(int outputColumnIndex, CellData cell)
         {
-            _cells.Add(value.ToString());
+            _cells.Add(cell.Value.ToString());
         }
 
         public readonly ValueTask WriteEndRecordAsync(CancellationToken ct)

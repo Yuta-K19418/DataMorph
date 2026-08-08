@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Refedle.Engine;
 using Refedle.Engine.IO.Json;
 using Refedle.Engine.IO.JsonLines;
@@ -88,12 +89,76 @@ internal struct JsonLinesRecordReader : IRecordReader
         return FilterEvaluator.EvaluateJsonFilters(_currentLineBytes, _filters, _filterIndexToNameBytes);
     }
 
-    public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
+    public readonly CellData GetCellData(int outputColumnIndex)
     {
         ThrowIfDisposed();
-        var columnNameSpan = _columnNameUtf8Bytes[outputColumnIndex].Span;
-        var value = JsonObjectCellExtractor.ExtractCell(_currentLineBytes.Span, columnNameSpan);
-        return value.AsSpan();
+
+        var columnNameUtf8 = _columnNameUtf8Bytes[outputColumnIndex].Span;
+
+        try
+        {
+            var reader = new Utf8JsonReader(_currentLineBytes.Span);
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+            {
+                return new CellData([], CellPresence.Invalid);
+            }
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    break;
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    continue;
+                }
+
+                if (!reader.ValueTextEquals(columnNameUtf8))
+                {
+                    reader.Skip();
+                    continue;
+                }
+
+                if (!reader.Read())
+                {
+                    return new CellData([], CellPresence.Invalid);
+                }
+
+                return ReadPropertyValue(reader, _currentLineBytes);
+            }
+
+            return new CellData([], CellPresence.Missing);
+        }
+        catch (JsonException)
+        {
+            return new CellData([], CellPresence.Invalid);
+        }
+    }
+
+    // Split out to stay under the Sonar cyclomatic-complexity limit (S1541). Passed by value,
+    // not by ref, so it owns a copy isolated from the caller's state (ref also fails to
+    // compile: CS8168/CS8347); the resulting small, stack-only copy per call is an accepted cost.
+    private static CellData ReadPropertyValue(Utf8JsonReader reader, JsonRawBytes containingBytes)
+    {
+        return reader.TokenType switch
+        {
+            JsonTokenType.Null => new CellData([], CellPresence.Null),
+            JsonTokenType.Number =>
+                new CellData(Encoding.UTF8.GetString(reader.ValueSpan), CellPresence.Value, CellEncoding.Raw),
+            JsonTokenType.StartObject or JsonTokenType.StartArray =>
+                new CellData(
+                    Encoding.UTF8.GetString(JsonByteExtractor.ExtractValueBytes(ref reader, containingBytes).Span),
+                    CellPresence.Value,
+                    CellEncoding.Raw),
+            JsonTokenType.String =>
+                new CellData(reader.GetString(), CellPresence.Value, CellEncoding.PlainText),
+            JsonTokenType.True => new CellData("true", CellPresence.Value, CellEncoding.Boolean),
+            JsonTokenType.False => new CellData("false", CellPresence.Value, CellEncoding.Boolean),
+            _ => new CellData([], CellPresence.Invalid),
+        };
     }
 
     public void Dispose()

@@ -32,17 +32,18 @@ internal static class RecordProcessor
             {
                 if (columns[i].Transform is not { } transform)
                 {
-                    writer.WriteCellSpan(i, reader.GetCellSpan(i));
+                    writer.WriteCellData(i, reader.GetCellData(i));
                     continue;
                 }
 
-                var span = transform switch
+                var formatted = transform switch
                 {
-                    FillSpec fill => fill.Value.AsSpan(),
-                    TimestampFormatSpec fmt => ApplyTimestampFormat(reader.GetCellSpan(i), fmt).AsSpan(),
+                    FillSpec fill => fill.Value,
+                    TimestampFormatSpec fmt => ApplyTimestampFormat(reader.GetCellData(i).Value, fmt),
                     _ => throw new UnreachableException($"Unhandled CellTransformSpec: {transform.GetType().Name}"),
                 };
-                writer.WriteCellSpan(i, span);
+
+                writer.WriteCellData(i, new CellData(formatted, CellPresence.Value, CellEncodingClassifier.Classify(formatted)));
             }
 
             await writer.WriteEndRecordAsync(ct).ConfigureAwait(false);

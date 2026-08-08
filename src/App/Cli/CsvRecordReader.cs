@@ -60,21 +60,17 @@ internal struct CsvRecordReader : IRecordReader
         return FilterEvaluator.EvaluateCsvFilters(_reader.Current, _filters);
     }
 
-    public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
+    public readonly CellData GetCellData(int outputColumnIndex)
     {
         ThrowIfDisposed();
         if (_reader is null)
         {
-            return [];
+            return new CellData([], CellPresence.Value);
         }
 
         var sourceIndex = _outputToSourceIndexMap[outputColumnIndex];
-        if (sourceIndex >= 0 && sourceIndex < _reader.Current.ColCount)
-        {
-            return _reader.Current[sourceIndex].Span;
-        }
-
-        return [];
+        var value = sourceIndex < 0 ? [] : _reader.Current[sourceIndex].Span;
+        return new CellData(value, CellPresence.Value, CellEncodingClassifier.Classify(value));
     }
 
     public void Dispose()

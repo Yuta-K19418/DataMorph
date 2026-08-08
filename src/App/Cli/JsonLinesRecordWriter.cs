@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -52,7 +53,7 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         return default;
     }
 
-    public readonly void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
+    public readonly void WriteCellData(int outputColumnIndex, CellData cell)
     {
         ThrowIfDisposed();
         if (_jsonWriter is null)
@@ -60,9 +61,67 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
             return;
         }
 
-        var colName = _outputSchema.Columns[outputColumnIndex].OutputName;
-        _jsonWriter.WritePropertyName(colName);
-        WriteJsonValue(_jsonWriter, value);
+        if (cell.Presence == CellPresence.Missing)
+        {
+            return;
+        }
+
+        _jsonWriter.WritePropertyName(_outputSchema.Columns[outputColumnIndex].OutputName);
+
+        if (cell.Presence == CellPresence.Null)
+        {
+            _jsonWriter.WriteNullValue();
+            return;
+        }
+
+        if (cell.Presence == CellPresence.Invalid)
+        {
+            _jsonWriter.WriteStringValue(string.Empty);
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.Raw)
+        {
+            _jsonWriter.WriteRawValue(cell.Value, skipInputValidation: true);
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.Numeric)
+        {
+            writeNumericValue(_jsonWriter, cell.Value);
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.Boolean)
+        {
+            _jsonWriter.WriteBooleanValue(bool.Parse(cell.Value));
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.PlainText)
+        {
+            _jsonWriter.WriteStringValue(cell.Value);
+            return;
+        }
+
+        throw new UnreachableException($"Unhandled CellEncoding: {cell.Encoding}");
+
+        static void writeNumericValue(Utf8JsonWriter writer, ReadOnlySpan<char> value)
+        {
+            if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
+            {
+                writer.WriteNumberValue(longValue);
+                return;
+            }
+
+            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var doubleValue))
+            {
+                writer.WriteNumberValue(doubleValue);
+                return;
+            }
+
+            throw new UnreachableException("CellEncoding.Numeric guarantees the value re-parses as long or double.");
+        }
     }
 
     public async readonly ValueTask WriteEndRecordAsync(CancellationToken ct)
@@ -99,47 +158,6 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
         }
 
         await _stream.FlushAsync(ct).ConfigureAwait(false);
-    }
-
-    private static void WriteJsonValue(Utf8JsonWriter writer, ReadOnlySpan<char> value)
-    {
-        if (value.IsEmpty)
-        {
-            writer.WriteStringValue(string.Empty);
-            return;
-        }
-
-        if (value.SequenceEqual("<null>"))
-        {
-            writer.WriteNullValue();
-            return;
-        }
-
-        if (value.SequenceEqual("<error>"))
-        {
-            writer.WriteStringValue(string.Empty);
-            return;
-        }
-
-        if (bool.TryParse(value, out var boolValue))
-        {
-            writer.WriteBooleanValue(boolValue);
-            return;
-        }
-
-        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-        {
-            writer.WriteNumberValue(longValue);
-            return;
-        }
-
-        if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var doubleValue))
-        {
-            writer.WriteNumberValue(doubleValue);
-            return;
-        }
-
-        writer.WriteStringValue(value);
     }
 
     public readonly void ThrowIfDisposed()

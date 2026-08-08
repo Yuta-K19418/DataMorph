@@ -74,21 +74,9 @@ public sealed partial class RecordProcessorTests
             return true;
         }
 
-        public readonly ReadOnlySpan<char> GetCellSpan(int outputColumnIndex)
+        public readonly CellData GetCellData(int outputColumnIndex)
         {
-            if (_currentIndex < 0 || _currentIndex >= Records.Length)
-            {
-                return [];
-            }
-
-            var currentRecord = Records[_currentIndex];
-
-            if (outputColumnIndex >= currentRecord.Length)
-            {
-                return [];
-            }
-
-            return currentRecord[outputColumnIndex].AsSpan();
+            return new CellData(Records[_currentIndex][outputColumnIndex], CellPresence.Value);
         }
     }
 }

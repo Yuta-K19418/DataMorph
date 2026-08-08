@@ -48,7 +48,7 @@ internal struct CsvRecordWriter : IRecordWriter
         return default;
     }
 
-    public readonly void WriteCellSpan(int outputColumnIndex, ReadOnlySpan<char> value)
+    public readonly void WriteCellData(int outputColumnIndex, CellData cell)
     {
         ThrowIfDisposed();
         if (outputColumnIndex > 0)
@@ -56,14 +56,12 @@ internal struct CsvRecordWriter : IRecordWriter
             _sb.Append(',');
         }
 
-        if (value.SequenceEqual("<null>") || value.SequenceEqual("<error>"))
+        if (cell.Presence != CellPresence.Value)
         {
-            // Empty
+            return;
         }
-        else if (value.Length > 0)
-        {
-            CsvEscaper.EscapeCsvValueToBuilder(value, _sb);
-        }
+
+        CsvEscaper.EscapeCsvValueToBuilder(cell.Value, _sb);
     }
 
     public async readonly ValueTask WriteEndRecordAsync(CancellationToken ct)

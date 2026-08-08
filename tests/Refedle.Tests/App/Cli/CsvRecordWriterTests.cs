@@ -1,50 +1,98 @@
+using System.Text;
+using AwesomeAssertions;
+using Refedle.App.Cli;
+using Refedle.Engine;
+
 namespace Refedle.Tests.App.Cli;
 
 public sealed class CsvRecordWriterTests
 {
+    private static readonly BatchOutputSchema _outputSchema = new(
+        [new BatchOutputColumn("value", "value")],
+        []);
+
     // CSV output is always plain text, so Encoding is ignored; only Presence matters.
     // CellPresence is internal, so each case is standalone.
     [Fact]
-    public void WriteCellData_Value_WritesEscapedValue()
+    public async Task WriteCellData_Value_WritesEscapedValue()
     {
         // Arrange
+        const string value = "hello, world";
 
         // Act
+        var output = await WriteSingleCellAndReadAsync(CellPresence.Value, value);
 
         // Assert
-        Assert.Fail("Not implemented");
+        output.Should().Be("\"hello, world\"\n");
     }
 
     [Fact]
-    public void WriteCellData_Null_WritesEmpty()
+    public async Task WriteCellData_Null_WritesEmpty()
     {
         // Arrange
+        const CellPresence presence = CellPresence.Null;
 
         // Act
+        var output = await WriteSingleCellAndReadAsync(presence);
 
         // Assert
-        Assert.Fail("Not implemented");
+        output.Should().Be("\n");
     }
 
     [Fact]
-    public void WriteCellData_Missing_WritesEmpty()
+    public async Task WriteCellData_Missing_WritesEmpty()
     {
         // Arrange
+        const CellPresence presence = CellPresence.Missing;
 
         // Act
+        var output = await WriteSingleCellAndReadAsync(presence);
 
         // Assert
-        Assert.Fail("Not implemented");
+        output.Should().Be("\n");
     }
 
     [Fact]
-    public void WriteCellData_Invalid_WritesEmpty()
+    public async Task WriteCellData_Invalid_WritesEmpty()
+    {
+        // Arrange
+        const CellPresence presence = CellPresence.Invalid;
+
+        // Act
+        var output = await WriteSingleCellAndReadAsync(presence);
+
+        // Assert
+        output.Should().Be("\n");
+    }
+
+    // CsvRecordWriter never reads Encoding for a Value cell — the CSV text is written as-is
+    // regardless of how the reader classified it.
+    [Theory]
+    [InlineData("007", CellEncoding.Numeric)]
+    [InlineData("TRUE", CellEncoding.Boolean)]
+    [InlineData("[1]", CellEncoding.Raw)]
+    internal async Task WriteCellData_ValueWithEncoding_PreservesCsvText(string value, CellEncoding encoding)
     {
         // Arrange
 
         // Act
+        var output = await WriteSingleCellAndReadAsync(CellPresence.Value, value, encoding);
 
         // Assert
-        Assert.Fail("Not implemented");
+        output.Should().Be($"{value}\n");
+    }
+
+    private static async Task<string> WriteSingleCellAndReadAsync(CellPresence presence, string value = "", CellEncoding encoding = CellEncoding.PlainText)
+    {
+        using var stream = new MemoryStream();
+        using var streamWriter = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true) { NewLine = "\n" };
+        using var writer = new CsvRecordWriter(streamWriter, _outputSchema);
+
+        await writer.WriteStartRecordAsync(default);
+        writer.WriteCellData(0, new CellData(value, presence, encoding));
+        await writer.WriteEndRecordAsync(default);
+        await writer.FlushAsync(default);
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 }

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Refedle.App.Cli;
 
 /// <summary>
@@ -10,10 +12,24 @@ internal static class CellEncodingClassifier
 {
     /// <summary>
     ///  Classifies plain cell text into the encoding the JSON Lines writer needs.
-    ///  Step 2 implements the exact bool/long/double heuristic.
     /// </summary>
     public static CellEncoding Classify(ReadOnlySpan<char> value)
     {
-        throw new NotImplementedException();
+        if (bool.TryParse(value, out _))
+        {
+            return CellEncoding.Boolean;
+        }
+
+        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+        {
+            return CellEncoding.Numeric;
+        }
+
+        if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
+        {
+            return CellEncoding.Numeric;
+        }
+
+        return CellEncoding.PlainText;
     }
 }

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Refedle.Engine;
@@ -7,9 +9,7 @@ namespace Refedle.App.Cli;
 internal partial struct JsonLinesRecordWriter : IRecordWriter
 {
     private const int InitialBufferSize = 1024 * 64; // 64 KB
-#pragma warning disable IDE0052, S1450 // Read in Step 2 (WriteCellData property-name lookup); restored then.
     private readonly BatchOutputSchema _outputSchema;
-#pragma warning restore IDE0052, S1450
     private Stream? _stream;
     private PooledBufferWriter? _bufferWriter;
     private Utf8JsonWriter? _jsonWriter;
@@ -56,9 +56,72 @@ internal partial struct JsonLinesRecordWriter : IRecordWriter
     public readonly void WriteCellData(int outputColumnIndex, CellData cell)
     {
         ThrowIfDisposed();
-        // Step 2: omit the property name for Presence.Missing and dispatch the value on
-        // cell.Presence/cell.Encoding (replacing the removed WriteJsonValue heuristic).
-        throw new NotImplementedException();
+        if (_jsonWriter is null)
+        {
+            return;
+        }
+
+        if (cell.Presence == CellPresence.Missing)
+        {
+            return;
+        }
+
+        _jsonWriter.WritePropertyName(_outputSchema.Columns[outputColumnIndex].OutputName);
+
+        if (cell.Presence == CellPresence.Null)
+        {
+            _jsonWriter.WriteNullValue();
+            return;
+        }
+
+        if (cell.Presence == CellPresence.Invalid)
+        {
+            _jsonWriter.WriteStringValue(string.Empty);
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.Raw)
+        {
+            _jsonWriter.WriteRawValue(cell.Value, skipInputValidation: true);
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.Numeric)
+        {
+            writeNumericValue(_jsonWriter, cell.Value);
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.Boolean)
+        {
+            _jsonWriter.WriteBooleanValue(bool.Parse(cell.Value));
+            return;
+        }
+
+        if (cell.Encoding == CellEncoding.PlainText)
+        {
+            _jsonWriter.WriteStringValue(cell.Value);
+            return;
+        }
+
+        throw new UnreachableException($"Unhandled CellEncoding: {cell.Encoding}");
+
+        static void writeNumericValue(Utf8JsonWriter writer, ReadOnlySpan<char> value)
+        {
+            if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
+            {
+                writer.WriteNumberValue(longValue);
+                return;
+            }
+
+            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var doubleValue))
+            {
+                writer.WriteNumberValue(doubleValue);
+                return;
+            }
+
+            throw new UnreachableException("CellEncoding.Numeric guarantees the value re-parses as long or double.");
+        }
     }
 
     public async readonly ValueTask WriteEndRecordAsync(CancellationToken ct)

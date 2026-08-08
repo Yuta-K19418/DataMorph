@@ -36,8 +36,7 @@ public sealed partial class RecordProcessorTests
 
         public readonly void WriteCellData(int outputColumnIndex, CellData cell)
         {
-            // Step 2: capture cell.Value (and Presence/Encoding) into _cells for assertions.
-            throw new NotImplementedException();
+            _cells.Add(cell.Value.ToString());
         }
 
         public readonly ValueTask WriteEndRecordAsync(CancellationToken ct)

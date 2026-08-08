@@ -51,9 +51,17 @@ internal struct CsvRecordWriter : IRecordWriter
     public readonly void WriteCellData(int outputColumnIndex, CellData cell)
     {
         ThrowIfDisposed();
-        // Step 2: append the column separator and branch on cell.Presence
-        // (Null/Missing/Invalid → empty; Value → CSV-escape cell.Value).
-        throw new NotImplementedException();
+        if (outputColumnIndex > 0)
+        {
+            _sb.Append(',');
+        }
+
+        if (cell.Presence != CellPresence.Value)
+        {
+            return;
+        }
+
+        CsvEscaper.EscapeCsvValueToBuilder(cell.Value, _sb);
     }
 
     public async readonly ValueTask WriteEndRecordAsync(CancellationToken ct)

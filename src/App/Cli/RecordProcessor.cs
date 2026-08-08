@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using Refedle.Engine;
 using Refedle.Engine.Models;
@@ -29,15 +30,20 @@ internal static class RecordProcessor
 
             for (var i = 0; i < columns.Count; i++)
             {
-                if (columns[i].Transform is null)
+                if (columns[i].Transform is not { } transform)
                 {
                     writer.WriteCellData(i, reader.GetCellData(i));
                     continue;
                 }
 
-                // Step 2: format via the transform (FillSpec/TimestampFormatSpec), classify the
-                // result via CellEncodingClassifier, and wrap it in a CellData for WriteCellData.
-                throw new NotImplementedException();
+                var formatted = transform switch
+                {
+                    FillSpec fill => fill.Value,
+                    TimestampFormatSpec fmt => ApplyTimestampFormat(reader.GetCellData(i).Value, fmt),
+                    _ => throw new UnreachableException($"Unhandled CellTransformSpec: {transform.GetType().Name}"),
+                };
+
+                writer.WriteCellData(i, new CellData(formatted, CellPresence.Value, CellEncodingClassifier.Classify(formatted)));
             }
 
             await writer.WriteEndRecordAsync(ct).ConfigureAwait(false);
@@ -47,7 +53,6 @@ internal static class RecordProcessor
         return ExitCode.Success;
     }
 
-#pragma warning disable IDE0051 // Called from Step 2 transform wiring; restored then.
     private static string ApplyTimestampFormat(ReadOnlySpan<char> raw, TimestampFormatSpec fmt)
     {
         if (!DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
@@ -57,5 +62,4 @@ internal static class RecordProcessor
 
         return parsed.ToString(fmt.TargetFormat, CultureInfo.InvariantCulture);
     }
-#pragma warning restore IDE0051
 }

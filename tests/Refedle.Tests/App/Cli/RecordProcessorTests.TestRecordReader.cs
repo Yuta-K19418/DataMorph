@@ -76,8 +76,7 @@ public sealed partial class RecordProcessorTests
 
         public readonly CellData GetCellData(int outputColumnIndex)
         {
-            // Step 2: wrap Records[_currentIndex][outputColumnIndex] text in a CellData.
-            throw new NotImplementedException();
+            return new CellData(Records[_currentIndex][outputColumnIndex], CellPresence.Value);
         }
     }
 }

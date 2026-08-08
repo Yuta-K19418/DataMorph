@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json;
 using Refedle.Engine;
+using Refedle.Engine.IO.Json;
 using Refedle.Engine.IO.JsonLines;
 using Refedle.Engine.Models;
 
@@ -8,9 +10,7 @@ namespace Refedle.App.Cli;
 internal struct JsonLinesRecordReader : IRecordReader
 {
     private readonly RowIndexer _rowIndexer;
-#pragma warning disable IDE0052, S1450 // Read in Step 2 (GetCellData property-name lookup); restored then.
     private readonly Memory<byte>[] _columnNameUtf8Bytes;
-#pragma warning restore IDE0052, S1450
     private readonly Dictionary<int, ReadOnlyMemory<byte>> _filterIndexToNameBytes;
     private readonly IReadOnlyList<Engine.Filtering.FilterSpec> _filters;
     private RowReader? _rowReader;
@@ -92,9 +92,70 @@ internal struct JsonLinesRecordReader : IRecordReader
     public readonly CellData GetCellData(int outputColumnIndex)
     {
         ThrowIfDisposed();
-        // Step 2: scan _currentLineBytes with a local Utf8JsonReader for the property named
-        // _columnNameUtf8Bytes[outputColumnIndex]; derive Presence/Encoding/Value from JsonTokenType.
-        throw new NotImplementedException();
+
+        var columnNameUtf8 = _columnNameUtf8Bytes[outputColumnIndex].Span;
+
+        try
+        {
+            var reader = new Utf8JsonReader(_currentLineBytes.Span);
+
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+            {
+                return new CellData([], CellPresence.Invalid);
+            }
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                {
+                    break;
+                }
+
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                {
+                    continue;
+                }
+
+                if (!reader.ValueTextEquals(columnNameUtf8))
+                {
+                    reader.Skip();
+                    continue;
+                }
+
+                if (!reader.Read())
+                {
+                    return new CellData([], CellPresence.Invalid);
+                }
+
+                return ReadPropertyValue(reader, _currentLineBytes);
+            }
+
+            return new CellData([], CellPresence.Missing);
+        }
+        catch (JsonException)
+        {
+            return new CellData([], CellPresence.Invalid);
+        }
+    }
+
+    private static CellData ReadPropertyValue(Utf8JsonReader reader, JsonRawBytes containingBytes)
+    {
+        return reader.TokenType switch
+        {
+            JsonTokenType.Null => new CellData([], CellPresence.Null),
+            JsonTokenType.Number =>
+                new CellData(Encoding.UTF8.GetString(reader.ValueSpan), CellPresence.Value, CellEncoding.Raw),
+            JsonTokenType.StartObject or JsonTokenType.StartArray =>
+                new CellData(
+                    Encoding.UTF8.GetString(JsonByteExtractor.ExtractValueBytes(ref reader, containingBytes).Span),
+                    CellPresence.Value,
+                    CellEncoding.Raw),
+            JsonTokenType.String =>
+                new CellData(reader.GetString(), CellPresence.Value, CellEncoding.PlainText),
+            JsonTokenType.True => new CellData("true", CellPresence.Value, CellEncoding.Boolean),
+            JsonTokenType.False => new CellData("false", CellPresence.Value, CellEncoding.Boolean),
+            _ => new CellData([], CellPresence.Invalid),
+        };
     }
 
     public void Dispose()

@@ -1,3 +1,4 @@
+using AwesomeAssertions;
 using Refedle.App.Cli;
 
 namespace Refedle.Tests.App.Cli;
@@ -14,8 +15,9 @@ public sealed class CellEncodingClassifierTests
         // Arrange
 
         // Act
+        var actual = CellEncodingClassifier.Classify(input);
 
         // Assert
-        Assert.Fail($"Not implemented: Classify(\"{input}\") -> {expectedEncoding}");
+        actual.Should().Be(expectedEncoding);
     }
 }

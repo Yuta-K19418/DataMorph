@@ -1,4 +1,7 @@
+using AwesomeAssertions;
+using nietras.SeparatedValues;
 using Refedle.App.Cli;
+using Refedle.Engine;
 
 namespace Refedle.Tests.App.Cli;
 
@@ -10,13 +13,29 @@ public sealed class CsvRecordReaderTests
     [InlineData("TRUE", CellEncoding.Boolean)]
     [InlineData("hello", CellEncoding.PlainText)]
     [InlineData("", CellEncoding.PlainText)]
-    internal void GetCellData_CsvText_ReturnsValuePresenceAndClassifiedEncoding(string input, CellEncoding expectedEncoding)
+    internal async Task GetCellData_CsvText_ReturnsValuePresenceAndClassifiedEncoding(string input, CellEncoding expectedEncoding)
     {
         // Arrange
+        var filePath = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(filePath, $"value,filler\n{input},x\n");
+            var sepReader = await Sep.New(',').Reader().FromFileAsync(filePath);
+            var outputSchema = new BatchOutputSchema([new BatchOutputColumn("value", "value")], []);
+            using var recordReader = new CsvRecordReader(sepReader, outputSchema);
+            await recordReader.MoveNextAsync(default);
 
-        // Act
+            // Act
+            var cell = recordReader.GetCellData(0);
 
-        // Assert
-        Assert.Fail($"Not implemented: \"{input}\" -> Value/{expectedEncoding}");
+            // Assert
+            cell.Presence.Should().Be(CellPresence.Value);
+            cell.Encoding.Should().Be(expectedEncoding);
+            cell.Value.ToString().Should().Be(input);
+        }
+        finally
+        {
+            File.Delete(filePath);
+        }
     }
 }
